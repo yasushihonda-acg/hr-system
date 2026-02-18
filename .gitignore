@@ -40,5 +40,8 @@ coverage/
 # Turborepo
 .turbo/
 
+# Next.js (auto-generated)
+next-env.d.ts
+
 # Prisma
 packages/db/src/generated/
