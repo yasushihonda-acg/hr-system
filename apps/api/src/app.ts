@@ -1,8 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { appErrorHandler } from "./lib/errors.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rbacMiddleware } from "./middleware/rbac.js";
+import { auditLogRoutes } from "./routes/audit-logs.js";
+import { employeeRoutes } from "./routes/employees.js";
+import { salaryDraftRoutes } from "./routes/salary-drafts.js";
 
 const app = new Hono();
 
@@ -18,8 +22,16 @@ app.get("/api/health", (c) =>
   }),
 );
 
-// 認証が必要なルート（/api/health 以外）
+// 認証 + RBAC（全 /api/* ルートに適用）
 app.use("/api/*", authMiddleware);
 app.use("/api/*", rbacMiddleware);
+
+// ビジネスルート
+app.route("/api/salary-drafts", salaryDraftRoutes);
+app.route("/api/employees", employeeRoutes);
+app.route("/api/audit-logs", auditLogRoutes);
+
+// グローバルエラーハンドラ
+app.onError(appErrorHandler);
 
 export { app };
