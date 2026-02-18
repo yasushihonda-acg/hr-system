@@ -64,9 +64,34 @@ Google Chat の人事指示を AI が解釈し、給与変更ドラフトを自�
 - AI パラメータ抽出はモックで分離テスト
 - E2E: Chat 投稿 → ドラフト生成 → 承認 → 通知の一連フロー
 
+## Project Structure (Monorepo)
+
+```
+apps/
+  api/          Hono (TypeScript) — Cloud Run API サーバー
+  web/          Next.js 15 (App Router) — 承認ダッシュボード
+packages/
+  db/           Prisma (PostgreSQL) — スキーマ・マイグレーション・クライアント
+  shared/       共通型定義 (DraftStatus, ChatCategory 等)
+```
+
 ## Conventions
 
 - 言語: TypeScript (Backend/Frontend 共通)
+- Monorepo: Turborepo + pnpm workspaces
+- Lint/Format: Biome
+- Test: Vitest
+- ORM: Prisma
 - DB マイグレーション: docs/adr/ADR-003 参照
 - API: RESTful, JSON
 - 監査ログ: 全操作を AuditLog テーブルに記録（7年保持）
+
+## Commands
+
+- `pnpm dev` — 全サービス起動 (API: 3001, Web: 3000)
+- `pnpm build` — 全パッケージビルド
+- `pnpm lint` — Biome lint
+- `pnpm typecheck` — TypeScript型チェック
+- `pnpm test` — Vitest テスト実行
+- `pnpm db:generate` — Prisma Client 生成
+- `pnpm db:migrate` — DB マイグレーション
