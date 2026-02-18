@@ -32,7 +32,7 @@ GCP をクラウド基盤として採用し、**Cloud Run を中心としたサ�
 | Backend API | Cloud Run | ビジネスロジック、AI 呼び出し、DB 操作 |
 | Web Dashboard | Cloud Run (Next.js SSR) | 人事担当者向け管理 UI |
 | Chat Webhook 受信 | Cloud Run + Pub/Sub | Google Chat からの非同期メッセージ処理 |
-| データベース | Cloud SQL (PostgreSQL) | 従業員・給与・ドラフトデータの永続化 |
+| データベース | Firestore (Native mode) + BigQuery | 従業員・給与・ドラフトデータの永続化・分析 |
 | AI 推論 | Vertex AI (Gemini) | 自然言語理解・Intent 抽出 |
 | 監視・ログ | Cloud Monitoring / Cloud Logging | 運用可視化、監査ログ |
 | 認証 | Cloud IAM / Secret Manager | サービス間認証、シークレット管理 |
@@ -46,7 +46,7 @@ graph TD
     GChat -->|Pub/Sub| CloudRun[Backend API<br/>Cloud Run]
     CloudRun -->|Prompt+Context| VertexAI[Vertex AI<br/>Gemini]
     VertexAI -->|Intent/Params| CloudRun
-    CloudRun -->|Read/Write| DB[(Cloud SQL<br/>PostgreSQL)]
+    CloudRun -->|Read/Write| DB[(Firestore)]
     CloudRun -->|Calc Logic| Logic[給与計算ロジック]
     Admin[人事担当] -->|Web UI| NextJS[Dashboard<br/>Cloud Run]
     NextJS -->|API Call| CloudRun
@@ -89,13 +89,6 @@ graph TD
 - GCP に比べて Google API との親和性が低い
 - **不採用理由**: Google エコシステムとの統合コストが高い
 
-### Firebase (Firestore)
-
-- リアルタイム同期など Firebase の強みがこのユースケースに不要
-- Firestore は NoSQL であり、給与・従業員データのリレーショナル構造に不向き
-- Firebase Auth は Google Workspace の組織アカウント管理と統合しにくい
-- **不採用理由**: リレーショナルデータへの不適合
-
 ### フルサーバーレス (Cloud Functions)
 
 - 実行時間上限（第2世代で60分）が AI 処理には制約になる可能性がある
@@ -121,14 +114,12 @@ graph TD
 
 ### ネガティブ / リスク
 
-- Cloud SQL の接続プーリング（Cloud SQL Auth Proxy または接続プール設定）を適切に設定しないと、Cloud Run のスケールアウト時に接続数枯渇が発生する
 - Pub/Sub のメッセージ順序保証は「ordering key 使用時のみ」のため、順序が重要な処理には設計が必要
 - Cloud Run のコールドスタートが初回リクエストのレイテンシに影響する可能性がある（min-instances 設定で緩和可能）
 - GCP への強いベンダーロックインが生じる
 
 ### 対応策
 
-- Cloud SQL: `pgbouncer` または Cloud SQL Proxy の接続プーリングを設定
 - Pub/Sub: ordering key によるメッセージ順序保証を実装
 - Cloud Run: `min-instances=1` でコールドスタートを回避（コスト増のトレードオフ）
 
@@ -137,7 +128,7 @@ graph TD
 ## 関連 ADR
 
 - [ADR-002: LLM選定 — Vertex AI (Gemini)](./ADR-002-llm-selection.md)
-- [ADR-003: データベース選定 — Cloud SQL (PostgreSQL)](./ADR-003-database-selection.md)
+- [ADR-003: データベース選定 — Firestore + BigQuery](./ADR-003-database-selection.md)
 - [ADR-004: チャット連携方式 — Google Chat API + Pub/Sub](./ADR-004-chat-integration.md)
 - [ADR-005: フロントエンド技術 — Next.js (React)](./ADR-005-frontend-technology.md)
 - [ADR-006: Human-in-the-loop 設計パターン](./ADR-006-human-in-the-loop.md)

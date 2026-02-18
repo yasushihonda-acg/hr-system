@@ -1,9 +1,9 @@
-# ADR-003: データベース選定 — Cloud SQL (PostgreSQL)
+# ADR-003: データベース選定 — Firestore + BigQuery ハイブリッド
 
 | 項目 | 内容 |
 |------|------|
 | 日付 | 2026-02-18 |
-| ステータス | 承認済み |
+| ステータス | 承認済み（改訂: Cloud SQL → Firestore + BigQuery） |
 | 決定者 | アーキテクチャチーム |
 
 ---
@@ -14,149 +14,131 @@ HR-AI Agent は以下のデータを永続化・管理する必要がある。
 
 | データ種別 | 特性 |
 |-----------|------|
-| 従業員マスタ | 構造化・リレーショナル（社員ID、氏名、部署、雇用形態）|
-| 給与データ | 構造化・金額の正確性が必須・履歴管理が必要 |
-| 手当マスタ（地域・資格・役職） | 参照テーブル。変更頻度低 |
-| Pitch テーブル | 参照テーブル。給与計算の根拠 |
+| 従業員マスタ | 構造化（社員ID、氏名、部署、雇用形態）|
+| 給与データ | 金額の正確性が必須・履歴管理が必要 |
+| 手当マスタ（地域・資格・役職） | 参照データ。変更頻度低 |
+| Pitch テーブル | 参照データ。給与計算の根拠 |
 | AI ドラフトデータ | 半構造化（AI の出力 JSON + メタデータ）|
 | 承認ワークフローデータ | ステータス遷移・承認者・タイムスタンプ |
 | 監査ログ | 誰が何をいつ操作したかの完全な記録 |
 
 ### 重要な制約
 
-- 給与データは 1円の誤差も許されない → **ACID トランザクション必須**
+- 給与データは 1円の誤差も許されない → **数値計算は整数（円単位）で確定的コード実行**
 - 個人情報保護法・労働基準法への準拠 → **完全な監査ログが必要**
-- マスタデータの変更には履歴管理が必要（「いつの時点での計算根拠か」を追跡可能にする）
-- Cloud Run（サーバーレス）からの接続 → **接続プーリングへの対応が必要**
+- Cloud Run（サーバーレス）からの接続 → **コネクション管理不要が望ましい**
+- 小規模組織（50〜200名）→ **コストパフォーマンス重視**
+- 月間操作量: 給与変更ドラフト数十件、チャットメッセージ数百件程度
 
 ---
 
 ## 決定 (Decision)
 
-**Cloud SQL for PostgreSQL** をメインデータストアとして採用する。
+**Firestore（Native モード）** をメインデータストアとし、分析用途に **BigQuery** を連携するハイブリッド構成を採用する。
 
 ### 構成詳細
 
 | 項目 | 設定 |
 |------|------|
-| インスタンスタイプ | Cloud SQL (PostgreSQL 16) |
+| メインDB | Firestore (Native mode) |
 | リージョン | asia-northeast1 |
-| 可用性 | High Availability（プライマリ + スタンバイ）|
-| 接続方式 | Cloud SQL Auth Proxy（プライベート IP）|
-| バックアップ | 自動バックアップ（7日間保持）+ Point-in-Time Recovery |
-| 暗号化 | 保存時暗号化（Cloud KMS）、転送時 TLS |
+| 分析DWH | BigQuery（Firebase Extension でストリーミング連携） |
+| 接続方式 | firebase-admin SDK（ADC: Application Default Credentials）|
+| バックアップ | Firestore 自動バックアップ（マネージド）|
+| 暗号化 | Google 管理キーによる保存時暗号化、転送時 TLS |
 
-### 接続プーリング
-
-Cloud Run のスケールアウト時の接続数枯渇を防ぐため、以下の方式を採用する。
+### アーキテクチャ
 
 ```mermaid
 graph LR
-    CR1[Cloud Run Instance 1] --> Proxy[Cloud SQL Auth Proxy<br/>Sidecar]
-    CR2[Cloud Run Instance 2] --> Proxy
-    CR3[Cloud Run Instance N] --> Proxy
-    Proxy -->|SSL| CSQL[(Cloud SQL<br/>PostgreSQL)]
+    CR[Cloud Run<br/>API Server] -->|firebase-admin SDK| FS[(Firestore)]
+    FS -->|Firebase Extension<br/>Stream to BigQuery| BQ[(BigQuery)]
+    NX[Next.js<br/>Dashboard] -->|API経由| CR
+    BQ -->|SQL分析| RPT[レポート・集計]
 ```
 
-接続プールライブラリ（`pgbouncer` または アプリレベルの接続プール）を使用し、最大接続数を制御する。
+### コレクション設計
+
+全エンティティをルートコレクションとして配置（BigQuery Export との互換性のため）。
+
+```
+employees/{docId}          — 従業員マスタ
+salaries/{docId}           — 現行給与（employeeId参照）
+salary_drafts/{docId}      — AI生成ドラフト
+chat_messages/{docId}      — チャットメッセージ + 分類結果
+approval_logs/{docId}      — 承認ワークフロー履歴
+pitch_tables/{docId}       — Pitchテーブル（マスタ）
+allowance_masters/{docId}  — 手当マスタ
+```
 
 ---
 
 ## 理由 (Rationale)
 
-### リレーショナルデータへの適合性
+### コストパフォーマンス
 
-給与・従業員・手当データは強いリレーションを持つ。
+本システムの規模（50〜200名、月数十件の変更）では、Firestore が圧倒的に有利。
 
-```mermaid
-erDiagram
-    EMPLOYEE ||--o{ SALARY_RECORD : has
-    EMPLOYEE ||--o{ ALLOWANCE_RECORD : has
-    SALARY_RECORD }o--|| PITCH_TABLE : references
-    ALLOWANCE_RECORD }o--|| ALLOWANCE_MASTER : references
-    AI_DRAFT ||--o{ APPROVAL_HISTORY : has
-    AI_DRAFT }o--|| EMPLOYEE : targets
-```
+| 項目 | Firestore + BigQuery | Cloud SQL (PostgreSQL) |
+|------|---------------------|------------------------|
+| MVP期間 月額 | **$0**（無料枠内） | $7〜15/月（最小インスタンス） |
+| 本番運用 月額 | **$0〜2/月** | $15〜30/月 |
+| HA構成 | 自動（追加費用なし） | vCPU追加課金 |
 
-- JOIN による複雑なクエリ（「対象従業員の現在の給与と適用手当をすべて取得」）が自然に書ける
-- 外部キー制約によるデータ整合性の保証
-- トランザクション内での複数テーブル更新（給与変更 + 履歴追記 + 監査ログ）が安全に実行できる
+Firestore 無料枠: 1GB ストレージ、50K reads/月、20K writes/月、20K deletes/月
 
-### ACID トランザクション
+### 運用負荷の最小化
 
-```sql
-BEGIN;
-  -- 現在の給与を履歴に移動
-  INSERT INTO salary_history SELECT * FROM salary_current WHERE employee_id = $1;
-  -- 新しい給与を適用
-  UPDATE salary_current SET base_salary = $2, updated_at = NOW() WHERE employee_id = $1;
-  -- 監査ログを記録
-  INSERT INTO audit_log (action, actor, target_employee_id, before_value, after_value, approved_by)
-    VALUES ('salary_change', $3, $1, $4, $5, $6);
-COMMIT;
-```
+- **コネクション管理不要**: Cloud Run のスケールアウト時も接続プーリングの心配なし
+- **パッチ適用不要**: フルマネージド、自動スケール
+- **バックアップ自動**: Point-in-Time Recovery 組み込み
+- **HA自動**: マルチリージョンレプリケーション（追加設定不要）
 
-このような複数テーブルにまたがるアトミックな更新が、ACID 保証のもとで安全に実行できる。
+### データモデルとの適合性
 
-### JSON/JSONB 型によるハイブリッド対応
+- **SalaryDraft**: Before/After スナップショット（JSON）を自然に格納 → ドキュメント指向と相性が良い
+- **ChatMessage**: AI解析結果（JSON）を含む半構造化データ → Firestore 向き
+- **ApprovalLog**: 時系列のイベントログ → ドキュメント追記と相性が良い
+- **マスタデータ**: 読み取り中心、変更頻度低 → Firestore のキャッシュが効く
 
-AI の出力（Intent 分類結果、パラメータ抽出結果）は半構造化データである。PostgreSQL の JSONB 型を使用することで、同一 DB 内で構造化データと半構造化データを統一的に管理できる。
+### 金額計算の正確性
 
-```sql
-CREATE TABLE ai_drafts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    status VARCHAR(30) NOT NULL,
-    intent VARCHAR(50) NOT NULL,
-    extracted_params JSONB NOT NULL,   -- AI 抽出パラメータ
-    calculated_result JSONB,           -- 確定計算結果
-    llm_raw_response JSONB,            -- デバッグ用生レスポンス
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
+給与計算の正確性は DB のトランザクション特性ではなく、**アプリケーションコードの確定的計算**（ADR-007）で保証する。
 
-### Cloud Run との接続容易性
+- 全金額は **整数（円単位）** で処理、浮動小数点は使用しない
+- Firestore トランザクション内で読み取り→計算→書き込みを実行可能
+- バッチ書き込みで複数ドキュメントのアトミック更新が可能（最大500ドキュメント）
 
-- Cloud SQL Auth Proxy がサイドカーコンテナとして動作し、安全な接続を提供
-- Unix ドメインソケットまたは TCP で接続でき、アプリケーションコードへの変更が最小
+### 分析・集計への対応
 
-### マネージドサービスの運用メリット
+Firestore 単体では複雑な集計クエリに制限があるが、**BigQuery 連携**で補完する。
 
-- 自動バックアップ・Point-in-Time Recovery が組み込まれており、データ損失リスクが低い
-- パッチ適用・マイナーバージョンアップグレードは GCP が管理
-- Cloud Monitoring との統合で、接続数・クエリ性能・ストレージ使用量を自動監視できる
+- Firebase Extension「Stream Firestore to BigQuery」でリアルタイムエクスポート
+- BigQuery 上で SQL による自由な分析・集計が可能
+- BigQuery 無料枠: 1TB/月のクエリ処理（本システムには十分）
 
 ---
 
 ## 代替案 (Alternatives Considered)
 
-### Firestore（NoSQL）
+### Cloud SQL for PostgreSQL
 
-- リアルタイム同期やモバイル向けアプリには有効
-- 従業員・給与データのような強いリレーショナル構造には不向き
-- JOIN が使えないため、複雑な集計クエリに多数の読み取り操作が必要になる
-- ACID トランザクションの制約（同一ドキュメントグループ内のみ）
-- **不採用理由**: データ構造の適合性の低さ、トランザクション制限
+- ACID トランザクション、SQL の全機能が使える
+- **不採用理由**:
+  - 本システムの規模に対して常時課金（最小 $7〜15/月）がコスト過剰
+  - Cloud Run からの接続プーリング管理が必要（Cloud SQL Auth Proxy + pgbouncer）
+  - パッチ適用・バックアップの運用管理が発生
+  - 複雑な JOIN は BigQuery で代替可能
 
 ### AlloyDB for PostgreSQL
 
-- PostgreSQL 互換で Cloud SQL より高性能（OLAP + OLTP 混在に対応）
-- 現時点のスループット要件（数十件/日の人事処理）には過剰スペック
-- Cloud SQL より価格が高い
-- **不採用理由**: 現時点ではコストパフォーマンスに見合わない。将来的な移行オプションとして保留
+- PostgreSQL 互換で高性能
+- **不採用理由**: 規模に対して大幅なオーバースペック、Cloud SQL より高コスト
 
 ### Cloud Spanner
 
-- グローバル分散・強整合性トランザクション
-- 国内のみの運用でグローバル分散は不要
-- 最低課金が高く、スモールスタートに不向き
-- **不採用理由**: ユースケースに対してオーバースペックかつ高コスト
-
-### BigQuery
-
-- 大規模分析 DWH として優れるが、OLTP には不適
-- INSERT/UPDATE の頻繁な発生するユースケースに非効率
-- **不採用理由**: OLTP 用途には不適。将来の分析用途には Cloud SQL から BigQuery へのエクスポートを検討
+- グローバル分散・強整合性
+- **不採用理由**: 国内のみの運用で不要、最低課金が非常に高い
 
 ---
 
@@ -164,29 +146,33 @@ CREATE TABLE ai_drafts (
 
 ### ポジティブ
 
-- ACID トランザクションにより、給与データの整合性を強く保証できる
-- JSONB 型により、AI 出力の非構造化データも同一 DB で管理でき、アーキテクチャがシンプルになる
-- マネージドサービスにより、バックアップ・パッチ管理の運用負荷が低い
-- PostgreSQL のエコシステム（マイグレーションツール、ORM）が豊富
+- MVP 期間の DB コストが **実質ゼロ**
+- Cloud Run との接続が単純（SDK のみ、Proxy 不要）
+- 運用負荷が最小（パッチ・バックアップ・HA すべて自動）
+- BigQuery 連携で分析ニーズにも対応可能
+- ローカル開発が軽量（Firebase Emulator、Docker 不要）
 
 ### ネガティブ / リスク
 
-- **マイグレーション管理**: スキーマ変更はマイグレーションスクリプトで管理する必要がある
-  - 対策: `golang-migrate` または `Flyway` を採用し、CI/CD でマイグレーションを自動実行
-- **接続数管理**: Cloud Run のスケールアウト時に接続数が急増する可能性がある
-  - 対策: アプリレベルの接続プール設定（最大接続数を制限）と、インスタンスの max_connections 設定の調整
-- **コールドスタート**: Cloud SQL インスタンスの起動に数分かかる可能性がある
-  - 対策: 常時起動（High Availability 設定）で運用
+- **複雑なクエリ制限**: 複合クエリには複合インデックスの事前定義が必要
+  - 対策: 必要なクエリパターンを設計時に洗い出し、インデックスを定義
+- **JOIN 不可**: コレクション間の結合は アプリケーション層で実装
+  - 対策: 必要に応じてデータの非正規化、集計は BigQuery で実行
+- **トランザクション制約**: 同一トランザクション内の操作は最大 500 ドキュメント
+  - 対策: 本システムの操作規模では十分（一括変更は最大でも数十件）
+- **スキーマレス**: 型安全性はアプリケーション層で担保する必要がある
+  - 対策: TypeScript の型定義 + Firestore Data Converter で型安全なアクセスを実現
 
 ### 運用上の決定事項
 
 | 項目 | 方針 |
 |------|------|
-| マイグレーション | `golang-migrate` を使用。バージョン管理に含める |
-| 接続プール | アプリケーション側で最大接続数を設定（例: max_pool_size=5 / instance）|
-| バックアップ | 自動バックアップ（深夜）+ 本番変更前の手動スナップショット |
-| 監査ログ | `audit_log` テーブルに全変更を記録。削除は禁止（論理削除のみ）|
-| 暗号化 | CMEK（Customer-Managed Encryption Keys）を検討（フェーズ2）|
+| コレクション設計 | ルートコレクション（BigQuery Export 互換） |
+| ID 生成 | Firestore 自動生成 ID |
+| 監査ログ | `approval_logs` コレクションに全変更を記録。削除禁止 |
+| BigQuery 連携 | Firebase Extension でストリーミング（Phase 2 以降） |
+| ローカル開発 | Firebase Emulator Suite |
+| インデックス | `firestore.indexes.json` でバージョン管理 |
 
 ---
 

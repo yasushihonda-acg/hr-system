@@ -5,22 +5,19 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.18.0"
+    "@hr-system/shared": "workspace:*",
+    "firebase-admin": "^13.6.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "prisma": "^6.18.0"
+    "@types/node": "^22.0.0"
   }
 }

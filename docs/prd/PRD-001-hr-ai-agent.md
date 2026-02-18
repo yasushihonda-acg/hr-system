@@ -277,7 +277,7 @@
 | NFR-S01 | 給与情報は PII（個人識別情報）として扱い、暗号化・アクセスログを徹底する |
 | NFR-S02 | Web 管理画面は Google Workspace 認証（OAuth 2.0）でのみアクセス可能とする |
 | NFR-S03 | ロールベースアクセス制御（RBAC）を実装し、職位・役割に応じて参照・操作権限を制御する |
-| NFR-S04 | Cloud SQL の接続は VPC 内に閉じ、インターネット直接公開をしない |
+| NFR-S04 | Firestore へのアクセスは firebase-admin SDK（ADC 認証）経由に限定し、クライアント直接アクセスを禁止する |
 | NFR-S05 | SmartHR・Google Sheets 等の API キーは Secret Manager で管理し、ハードコーディング禁止 |
 
 ### 7.4 パフォーマンス・可用性
@@ -371,7 +371,7 @@
 |---|--------|--------|----------|------|
 | R1 | AI による給与計算の誤解釈 | 高 | 中 | 金銭計算はプログラムコードで実施。AI は intent/entity 抽出のみに使用。必ず人間の確認ステップを挟む |
 | R2 | SmartHR API 仕様変更による連携断絶 | 高 | 中 | SmartHR 連携モジュールを分離。API バージョン固定・変更通知の監視体制を整備 |
-| R3 | 給与情報の漏洩（セキュリティインシデント） | 高 | 低 | Google 認証・RBAC・Cloud SQL VPC 閉鎖・Secret Manager 活用。定期的な脆弱性診断 |
+| R3 | 給与情報の漏洩（セキュリティインシデント） | 高 | 低 | Google 認証・RBAC・Firestore ADC 認証・Secret Manager 活用。定期的な脆弱性診断 |
 | R4 | 社長・人事担当者の利用定着失敗 | 高 | 中 | UX を極限まで単純化（社長は Chat 入力のみ）。導入初期の伴走サポートを計画 |
 | R5 | 給与規程変更時のロジック未更新 | 中 | 高 | 給与規程ルールをコード・設定ファイルに明示的に定義。規程変更時の更新手順をドキュメント化 |
 | R6 | スプレッドシート・SmartHR との二重管理による不整合 | 中 | 中 | Phase 1 では同期後に整合性チェックを自動実行。Phase 2 で SmartHR を Single Source of Truth に一本化 |
@@ -409,7 +409,7 @@
 |--------|----------|------|
 | Frontend | Next.js (React) | Web 管理画面 |
 | Backend | Cloud Run (GCP) | コンテナベースのサーバーレス |
-| Database | Cloud SQL (PostgreSQL) | 従業員・給与・ログデータ |
+| Database | Firestore + BigQuery | 従業員・給与・ログデータ |
 | AI | Vertex AI (Gemini) | メッセージ解析・分類 |
 | Chat 連携 | Google Chat API + Pub/Sub | メッセージ受信・送信 |
 | 外部連携 | SmartHR API, Google Sheets API | 承認後の自動連携 |
