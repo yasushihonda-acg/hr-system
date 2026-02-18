@@ -35,3 +35,9 @@ yarn-error.log*
 
 # Testing
 coverage/
+
+# Turborepo
+.turbo/
+
+# Prisma
+packages/db/src/generated/
