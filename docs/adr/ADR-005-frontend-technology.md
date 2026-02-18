@@ -62,7 +62,7 @@ graph TD
     Browser[ブラウザ] -->|HTTPS| NextJS[Next.js<br/>Cloud Run]
     NextJS -->|NextAuth.js| GoogleOAuth[Google OAuth2<br/>Workspace認証]
     NextJS -->|API Routes BFF| BackendAPI[Backend API<br/>Cloud Run]
-    BackendAPI -->|Query/Mutate| DB[(Cloud SQL)]
+    BackendAPI -->|Query/Mutate| DB[(Firestore)]
 
     subgraph "Next.js App"
         Pages[Page Components<br/>React Server Components]
@@ -195,5 +195,5 @@ graph LR
 ## 関連 ADR
 
 - [ADR-001: 全体アーキテクチャ — GCPベース構成](./ADR-001-gcp-architecture.md)
-- [ADR-003: データベース選定 — Cloud SQL (PostgreSQL)](./ADR-003-database-selection.md)
+- [ADR-003: データベース選定 — Firestore + BigQuery](./ADR-003-database-selection.md)
 - [ADR-006: Human-in-the-loop 設計パターン](./ADR-006-human-in-the-loop.md)

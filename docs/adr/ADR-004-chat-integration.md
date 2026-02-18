@@ -49,7 +49,7 @@ sequenceDiagram
     participant PubSub as Cloud Pub/Sub
     participant Worker as AI Worker<br/>(Cloud Run)
     participant VertexAI as Vertex AI
-    participant DB as Cloud SQL
+    participant DB as Firestore
 
     User->>GChat: メッセージ投稿
     GChat->>PubSub: Event を Publish
@@ -71,7 +71,7 @@ graph TD
     CloudRun -->|Messages API| GChat
     CloudRun -->|Prompt| VertexAI[Vertex AI]
     VertexAI -->|JSON| CloudRun
-    CloudRun -->|Save Draft| DB[(Cloud SQL)]
+    CloudRun -->|Save Draft| DB[(Firestore)]
     CloudRun -->|Notify| Dashboard[Web Dashboard]
 ```
 

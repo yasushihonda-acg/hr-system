@@ -382,7 +382,7 @@ LLM が抽出したパラメータをもとに、確定的プログラムコー�
 | 測定項目 | 基準値 |
 |----------|--------|
 | 認証方式 | Google OAuth 2.0 必須 |
-| DB 接続 | Cloud SQL Auth Proxy 経由のみ許可 |
+| DB 接続 | firebase-admin SDK (ADC) 経由のみ許可 |
 | AI サービス通信 | VPC 内プライベートアクセス（Vertex AI） |
 | RBAC ロール | 最低 3 ロール（社長・人事担当者・閲覧者） |
 
@@ -436,7 +436,7 @@ LLM が抽出したパラメータをもとに、確定的プログラムコー�
 #### 実装方針
 
 - Cloud Run のオートスケーリングによる負荷対応
-- Cloud SQL の自動フェイルオーバー（リードレプリカ設置）
+- Firestore のマネージド HA（自動フェイルオーバー不要・マルチリージョンレプリケーション）
 - Cloud Monitoring + アラートポリシーによる障害監視
 
 ---
@@ -459,7 +459,7 @@ LLM が抽出したパラメータをもとに、確定的プログラムコー�
 
 #### 実装方針
 
-- Cloud SQL のポイントインタイムリカバリ（PITR）有効化
+- Firestore の自動バックアップ・ポイントインタイムリカバリ（PITR）有効化
 - 長期保存データは Cloud Storage Coldline へのアーカイブ
 
 ---
@@ -747,7 +747,7 @@ stateDiagram-v2
 | 社労士通知 | FR-4-② | Spreadsheet 貼付 + スペース通知 |
 | Sheets 書き出し | FR-4-③ | 全雇用区分の給与履歴更新 |
 | 監査ログ | FR-6 | 全操作の完全記録 |
-| セキュリティ基盤 | NFR-3 | Google OAuth / RBAC / Cloud SQL Proxy |
+| セキュリティ基盤 | NFR-3 | Google OAuth / RBAC / Firestore ADC |
 
 **Phase 1 対象外（分類記録のみ）:**
 
