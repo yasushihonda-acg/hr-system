@@ -15,7 +15,7 @@ Google Chat 指示（非構造化） → AI 解釈・ドラフト作成（構造
 | Cloud | GCP (hr-system-487809 / asia-northeast1) |
 | Backend | Cloud Run (Python/Node.js) |
 | Frontend | Next.js (React) on Cloud Run |
-| Database | Cloud SQL (PostgreSQL) |
+| Database | Firestore + BigQuery |
 | AI/LLM | Vertex AI (Gemini) |
 | Messaging | Google Chat API + Pub/Sub |
 | External | SmartHR API, Google Sheets API, Gmail API |
@@ -26,7 +26,7 @@ Google Chat 指示（非構造化） → AI 解釈・ドラフト作成（構造
 社長/人事 → Google Chat → Pub/Sub → Cloud Run (API)
                                          ├→ Vertex AI (Intent分類・パラメータ抽出)
                                          ├→ 給与計算ロジック (確定的コード)
-                                         └→ Cloud SQL (PostgreSQL)
+                                         └→ Firestore
 
 人事担当 → Next.js Dashboard → Cloud Run (API)
                                     ├→ SmartHR API

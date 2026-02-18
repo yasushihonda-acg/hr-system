@@ -9,7 +9,7 @@ Google Chat の人事指示を AI が解釈し、給与変更ドラフトを自�
 - **GCP Project**: hr-system-487809 (asia-northeast1)
 - **Backend**: Cloud Run (API server + Chat webhook worker)
 - **Frontend**: Next.js on Cloud Run
-- **Database**: Cloud SQL (PostgreSQL)
+- **Database**: Firestore (Native mode) + BigQuery (分析用)
 - **AI**: Vertex AI (Gemini) — パラメータ抽出のみ。金銭計算は禁止。
 - **Messaging**: Google Chat API + Pub/Sub
 - **External**: SmartHR API, Google Sheets API, Gmail API
@@ -31,7 +31,7 @@ Google Chat の人事指示を AI が解釈し、給与変更ドラフトを自�
 ### Security
 - 給与情報は PII（最高機密）— ログ出力に個人情報を含めない
 - 認証: Google OAuth 2.0
-- DB 接続: Cloud SQL Auth Proxy 経由
+- DB 接続: firebase-admin SDK（ADC）
 - サービスアカウントキーをコミットしない
 
 ## Key Documents
@@ -71,7 +71,7 @@ apps/
   api/          Hono (TypeScript) — Cloud Run API サーバー
   web/          Next.js 15 (App Router) — 承認ダッシュボード
 packages/
-  db/           Prisma (PostgreSQL) — スキーマ・マイグレーション・クライアント
+  db/           Firestore — 型定義・コレクション・クライアント
   shared/       共通型定義 (DraftStatus, ChatCategory 等)
 ```
 
@@ -81,8 +81,8 @@ packages/
 - Monorepo: Turborepo + pnpm workspaces
 - Lint/Format: Biome
 - Test: Vitest
-- ORM: Prisma
-- DB マイグレーション: docs/adr/ADR-003 参照
+- DB: firebase-admin SDK + Firestore Data Converter
+- コレクション設計: docs/adr/ADR-003 参照
 - API: RESTful, JSON
 - 監査ログ: 全操作を AuditLog テーブルに記録（7年保持）
 
@@ -93,5 +93,5 @@ packages/
 - `pnpm lint` — Biome lint
 - `pnpm typecheck` — TypeScript型チェック
 - `pnpm test` — Vitest テスト実行
-- `pnpm db:generate` — Prisma Client 生成
-- `pnpm db:migrate` — DB マイグレーション
+- `pnpm emulator` — Firebase Emulator 起動 (Firestore: 8080, UI: 4000)
+- `pnpm db:seed` — シードデータ投入

@@ -10,8 +10,8 @@
     "check": "biome check --write .",
     "typecheck": "turbo typecheck",
     "test": "turbo test --",
-    "db:generate": "turbo db:generate",
-    "db:migrate": "turbo db:migrate"
+    "db:seed": "turbo db:seed",
+    "emulator": "firebase emulators:start"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.0",
@@ -20,10 +20,9 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma",
+      "@firebase/util",
       "esbuild",
+      "protobufjs",
       "sharp"
     ]
   }

@@ -1,15 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+if (getApps().length === 0) {
+  initializeApp({
+    projectId: process.env.GCP_PROJECT_ID || "hr-system-487809",
   });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
 }
+
+export const db = getFirestore();
