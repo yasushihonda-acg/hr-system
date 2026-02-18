@@ -13,9 +13,13 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
+    "@hono/zod-validator": "^0.4.3",
+    "@hr-system/db": "workspace:*",
     "@hr-system/shared": "workspace:*",
+    "firebase-admin": "^13.6.0",
     "google-auth-library": "^10.5.0",
-    "hono": "^4.11.0"
+    "hono": "^4.11.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
