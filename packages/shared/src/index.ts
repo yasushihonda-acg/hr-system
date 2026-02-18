@@ -1,3 +1,4 @@
+export { getNextActions, validateTransition } from "./approval.js";
 export type {
   ActorRole,
   AllowanceType,
@@ -9,7 +10,6 @@ export type {
   EmploymentType,
   SalaryItemType,
 } from "./types.js";
-
 export {
   ACTOR_ROLES,
   ALLOWANCE_TYPES,
