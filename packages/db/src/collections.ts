@@ -8,11 +8,14 @@ import { db } from "./client.js";
 import type {
   AllowanceMaster,
   ApprovalLog,
+  AuditLog,
   ChatMessage,
   Employee,
+  IntentRecord,
   PitchTable,
   Salary,
   SalaryDraft,
+  SalaryDraftItem,
 } from "./types.js";
 
 function typedCollection<T extends DocumentData>(name: string): CollectionReference<T> {
@@ -31,8 +34,11 @@ export const collections = {
   employees: typedCollection<Employee>("employees"),
   salaries: typedCollection<Salary>("salaries"),
   salaryDrafts: typedCollection<SalaryDraft>("salary_drafts"),
+  salaryDraftItems: typedCollection<SalaryDraftItem>("salary_draft_items"),
   chatMessages: typedCollection<ChatMessage>("chat_messages"),
+  intentRecords: typedCollection<IntentRecord>("intent_records"),
   approvalLogs: typedCollection<ApprovalLog>("approval_logs"),
+  auditLogs: typedCollection<AuditLog>("audit_logs"),
   pitchTables: typedCollection<PitchTable>("pitch_tables"),
   allowanceMasters: typedCollection<AllowanceMaster>("allowance_masters"),
 };
