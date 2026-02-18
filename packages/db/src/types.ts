@@ -1,4 +1,14 @@
-import type { ActorRole, ChangeType, ChatCategory, DraftStatus } from "@hr-system/shared";
+import type {
+  ActorRole,
+  AllowanceType,
+  ApprovalAction,
+  AuditEventType,
+  ChangeType,
+  ChatCategory,
+  DraftStatus,
+  EmploymentType,
+  SalaryItemType,
+} from "@hr-system/shared";
 import type { Timestamp } from "firebase-admin/firestore";
 
 /** 従業員マスタ */
@@ -6,7 +16,8 @@ export interface Employee {
   employeeNumber: string;
   name: string;
   email: string | null;
-  employmentType: "full_time" | "part_time" | "visiting_nurse";
+  googleChatUserId: string | null;
+  employmentType: EmploymentType;
   department: string | null;
   position: string | null;
   hireDate: Timestamp;
@@ -21,7 +32,7 @@ export interface Salary {
   baseSalary: number;
   positionAllowance: number;
   regionAllowance: number;
-  qualAllowance: number;
+  qualificationAllowance: number;
   otherAllowance: number;
   totalSalary: number;
   effectiveFrom: Timestamp;
@@ -36,11 +47,14 @@ export interface SalaryDraft {
   status: DraftStatus;
   changeType: ChangeType;
   reason: string | null;
-  beforeSnapshot: Record<string, unknown>;
-  afterSnapshot: Record<string, unknown>;
+  beforeBaseSalary: number;
+  afterBaseSalary: number;
+  beforeTotal: number;
+  afterTotal: number;
+  effectiveDate: Timestamp;
   aiConfidence: number | null;
   aiReasoning: string | null;
-  effectiveDate: Timestamp;
+  appliedRules: Record<string, unknown> | null;
   reviewedBy: string | null;
   reviewedAt: Timestamp | null;
   approvedBy: string | null;
@@ -49,27 +63,59 @@ export interface SalaryDraft {
   updatedAt: Timestamp;
 }
 
-/** チャットメッセージ + AI分類結果 */
+/** ドラフト明細（手当項目ごとの Before/After） */
+export interface SalaryDraftItem {
+  draftId: string;
+  itemType: SalaryItemType;
+  itemName: string;
+  beforeAmount: number;
+  afterAmount: number;
+  isChanged: boolean;
+}
+
+/** チャットメッセージ */
 export interface ChatMessage {
   spaceId: string;
   googleMessageId: string;
   senderEmail: string;
   senderName: string;
   content: string;
-  category: ChatCategory;
-  aiParsed: Record<string, unknown> | null;
   processedAt: Timestamp | null;
+  createdAt: Timestamp;
+}
+
+/** AI Intent 分類結果 */
+export interface IntentRecord {
+  chatMessageId: string;
+  category: ChatCategory;
+  confidenceScore: number;
+  extractedParams: Record<string, unknown> | null;
+  llmInput: string | null;
+  llmOutput: string | null;
   createdAt: Timestamp;
 }
 
 /** 承認ワークフロー履歴 */
 export interface ApprovalLog {
   draftId: string;
-  fromStatus: string;
-  toStatus: string;
+  action: ApprovalAction;
+  fromStatus: DraftStatus;
+  toStatus: DraftStatus;
   actorEmail: string;
   actorRole: ActorRole;
   comment: string | null;
+  modifiedFields: Record<string, unknown> | null;
+  createdAt: Timestamp;
+}
+
+/** 監査ログ（全操作の不変記録） */
+export interface AuditLog {
+  eventType: AuditEventType;
+  entityType: string;
+  entityId: string;
+  actorEmail: string | null;
+  actorRole: ActorRole | null;
+  details: Record<string, unknown>;
   createdAt: Timestamp;
 }
 
@@ -84,7 +130,7 @@ export interface PitchTable {
 
 /** 手当マスタ */
 export interface AllowanceMaster {
-  allowanceType: "position" | "region" | "qualification";
+  allowanceType: AllowanceType;
   code: string;
   name: string;
   amount: number;
