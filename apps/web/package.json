@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest"
   },
   "dependencies": {
     "next": "^15.3.0",

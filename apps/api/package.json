@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",

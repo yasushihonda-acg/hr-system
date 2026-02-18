@@ -9,7 +9,7 @@
     "format": "biome format --write .",
     "check": "biome check --write .",
     "typecheck": "turbo typecheck",
-    "test": "turbo test",
+    "test": "turbo test --",
     "db:generate": "turbo db:generate",
     "db:migrate": "turbo db:migrate"
   },
