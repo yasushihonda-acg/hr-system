@@ -1,3 +1,5 @@
+export { db } from "./client.js";
+export { collections } from "./collections.js";
 export type {
   AllowanceMaster,
   ApprovalLog,
@@ -6,5 +8,4 @@ export type {
   PitchTable,
   Salary,
   SalaryDraft,
-} from "@prisma/client";
-export { prisma } from "./client.js";
+} from "./types.js";
