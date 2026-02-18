@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.0",
+    "@hr-system/shared": "workspace:*",
+    "google-auth-library": "^10.5.0",
     "hono": "^4.11.0"
   },
   "devDependencies": {
