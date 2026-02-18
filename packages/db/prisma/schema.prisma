@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- 従業員マスタ ---
+model Employee {
+  id             String   @id @default(uuid()) @db.Uuid
+  employeeNumber String   @unique @map("employee_number")
+  name           String
+  email          String?
+  employmentType String   @map("employment_type") // full_time | part_time | visiting_nurse
+  department     String?
+  position       String?
+  hireDate       DateTime @map("hire_date") @db.Date
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  salaryDrafts SalaryDraft[]
+  salaries     Salary[]
+
+  @@map("employees")
+}
+
+// --- 現行給与 ---
+model Salary {
+  id                String   @id @default(uuid()) @db.Uuid
+  employeeId        String   @map("employee_id") @db.Uuid
+  baseSalary        Int      @map("base_salary")
+  positionAllowance Int      @default(0) @map("position_allowance")
+  regionAllowance   Int      @default(0) @map("region_allowance")
+  qualAllowance     Int      @default(0) @map("qual_allowance")
+  otherAllowance    Int      @default(0) @map("other_allowance")
+  totalSalary       Int      @map("total_salary")
+  effectiveFrom     DateTime @map("effective_from") @db.Date
+  effectiveTo       DateTime? @map("effective_to") @db.Date
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("salaries")
+}
+
+// --- AI生成ドラフト ---
+model SalaryDraft {
+  id               String   @id @default(uuid()) @db.Uuid
+  employeeId       String   @map("employee_id") @db.Uuid
+  chatMessageId    String?  @map("chat_message_id") @db.Uuid
+  status           String   @default("draft") // draft | reviewed | pending_ceo_approval | approved | processing | completed | rejected
+  changeType       String   @map("change_type") // mechanical | discretionary
+  reason           String?
+  beforeSnapshot   Json     @map("before_snapshot")
+  afterSnapshot    Json     @map("after_snapshot")
+  aiConfidence     Float?   @map("ai_confidence")
+  aiReasoning      String?  @map("ai_reasoning")
+  effectiveDate    DateTime @map("effective_date") @db.Date
+  reviewedBy       String?  @map("reviewed_by")
+  reviewedAt       DateTime? @map("reviewed_at") @db.Timestamptz
+  approvedBy       String?  @map("approved_by")
+  approvedAt       DateTime? @map("approved_at") @db.Timestamptz
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  employee     Employee      @relation(fields: [employeeId], references: [id])
+  chatMessage  ChatMessage?  @relation(fields: [chatMessageId], references: [id])
+  approvalLogs ApprovalLog[]
+
+  @@map("salary_drafts")
+}
+
+// --- チャットメッセージ ---
+model ChatMessage {
+  id          String   @id @default(uuid()) @db.Uuid
+  spaceId     String   @map("space_id")
+  messageId   String   @unique @map("message_id")
+  senderEmail String   @map("sender_email")
+  senderName  String   @map("sender_name")
+  content     String
+  category    String   // salary | retirement | hiring | contract | transfer | foreigner | training | health_check | attendance | other
+  aiParsed    Json?    @map("ai_parsed")
+  processedAt DateTime? @map("processed_at") @db.Timestamptz
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  salaryDrafts SalaryDraft[]
+
+  @@map("chat_messages")
+}
+
+// --- 承認ログ ---
+model ApprovalLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  draftId      String   @map("draft_id") @db.Uuid
+  fromStatus   String   @map("from_status")
+  toStatus     String   @map("to_status")
+  actorEmail   String   @map("actor_email")
+  actorRole    String   @map("actor_role") // hr_staff | hr_manager | ceo
+  comment      String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  draft SalaryDraft @relation(fields: [draftId], references: [id])
+
+  @@map("approval_logs")
+}
+
+// --- マスターデータ: Pitchテーブル ---
+model PitchTable {
+  id        String   @id @default(uuid()) @db.Uuid
+  grade     Int
+  step      Int
+  amount    Int
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([grade, step])
+  @@map("pitch_tables")
+}
+
+// --- マスターデータ: 手当テーブル ---
+model AllowanceMaster {
+  id            String   @id @default(uuid()) @db.Uuid
+  allowanceType String   @map("allowance_type") // position | region | qualification
+  code          String
+  name          String
+  amount        Int
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([allowanceType, code])
+  @@map("allowance_masters")
+}
