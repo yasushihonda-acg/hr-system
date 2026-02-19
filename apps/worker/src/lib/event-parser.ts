@@ -1,3 +1,4 @@
+import type { ChatAnnotation, ChatAttachment } from "@hr-system/db";
 import { WorkerError } from "./errors.js";
 
 /**
@@ -16,7 +17,8 @@ export interface PubSubPushBody {
 
 /**
  * Google Workspace Events API が Pub/Sub トピックへ送る
- * Chat message.created イベントの内部ペイロード。
+ * Chat メッセージイベントの内部ペイロード。
+ * https://developers.google.com/workspace/events/reference/rest/v1/spaces.messages
  */
 interface ChatMessagePayload {
   message?: {
@@ -27,8 +29,29 @@ interface ChatMessagePayload {
       displayName?: string;
     };
     text?: string;
+    formattedText?: string;
     createTime?: string;
+    lastUpdateTime?: string;
+    deleteTime?: string;
     space?: { name: string };
+    thread?: {
+      name: string; // "spaces/{space_id}/threads/{thread_id}"
+      threadReply?: boolean;
+    };
+    /** スレッド返信の場合に設定される */
+    quotedMessageMetadata?: {
+      name?: string; // 引用元メッセージリソース名
+    };
+    annotations?: RawAnnotation[];
+    attachment?: Array<{
+      name?: string;
+      contentName?: string;
+      contentType?: string;
+      downloadUri?: string;
+      source?: string;
+    }>;
+    /** スレッド返信かどうかを示す（thread.threadReply と同義） */
+    threadReply?: boolean;
   };
 }
 
@@ -39,15 +62,26 @@ interface ChatMessagePayload {
 export interface ChatEvent {
   spaceName: string;
   googleMessageId: string;
-  senderUserId: string; // "users/{user_id}" — Phase 1 では senderEmail の代替
+  senderUserId: string; // "users/{user_id}"
   senderName: string;
+  senderType: "HUMAN" | "BOT";
   text: string;
+  formattedText: string | null;
+  messageType: "MESSAGE" | "THREAD_REPLY";
+  threadName: string | null;
+  parentMessageId: string | null;
+  mentionedUsers: Array<{ userId: string; displayName: string }>;
+  annotations: ChatAnnotation[];
+  attachments: ChatAttachment[];
+  isEdited: boolean;
+  isDeleted: boolean;
+  rawPayload: Record<string, unknown>;
   createdAt: Date;
 }
 
 /**
  * Pub/Sub push ボディを受け取り、ChatEvent を返す。
- * - message.created 以外のイベントタイプ → null（ACK）
+ * - message.created / message.updated 以外のイベントタイプ → null（ACK）
  * - Bot 投稿 → null（ACK）
  * - パース失敗 → WorkerError(PARSE_ERROR, shouldNack=false) をスロー
  */
@@ -59,10 +93,14 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
 
   const { message } = body;
 
-  // イベントタイプ確認（ce-type 属性、またはデータ内の type フィールド）
+  // イベントタイプ確認（ce-type 属性）
   const ceType = message.attributes?.["ce-type"] ?? "";
-  if (ceType && ceType !== "google.workspace.chat.message.v1.created") {
-    return null; // message.created 以外は無視
+  const supportedTypes = [
+    "google.workspace.chat.message.v1.created",
+    "google.workspace.chat.message.v1.updated",
+  ];
+  if (ceType && !supportedTypes.includes(ceType)) {
+    return null; // 未対応イベントタイプは無視（ACK）
   }
 
   // base64 デコード
@@ -87,24 +125,59 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
   }
 
   // Bot 投稿は無視
-  if (chatMessage.sender?.type === "BOT") {
+  const senderType = chatMessage.sender?.type === "BOT" ? "BOT" : "HUMAN";
+  if (senderType === "BOT") {
     return null;
   }
 
   // message.name から spaceName と messageId を抽出
   // フォーマット: "spaces/{space_id}/messages/{message_id}"
   const nameParts = chatMessage.name.split("/");
-  // nameParts = ["spaces", "{space_id}", "messages", "{message_id}"]
   if (nameParts.length < 4 || nameParts[0] !== "spaces" || nameParts[2] !== "messages") {
     throw new WorkerError("PARSE_ERROR", `Invalid message name format: ${chatMessage.name}`);
   }
 
   const spaceName = `spaces/${nameParts[1]}`;
-  const googleMessageId = chatMessage.name; // リソース名をID代わりに使用
+  const googleMessageId = chatMessage.name;
+
+  // スレッド情報
+  const isThreadReply =
+    chatMessage.thread?.threadReply === true || chatMessage.threadReply === true;
+  const messageType: "MESSAGE" | "THREAD_REPLY" = isThreadReply ? "THREAD_REPLY" : "MESSAGE";
+  const threadName = chatMessage.thread?.name ?? null;
+  const parentMessageId = chatMessage.quotedMessageMetadata?.name ?? null;
+
+  // アノテーション正規化
+  const annotations: ChatAnnotation[] = (chatMessage.annotations ?? []).map((a) =>
+    normalizeAnnotation(a),
+  );
+
+  // メンション抽出（USER_MENTION アノテーションから）
+  const mentionedUsers = annotations
+    .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
+    .map((a) => ({
+      userId: a.userMention!.user.name,
+      displayName: a.userMention!.user.displayName,
+    }));
+
+  // 添付ファイル正規化
+  const attachments: ChatAttachment[] = (chatMessage.attachment ?? []).map((att) => ({
+    name: att.name ?? "",
+    contentName: att.contentName,
+    contentType: att.contentType,
+    downloadUri: att.downloadUri,
+    source:
+      att.source === "DRIVE_FILE" || att.source === "UPLOADED_CONTENT" ? att.source : undefined,
+  }));
 
   const senderUserId = chatMessage.sender?.name ?? "users/unknown";
   const senderName = chatMessage.sender?.displayName ?? "";
   const text = chatMessage.text ?? "";
+  const formattedText = chatMessage.formattedText ?? null;
+  const isEdited = !!(
+    chatMessage.lastUpdateTime && chatMessage.lastUpdateTime !== chatMessage.createTime
+  );
+  const isDeleted = !!chatMessage.deleteTime;
   const createdAt = chatMessage.createTime ? new Date(chatMessage.createTime) : new Date();
 
   return {
@@ -112,9 +185,85 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
     googleMessageId,
     senderUserId,
     senderName,
+    senderType,
     text,
+    formattedText,
+    messageType,
+    threadName,
+    parentMessageId,
+    mentionedUsers,
+    annotations,
+    attachments,
+    isEdited,
+    isDeleted,
+    rawPayload: payload as Record<string, unknown>,
     createdAt,
   };
+}
+
+type RawAnnotation = {
+  type?: string;
+  startIndex?: number;
+  length?: number;
+  userMention?: {
+    user?: { name?: string; displayName?: string; type?: string };
+    type?: string;
+  };
+  slashCommand?: {
+    commandId?: string;
+    commandName?: string;
+    bot?: { name?: string; displayName?: string };
+    type?: string;
+  };
+  richLink?: { uri?: string; richLinkMetadata?: { title?: string; mimeType?: string } };
+};
+
+function normalizeAnnotation(a: RawAnnotation): ChatAnnotation {
+  const type = normalizeAnnotationType(a.type);
+  const base: ChatAnnotation = {
+    type,
+    startIndex: a.startIndex,
+    length: a.length,
+  };
+
+  if (type === "USER_MENTION" && a.userMention?.user) {
+    base.userMention = {
+      user: {
+        name: a.userMention.user.name ?? "",
+        displayName: a.userMention.user.displayName ?? "",
+        type: a.userMention.user.type ?? "HUMAN",
+      },
+    };
+  }
+
+  if (type === "SLASH_COMMAND" && a.slashCommand) {
+    base.slashCommand = {
+      commandId: a.slashCommand.commandId ?? "",
+      commandName: a.slashCommand.commandName ?? "",
+    };
+  }
+
+  if (type === "RICH_LINK" && a.richLink) {
+    base.richLink = {
+      uri: a.richLink.uri ?? "",
+      title: a.richLink.richLinkMetadata?.title,
+    };
+  }
+
+  return base;
+}
+
+function normalizeAnnotationType(type: string | undefined): ChatAnnotation["type"] {
+  switch (type) {
+    case "USER_MENTION":
+      return "USER_MENTION";
+    case "SLASH_COMMAND":
+      return "SLASH_COMMAND";
+    case "RICH_LINK":
+      return "RICH_LINK";
+    default:
+      return "UNKNOWN";
+  }
 }
 
 function isPubSubPushBody(value: unknown): value is PubSubPushBody {

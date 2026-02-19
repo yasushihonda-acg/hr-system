@@ -68,7 +68,15 @@ describe("parsePubSubEvent", () => {
       expect(event?.googleMessageId).toBe("spaces/AAAA-qf5jX0/messages/abc123");
       expect(event?.senderUserId).toBe("users/12345");
       expect(event?.senderName).toBe("田中 太郎");
+      expect(event?.senderType).toBe("HUMAN");
       expect(event?.text).toBe("山田さんの給与を2ピッチ上げてください");
+      expect(event?.messageType).toBe("MESSAGE");
+      expect(event?.threadName).toBeNull();
+      expect(event?.mentionedUsers).toEqual([]);
+      expect(event?.annotations).toEqual([]);
+      expect(event?.attachments).toEqual([]);
+      expect(event?.isEdited).toBe(false);
+      expect(event?.isDeleted).toBe(false);
     });
 
     it("createdAt が createTime から正しくパースされる", () => {
@@ -106,11 +114,18 @@ describe("parsePubSubEvent", () => {
       expect(parsePubSubEvent(body)).toBeNull();
     });
 
-    it("ce-type が message.created 以外の場合は null を返す", () => {
+    it("ce-type が message.created 以外（deleted 等）の場合は null を返す", () => {
+      const body = makePubSubBody({
+        attributes: { "ce-type": "google.workspace.chat.message.v1.deleted" },
+      });
+      expect(parsePubSubEvent(body)).toBeNull();
+    });
+
+    it("ce-type が message.updated の場合はパースする（編集イベント対応）", () => {
       const body = makePubSubBody({
         attributes: { "ce-type": "google.workspace.chat.message.v1.updated" },
       });
-      expect(parsePubSubEvent(body)).toBeNull();
+      expect(parsePubSubEvent(body)).not.toBeNull();
     });
   });
 

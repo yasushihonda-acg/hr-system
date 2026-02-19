@@ -5,6 +5,7 @@ import { appErrorHandler } from "./lib/errors.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rbacMiddleware } from "./middleware/rbac.js";
 import { auditLogRoutes } from "./routes/audit-logs.js";
+import { chatMessageRoutes } from "./routes/chat-messages.js";
 import { employeeRoutes } from "./routes/employees.js";
 import { salaryDraftRoutes } from "./routes/salary-drafts.js";
 
@@ -30,6 +31,7 @@ app.use("/api/*", rbacMiddleware);
 app.route("/api/salary-drafts", salaryDraftRoutes);
 app.route("/api/employees", employeeRoutes);
 app.route("/api/audit-logs", auditLogRoutes);
+app.route("/api/chat-messages", chatMessageRoutes);
 
 // グローバルエラーハンドラ
 app.onError(appErrorHandler);

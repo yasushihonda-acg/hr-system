@@ -69,7 +69,18 @@ function makeEvent(overrides: Partial<ChatEvent> = {}): ChatEvent {
     googleMessageId: "spaces/AAAA-qf5jX0/messages/abc123",
     senderUserId: "users/12345",
     senderName: "田中 太郎",
+    senderType: "HUMAN",
     text: "山田さんの給与を2ピッチ上げてください",
+    formattedText: null,
+    messageType: "MESSAGE",
+    threadName: null,
+    parentMessageId: null,
+    mentionedUsers: [],
+    annotations: [],
+    attachments: [],
+    isEdited: false,
+    isDeleted: false,
+    rawPayload: {},
     createdAt: new Date("2026-02-19T10:00:00Z"),
     ...overrides,
   };
@@ -91,6 +102,8 @@ describe("processMessage", () => {
       category: "other",
       confidence: 0.9,
       reasoning: "その他の指示",
+      classificationMethod: "ai",
+      regexPattern: null,
     });
     mockChatMessageSet.mockResolvedValue(undefined);
     mockChatMessageUpdate.mockResolvedValue(undefined);
@@ -132,6 +145,8 @@ describe("processMessage", () => {
         category: "salary",
         confidence: 0.95,
         reasoning: "給与変更指示",
+        classificationMethod: "ai",
+        regexPattern: null,
       });
       mockHandleSalary.mockResolvedValue(undefined);
 
