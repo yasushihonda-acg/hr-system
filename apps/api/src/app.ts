@@ -4,10 +4,13 @@ import { logger } from "hono/logger";
 import { appErrorHandler } from "./lib/errors.js";
 import { authMiddleware } from "./middleware/auth.js";
 import { rbacMiddleware } from "./middleware/rbac.js";
+import { adminUserRoutes } from "./routes/admin-users.js";
 import { auditLogRoutes } from "./routes/audit-logs.js";
 import { chatMessageRoutes } from "./routes/chat-messages.js";
+import { classificationRulesRoutes } from "./routes/classification-rules.js";
 import { employeeRoutes } from "./routes/employees.js";
 import { salaryDraftRoutes } from "./routes/salary-drafts.js";
+import { statsRoutes } from "./routes/stats.js";
 
 const app = new Hono();
 
@@ -32,6 +35,9 @@ app.route("/api/salary-drafts", salaryDraftRoutes);
 app.route("/api/employees", employeeRoutes);
 app.route("/api/audit-logs", auditLogRoutes);
 app.route("/api/chat-messages", chatMessageRoutes);
+app.route("/api/stats", statsRoutes);
+app.route("/api/admin/users", adminUserRoutes);
+app.route("/api/classification-rules", classificationRulesRoutes);
 
 // グローバルエラーハンドラ
 app.onError(appErrorHandler);

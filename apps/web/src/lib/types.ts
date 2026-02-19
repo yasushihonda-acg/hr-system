@@ -76,6 +76,61 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+// --- Classification Rules ---
+
+export interface ClassificationRule {
+  id: string;
+  category: string;
+  keywords: string[];
+  excludeKeywords: string[];
+  patterns: string[];
+  priority: number;
+  description: string;
+  isActive: boolean;
+  sampleMessages: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// --- Stats ---
+
+export interface StatsSummary {
+  total: number;
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+}
+
+export interface CategoryStat {
+  category: string;
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface TimelinePoint {
+  date: string;
+  count: number;
+}
+
+export interface SpaceStat {
+  spaceId: string;
+  count: number;
+}
+
+// --- Admin Users ---
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  isActive: boolean;
+  addedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Intent 分類結果（一覧・詳細共通） */
 export interface IntentSummary {
   id: string;
@@ -85,6 +140,7 @@ export interface IntentSummary {
   regexPattern: string | null;
   isManualOverride: boolean;
   originalCategory: string | null;
+  responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   createdAt: string;
 }
 
@@ -93,6 +149,8 @@ export interface IntentDetail extends IntentSummary {
   reasoning: string | null;
   overriddenBy: string | null;
   overriddenAt: string | null;
+  responseStatusUpdatedBy: string | null;
+  responseStatusUpdatedAt: string | null;
 }
 
 /** GET /api/chat-messages の1件 */

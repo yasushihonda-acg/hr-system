@@ -7,9 +7,11 @@ import type {
 import { db } from "./client.js";
 import type {
   AllowanceMaster,
+  AllowedUser,
   ApprovalLog,
   AuditLog,
   ChatMessage,
+  ClassificationRule,
   Employee,
   IntentRecord,
   PitchTable,
@@ -41,4 +43,6 @@ export const collections = {
   auditLogs: typedCollection<AuditLog>("audit_logs"),
   pitchTables: typedCollection<PitchTable>("pitch_tables"),
   allowanceMasters: typedCollection<AllowanceMaster>("allowance_masters"),
+  allowedUsers: typedCollection<AllowedUser>("allowed_users"),
+  classificationRules: typedCollection<ClassificationRule>("classification_rules"),
 };

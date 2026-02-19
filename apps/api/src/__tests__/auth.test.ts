@@ -16,6 +16,30 @@ vi.mock("google-auth-library", () => {
   };
 });
 
+// @hr-system/db の allowedUsers ホワイトリストチェックをモック
+vi.mock("@hr-system/db", () => {
+  const makeAllowedSnap = (email: string) => ({
+    empty: false,
+    docs: [{ data: () => ({ email, role: "hr_staff", isActive: true }) }],
+  });
+
+  const allowedUsersQuery = {
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockImplementation(function (this: unknown) {
+      return { get: vi.fn().mockResolvedValue(makeAllowedSnap("any")) };
+    }),
+  };
+
+  return {
+    collections: {
+      allowedUsers: {
+        where: vi.fn().mockReturnValue(allowedUsersQuery),
+      },
+    },
+    db: {},
+  };
+});
+
 const { authMiddleware } = await import("../middleware/auth.js");
 const { rbacMiddleware, requireRole } = await import("../middleware/rbac.js");
 

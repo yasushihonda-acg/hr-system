@@ -82,6 +82,9 @@ export async function processMessage(event: ChatEvent): Promise<void> {
       originalCategory: null,
       overriddenBy: null,
       overriddenAt: null,
+      responseStatus: "unresponded",
+      responseStatusUpdatedBy: null,
+      responseStatusUpdatedAt: null,
       createdAt: FieldValue.serverTimestamp() as never,
     });
   } catch (e) {

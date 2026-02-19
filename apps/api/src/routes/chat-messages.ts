@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections, db } from "@hr-system/db";
-import { CHAT_CATEGORIES, type ChatCategory } from "@hr-system/shared";
+import { CHAT_CATEGORIES, type ChatCategory, RESPONSE_STATUSES } from "@hr-system/shared";
 import { FieldValue } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -100,6 +100,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
               regexPattern: intent.regexPattern ?? null,
               isManualOverride: intent.isManualOverride ?? false,
               originalCategory: intent.originalCategory ?? null,
+              responseStatus: intent.responseStatus ?? "unresponded",
               createdAt: toISO(intent.createdAt),
             }
           : null,
@@ -184,7 +185,7 @@ chatMessageRoutes.get("/:id", async (c) => {
     createdAt: toISO(msg.createdAt),
     intent: intent
       ? {
-          id: intentDoc!.id,
+          id: intentDoc?.id,
           category: intent.category,
           confidenceScore: intent.confidenceScore,
           classificationMethod: intent.classificationMethod ?? "ai",
@@ -194,6 +195,9 @@ chatMessageRoutes.get("/:id", async (c) => {
           originalCategory: intent.originalCategory ?? null,
           overriddenBy: intent.overriddenBy ?? null,
           overriddenAt: toISOOrNull(intent.overriddenAt),
+          responseStatus: intent.responseStatus ?? "unresponded",
+          responseStatusUpdatedBy: intent.responseStatusUpdatedBy ?? null,
+          responseStatusUpdatedAt: toISOOrNull(intent.responseStatusUpdatedAt),
           createdAt: toISO(intent.createdAt),
         }
       : null,
@@ -257,6 +261,9 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
         originalCategory: null,
         overriddenBy: actor.email,
         overriddenAt: FieldValue.serverTimestamp() as never,
+        responseStatus: "unresponded",
+        responseStatusUpdatedBy: null,
+        responseStatusUpdatedAt: null,
         createdAt: FieldValue.serverTimestamp() as never,
       });
     }
@@ -281,3 +288,60 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
 
   return c.json({ success: true, chatMessageId, category });
 });
+
+// ---------------------------------------------------------------------------
+// PATCH /api/chat-messages/:id/response-status — 対応状況更新
+// ---------------------------------------------------------------------------
+const patchResponseStatusSchema = z.object({
+  responseStatus: z.enum(RESPONSE_STATUSES),
+});
+
+chatMessageRoutes.patch(
+  "/:id/response-status",
+  zValidator("json", patchResponseStatusSchema),
+  async (c) => {
+    const chatMessageId = c.req.param("id");
+    const { responseStatus } = c.req.valid("json");
+    const actor = c.get("user");
+    const actorRole = c.get("actorRole");
+
+    if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const msgSnap = await collections.chatMessages.doc(chatMessageId).get();
+    if (!msgSnap.exists) throw notFound("ChatMessage", chatMessageId);
+
+    const intentSnap = await collections.intentRecords
+      .where("chatMessageId", "==", chatMessageId)
+      .limit(1)
+      .get();
+
+    if (intentSnap.empty) {
+      return c.json({ error: "IntentRecord not found" }, 404);
+    }
+
+    const intentDoc = intentSnap.docs[0]!;
+
+    await db.runTransaction(async (tx) => {
+      tx.update(intentDoc.ref, {
+        responseStatus,
+        responseStatusUpdatedBy: actor.email,
+        responseStatusUpdatedAt: FieldValue.serverTimestamp(),
+      });
+
+      const auditRef = collections.auditLogs.doc();
+      tx.set(auditRef, {
+        eventType: "response_status_updated",
+        entityType: "intent_record",
+        entityId: intentDoc.id,
+        actorEmail: actor.email,
+        actorRole: actorRole,
+        details: { chatMessageId, responseStatus },
+        createdAt: FieldValue.serverTimestamp() as never,
+      });
+    });
+
+    return c.json({ success: true, chatMessageId, responseStatus });
+  },
+);

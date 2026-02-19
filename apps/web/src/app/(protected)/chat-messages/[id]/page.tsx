@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ReclassifyForm } from "@/components/reclassify-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getChatMessage } from "@/lib/api";
+import { ResponseStatusControl } from "./response-status-control";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -182,6 +183,23 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             <ReclassifyForm chatMessageId={id} currentCategory={intent?.category ?? "other"} />
           </CardContent>
         </Card>
+
+        {/* 対応状況 */}
+        {intent && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-lg">対応状況</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponseStatusControl
+                chatMessageId={id}
+                current={intent.responseStatus}
+                updatedBy={intent.responseStatusUpdatedBy}
+                updatedAt={intent.responseStatusUpdatedAt}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* スレッドメッセージ */}

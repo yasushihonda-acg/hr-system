@@ -7,7 +7,9 @@ import type {
   ChatCategory,
   DraftStatus,
   EmploymentType,
+  ResponseStatus,
   SalaryItemType,
+  UserRole,
 } from "@hr-system/shared";
 import type { Timestamp } from "firebase-admin/firestore";
 
@@ -154,6 +156,11 @@ export interface IntentRecord {
   /** 修正者 email */
   overriddenBy: string | null;
   overriddenAt: Timestamp | null;
+  /** HR チームの対応状況 */
+  responseStatus: ResponseStatus;
+  /** 対応状況を更新した人の email */
+  responseStatusUpdatedBy: string | null;
+  responseStatusUpdatedAt: Timestamp | null;
   createdAt: Timestamp;
 }
 
@@ -198,4 +205,29 @@ export interface AllowanceMaster {
   amount: number;
   isActive: boolean;
   createdAt: Timestamp;
+}
+
+/** ダッシュボードアクセス許可ユーザー */
+export interface AllowedUser {
+  email: string;
+  displayName: string;
+  role: UserRole;
+  addedBy: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** AI分類ルール */
+export interface ClassificationRule {
+  category: ChatCategory;
+  keywords: string[];
+  excludeKeywords: string[];
+  patterns: string[];
+  priority: number;
+  description: string;
+  isActive: boolean;
+  sampleMessages: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
