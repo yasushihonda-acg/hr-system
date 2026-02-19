@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-19
-**ブランチ**: `main`
+**最終更新**: 2026-02-19（セッション終了時点）
+**ブランチ**: `main`（Task L PR #12 マージ済み）
 
 ---
 
@@ -24,7 +24,7 @@ Chat → Pub/Sub → Worker のエンドツーエンドパイプラインが実�
 | Task H | Google OAuth + RBAC ミドルウェア (API) | main (#6) | 完了 |
 | Task I/J | REST API エンドポイント (salary-drafts / employees / audit-logs) | main (#10) | 完了 |
 | Task K | Next.js 承認ダッシュボード (Auth.js + shadcn/ui) | main (#11) | 完了 |
-| **Task L** | **Chat Webhook Worker** | **main (未コミット)** | **実装完了** |
+| **Task L** | **Chat Webhook Worker** | **main (#12)** | **完了** |
 
 ---
 
@@ -123,22 +123,14 @@ Google Chat メッセージ
 
 ## 次のアクション候補
 
-1. **Worker をコミット → PR → main マージ**
-   ```bash
-   git checkout -b feat/chat-webhook-worker
-   git add apps/worker/ docs/handoff/
-   git commit -m "feat(worker): Chat Webhook Worker (Task L)"
-   gh pr create
-   ```
-
-2. **GCP セットアップ**（コード実装後の次ステップ）
+1. **GCP セットアップ**（コード実装後の次ステップ）
    - API 有効化: `workspaceevents.googleapis.com`, `chat.googleapis.com`, `pubsub.googleapis.com`
    - Pub/Sub トピック: `hr-chat-events` + DLQ: `hr-chat-events-dlq`
    - IAM: `chat-api-push@system.gserviceaccount.com` → Publisher
    - Workspace Events API 購読: ユーザー認証で `spaces/AAAA-qf5jX0` の message.created を購読
    - Push Subscription: Worker Cloud Run URL へ配信（ACK 30秒、リトライ5回）
 
-3. **Worker ローカル動作確認**
+2. **Worker ローカル動作確認**
    ```bash
    PUBSUB_SKIP_AUTH=true pnpm --filter @hr-system/worker dev
    # 別ターミナル
@@ -147,14 +139,14 @@ Google Chat メッセージ
      -d '{"message":{"data":"<base64>","messageId":"test-1","publishTime":"2026-02-19T00:00:00Z"},"subscription":"test"}'
    ```
 
-4. **E2E テスト**（Firestore Emulator）
+3. **E2E テスト**（Firestore Emulator）
    - Chat 投稿 → SalaryDraft 作成の一連フロー
    - Firebase Emulator: `pnpm emulator`
 
-5. **SmartHR / Google Sheets / Gmail 連携実装**
+4. **SmartHR / Google Sheets / Gmail 連携実装**
    - approved → processing → completed 遷移時の外部連携
 
-6. **Cloud Run デプロイ設定**
+5. **Cloud Run デプロイ設定**
    - Dockerfile, Cloud Build, CI/CD パイプライン
 
 ---
