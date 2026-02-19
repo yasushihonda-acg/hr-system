@@ -16,11 +16,27 @@ export interface PubSubPushBody {
 }
 
 /**
- * Google Workspace Events API が Pub/Sub トピックへ送る
- * Chat メッセージイベントの内部ペイロード。
+ * Pub/Sub トピックへ送られる Chat イベントペイロード。
+ * 2つのソースに対応:
+ *
+ * 1. Workspace Events API サブスクリプション
+ *    - `ce-type` 属性あり (`google.workspace.chat.message.v1.created` 等)
+ *    - ペイロード: `{ "message": {...} }` のみ（`type` フィールドなし）
+ *
+ * 2. Google Chat App (Pub/Sub 接続タイプ)
+ *    - `ce-type` 属性なし
+ *    - ペイロード: `{ "type": "MESSAGE"|"ADDED_TO_SPACE"|..., "message": {...}, "space": {...}, "user": {...} }`
+ *    - MESSAGE 以外のイベント（ADDED_TO_SPACE, REMOVED_FROM_SPACE, CARD_CLICKED）は null を返す
+ *
  * https://developers.google.com/workspace/events/reference/rest/v1/spaces.messages
+ * https://developers.google.com/chat/api/reference/rest/v1/Event
  */
+/** Chat App Pub/Sub 接続で送られるイベントタイプ */
+type ChatAppEventType = "MESSAGE" | "ADDED_TO_SPACE" | "REMOVED_FROM_SPACE" | "CARD_CLICKED";
+
 interface ChatMessagePayload {
+  /** Chat App イベントタイプ。Workspace Events API には存在しない。 */
+  type?: ChatAppEventType | (string & {});
   message?: {
     name: string; // "spaces/{space_id}/messages/{message_id}"
     sender?: {
@@ -119,6 +135,12 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
     throw new WorkerError("PARSE_ERROR", "Failed to parse Chat event JSON");
   }
 
+  // Chat App イベントタイプ確認（Workspace Events API には `type` フィールドがない）
+  // MESSAGE 以外（ADDED_TO_SPACE, REMOVED_FROM_SPACE, CARD_CLICKED）は無視（ACK）
+  if (payload.type && payload.type !== "MESSAGE") {
+    return null;
+  }
+
   const chatMessage = payload.message;
   if (!chatMessage) {
     throw new WorkerError("PARSE_ERROR", "No message field in Chat event payload");
@@ -156,8 +178,8 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
   const mentionedUsers = annotations
     .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
     .map((a) => ({
-      userId: a.userMention!.user.name,
-      displayName: a.userMention!.user.displayName,
+      userId: a.userMention?.user.name ?? "",
+      displayName: a.userMention?.user.displayName ?? "",
     }));
 
   // 添付ファイル正規化
