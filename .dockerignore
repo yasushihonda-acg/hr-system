@@ -1,0 +1,45 @@
+# ビルド出力・キャッシュ
+**/dist
+**/.next
+**/.turbo
+**/coverage
+
+# 依存関係（Docker 内で再インストール）
+**/node_modules
+
+# 開発ツール・設定
+**/.env
+**/.env.*
+!**/.env.example
+
+# Git
+.git
+.gitignore
+
+# テスト
+**/__tests__
+**/*.test.ts
+**/*.spec.ts
+
+# ドキュメント
+docs
+README.md
+CLAUDE.md
+
+# Firebase ローカル設定
+.firebase
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebaserc
+
+# エディタ・OS
+.DS_Store
+**/.vscode
+**/.idea
+Thumbs.db
+
+# ログ
+*.log
+npm-debug.log*
+pnpm-debug.log*
