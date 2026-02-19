@@ -1,15 +1,15 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-19（セッション終了時点）
-**ブランチ**: `main`（Task M PR #13 マージ済み）
+**ブランチ**: `main`（Task N PR #20 マージ済み）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤（実装完了）**
+**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤 + GCP インフラ整備（実装完了）**
 
-チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類フィードバックループが実装されました。
+チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類フィードバックループが実装され、GCP 本番環境へのデプロイも完了しました。
 
 ---
 
@@ -25,7 +25,49 @@
 | Task I/J | REST API エンドポイント (salary-drafts / employees / audit-logs) | main (#10) | 完了 |
 | Task K | Next.js 承認ダッシュボード (Auth.js + shadcn/ui) | main (#11) | 完了 |
 | Task L | Chat Webhook Worker | main (#12) | 完了 |
-| **Task M** | **チャットデータ収集・分析基盤** | **main (#13)** | **完了** |
+| Task M | チャットデータ収集・分析基盤 | main (#13) | 完了 |
+| **Task N** | **GCP インフラ整備 (Dockerfile / Cloud Run / Pub/Sub / Chat App)** | **main (#20)** | **完了** |
+
+---
+
+## 直近の変更（Task N — 最新）
+
+### GCP インフラ整備
+
+Worker のコンテナ化・GCP 本番環境デプロイ・Chat App 連携が完了。
+
+#### 変更内容
+
+**Phase A: ローカル E2E 検証スクリプト**
+- `scripts/test-worker-local.sh`: Firestore Emulator 環境での Worker ローカル検証スクリプト
+- `scripts/setup-workspace-events.sh`: Phase E 用 Workspace Events 設定手順書（OAuth 問題の記録含む）
+
+**Phase B: Dockerfile + 条件付きエクスポート**
+- `apps/worker/Dockerfile`: Multi-stage build (builder/runner, linux/amd64)
+- `.dockerignore`: ビルド不要ファイル除外
+- `packages/*/package.json`: 条件付きエクスポート追加
+  - `"types": ./src/index.ts` (TypeScript 開発時)
+  - `"import": ./dist/index.js` (Node.js 本番実行時)
+
+**Phase C: GCP セットアップ（実施済み）**
+- API 有効化: Cloud Run, Artifact Registry, Pub/Sub, Workspace Events, AI Platform, Firestore
+- Artifact Registry: `hr-system` リポジトリ作成 (asia-northeast1)
+- SA 作成: `hr-worker` (Firestore/AI Platform 実行), `hr-pubsub-push` (Cloud Run 呼び出し)
+- Firestore Native DB 作成 (asia-northeast1)
+- Pub/Sub: `hr-chat-events` + `hr-chat-events-dlq` トピック作成
+
+**Phase D: Worker Cloud Run デプロイ（済み）**
+- `hr-worker` Cloud Run サービスデプロイ (asia-northeast1, 512Mi)
+- Pub/Sub Push Subscription 作成 (OIDC auth, DLQ, 5回リトライ)
+- E2E 動作確認: Chat メッセージ → Intent=salary (AI分類) → Firestore 保存確認済み
+
+**Phase E: Chat App Pub/Sub 接続形式のイベント対応**
+- Workspace Events API の OAuth ブロック問題を回避するため Chat App (Pub/Sub 接続) 形式にも対応
+- `event-parser.ts`: `type` フィールドありの Chat App イベント形式をサポート
+  - `type=MESSAGE` → 通常通りパース
+  - `type=ADDED_TO_SPACE|REMOVED_FROM_SPACE|CARD_CLICKED` → null (ACK)
+- `event-parser.test.ts`: Chat App イベント形式テスト追加 (4 cases)
+- `docs/setup/chat-app-setup.md`: Chat App セットアップ手順書
 
 ---
 
@@ -141,33 +183,27 @@ HR スタッフによる手動再分類:
 
 ## 次のアクション候補
 
-1. **GCP セットアップ**（コード実装完了、インフラ整備へ）
-   - API 有効化: `workspaceevents.googleapis.com`, `chat.googleapis.com`, `pubsub.googleapis.com`
-   - Pub/Sub トピック: `hr-chat-events` + DLQ: `hr-chat-events-dlq`
-   - IAM: `chat-api-push@system.gserviceaccount.com` → Publisher
-   - Workspace Events API 購読: ユーザー認証で `spaces/AAAA-qf5jX0` の message.created を購読
-   - Push Subscription: Worker Cloud Run URL へ配信（ACK 30秒、リトライ5回）
+1. **Web (Next.js) Cloud Run デプロイ**
+   - `apps/web/Dockerfile` 作成 (Multi-stage build)
+   - Cloud Run サービス作成: `hr-web`
+   - Google OAuth 認証の本番 Redirect URI 設定
 
-2. **Worker ローカル動作確認**
-   ```bash
-   PUBSUB_SKIP_AUTH=true pnpm --filter @hr-system/worker dev
-   # 別ターミナル
-   curl -X POST http://localhost:3002/pubsub/push \
-     -H "Content-Type: application/json" \
-     -d '{"message":{"data":"<base64>","messageId":"test-1","publishTime":"2026-02-19T00:00:00Z"},"subscription":"test"}'
-   ```
+2. **API サーバー Cloud Run デプロイ**
+   - `apps/api/Dockerfile` 作成
+   - Cloud Run サービス作成: `hr-api`
+   - Firebase Admin SDK の ADC 設定確認
 
-3. **E2E テスト**（Firestore Emulator）
-   - Chat 投稿 → SalaryDraft 作成の一連フロー
-   - Firebase Emulator: `pnpm emulator`
+3. **Cloud Build / CI/CD パイプライン**
+   - `cloudbuild.yaml` 作成（PR マージ時に自動ビルド＆デプロイ）
 
-4. **Phase 2 スキーマ最適化**
+4. **E2E テスト強化**（Firestore Emulator）
+   - Chat 投稿 → SalaryDraft 作成 → 承認 → 完了の一連フロー
+   - `scripts/test-worker-local.sh` を CI に組み込む
+
+5. **Phase 2 スキーマ最適化**
    - ChatMessage に `intentCategory` を非正規化（カテゴリフィルタのページネーション精度向上）
    - SmartHR / Google Sheets / Gmail 連携実装
    - Chat への Bot 返信通知
-
-5. **Cloud Run デプロイ設定**
-   - Dockerfile, Cloud Build, CI/CD パイプライン
 
 ---
 
@@ -210,7 +246,13 @@ draft → reviewed → approved → processing → completed
 ## デプロイ環境
 
 - **GCP Project**: hr-system-487809 (asia-northeast1)
-- **Cloud Run**: 未デプロイ（ローカル開発中）
+- **Cloud Run (Worker)**: デプロイ済み — `hr-worker` (asia-northeast1, 512Mi)
+  - Pub/Sub Push Subscription 接続済み (OIDC auth, DLQ, 5回リトライ)
+  - Chat App (Pub/Sub 接続) からのイベント受信・Firestore 保存 E2E 確認済み
+- **Cloud Run (API / Web)**: 未デプロイ（次フェーズ）
+- **Artifact Registry**: `asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system`
+- **Firestore**: Native モード (asia-northeast1) 作成済み
+- **Pub/Sub**: `hr-chat-events` + `hr-chat-events-dlq` 作成済み
 - **Firebase Emulator**: `pnpm emulator` で起動 (Firestore: 8080, UI: 4000)
 
 ---
