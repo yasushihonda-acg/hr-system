@@ -64,6 +64,20 @@ vi.mock("@hr-system/db", () => {
       auditLogs: {
         doc: vi.fn(() => ({ id: "audit-new" })),
       },
+      allowedUsers: {
+        where: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              get: vi.fn().mockResolvedValue({
+                empty: false,
+                docs: [
+                  { data: () => ({ email: "staff@test.com", role: "hr_staff", isActive: true }) },
+                ],
+              }),
+            }),
+          }),
+        }),
+      },
     },
   };
 });

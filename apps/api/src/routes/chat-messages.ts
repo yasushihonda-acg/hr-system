@@ -321,10 +321,10 @@ chatMessageRoutes.patch(
       return c.json({ error: "IntentRecord not found" }, 404);
     }
 
-    const intentRef = intentSnap.docs[0]?.ref;
+    const intentDoc = intentSnap.docs[0]!;
 
     await db.runTransaction(async (tx) => {
-      tx.update(intentRef, {
+      tx.update(intentDoc.ref, {
         responseStatus,
         responseStatusUpdatedBy: actor.email,
         responseStatusUpdatedAt: FieldValue.serverTimestamp(),
@@ -334,7 +334,7 @@ chatMessageRoutes.patch(
       tx.set(auditRef, {
         eventType: "response_status_updated",
         entityType: "intent_record",
-        entityId: intentSnap.docs[0]?.id,
+        entityId: intentDoc.id,
         actorEmail: actor.email,
         actorRole: actorRole,
         details: { chatMessageId, responseStatus },

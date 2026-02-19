@@ -95,7 +95,7 @@ classificationRulesRoutes.patch("/:category", zValidator("json", updateRuleSchem
     notFound("ClassificationRule", category);
   }
 
-  const docRef = snapshot.docs[0]?.ref;
+  const docRef = snapshot.docs[0]!.ref;
   await docRef.update({
     ...updates,
     updatedAt: FieldValue.serverTimestamp(),
