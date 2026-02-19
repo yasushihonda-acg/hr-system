@@ -1,12 +1,17 @@
 import type { DraftStatus } from "@hr-system/shared";
 import { auth } from "@/auth";
 import type {
+  AdminUser,
   AuditLogEntry,
+  CategoryStat,
   ChatMessageDetail,
   ChatMessageSummary,
   DraftDetail,
   DraftSummary,
   EmployeeSummary,
+  SpaceStat,
+  StatsSummary,
+  TimelinePoint,
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001";
@@ -174,4 +179,64 @@ export function reclassifyIntent(id: string, body: { category: string; comment?:
     `/api/chat-messages/${id}/intent`,
     { method: "PATCH", body: JSON.stringify(body) },
   );
+}
+
+// --- Stats ---
+
+export function getStatsSummary() {
+  return request<StatsSummary>("/api/stats/summary");
+}
+
+export function getStatsCategories() {
+  return request<{ categories: CategoryStat[]; total: number }>("/api/stats/categories");
+}
+
+export interface TimelineParams {
+  granularity?: "day" | "week" | "month";
+  from?: string;
+  to?: string;
+}
+
+export function getStatsTimeline(params?: TimelineParams) {
+  const sp = new URLSearchParams();
+  if (params?.granularity) sp.set("granularity", params.granularity);
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  const qs = sp.toString();
+  return request<{ timeline: TimelinePoint[]; granularity: string; from: string; to: string }>(
+    `/api/stats/timeline${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export function getStatsSpaces() {
+  return request<{ spaces: SpaceStat[]; total: number }>("/api/stats/spaces");
+}
+
+// --- Admin Users ---
+
+export function getAdminUsers() {
+  return request<{ data: AdminUser[] }>("/api/admin/users");
+}
+
+export function createAdminUser(body: { email: string; displayName: string; role: string }) {
+  return request<{ success: boolean; id: string }>("/api/admin/users", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateAdminUser(
+  id: string,
+  body: { displayName?: string; role?: string; isActive?: boolean },
+) {
+  return request<{ success: boolean }>(`/api/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteAdminUser(id: string) {
+  return request<{ success: boolean }>(`/api/admin/users/${id}`, {
+    method: "DELETE",
+  });
 }

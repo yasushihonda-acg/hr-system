@@ -7,7 +7,6 @@ import type {
   ChatCategory,
   DraftStatus,
   EmploymentType,
-  ResponseStatus,
   SalaryItemType,
   UserRole,
 } from "@hr-system/shared";

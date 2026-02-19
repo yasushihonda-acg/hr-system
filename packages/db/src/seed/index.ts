@@ -1,7 +1,7 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { collections } from "../collections.js";
-import { INITIAL_ALLOWED_USERS } from "./allowed-users.js";
 import { ALLOWANCE_MASTER_DATA } from "./allowance-master.js";
+import { INITIAL_ALLOWED_USERS } from "./allowed-users.js";
 import { INITIAL_CLASSIFICATION_RULES } from "./classification-rules.js";
 import { TEST_EMPLOYEES } from "./employees.js";
 import { PITCH_TABLE_DATA } from "./pitch-table.js";

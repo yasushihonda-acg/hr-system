@@ -76,6 +76,45 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+// --- Stats ---
+
+export interface StatsSummary {
+  total: number;
+  today: number;
+  thisWeek: number;
+  thisMonth: number;
+}
+
+export interface CategoryStat {
+  category: string;
+  label: string;
+  count: number;
+  percentage: number;
+}
+
+export interface TimelinePoint {
+  date: string;
+  count: number;
+}
+
+export interface SpaceStat {
+  spaceId: string;
+  count: number;
+}
+
+// --- Admin Users ---
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  isActive: boolean;
+  addedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** Intent 分類結果（一覧・詳細共通） */
 export interface IntentSummary {
   id: string;
