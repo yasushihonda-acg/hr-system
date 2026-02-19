@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, FileText, Users } from "lucide-react";
+import { ClipboardList, FileText, MessageSquare, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/", label: "ドラフト一覧", icon: FileText },
   { href: "/employees", label: "従業員", icon: Users },
+  { href: "/chat-messages", label: "チャット分析", icon: MessageSquare },
   { href: "/audit-logs", label: "監査ログ", icon: ClipboardList },
 ] as const;
 

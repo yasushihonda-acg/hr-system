@@ -73,13 +73,64 @@ export interface SalaryDraftItem {
   isChanged: boolean;
 }
 
+/** Chat メッセージ内のメンション・リンク・スラッシュコマンド等のアノテーション */
+export interface ChatAnnotation {
+  type: "USER_MENTION" | "SLASH_COMMAND" | "RICH_LINK" | "UNKNOWN";
+  startIndex?: number;
+  length?: number;
+  userMention?: {
+    user: { name: string; displayName: string; type: string };
+  };
+  slashCommand?: {
+    commandId: string;
+    commandName: string;
+  };
+  richLink?: {
+    uri: string;
+    title?: string;
+  };
+}
+
+/** Chat メッセージの添付ファイル */
+export interface ChatAttachment {
+  name: string;
+  contentName?: string;
+  contentType?: string;
+  downloadUri?: string;
+  source?: "DRIVE_FILE" | "UPLOADED_CONTENT";
+}
+
 /** チャットメッセージ */
 export interface ChatMessage {
   spaceId: string;
   googleMessageId: string;
+  /** Phase 1: Chat userId ("users/{id}") を保存。Phase 2: People API で実名メールに置換 */
+  senderUserId: string;
   senderEmail: string;
   senderName: string;
+  senderType: "HUMAN" | "BOT";
+  /** プレーンテキスト */
   content: string;
+  /** リッチテキスト（マークアップ付き）。未取得の場合は null */
+  formattedContent: string | null;
+  /** "MESSAGE": 通常投稿 / "THREAD_REPLY": スレッド返信 */
+  messageType: "MESSAGE" | "THREAD_REPLY";
+  /** スレッドリソース名 "spaces/.../threads/..." */
+  threadName: string | null;
+  /** スレッド返信の場合の親メッセージリソース名 */
+  parentMessageId: string | null;
+  /** @メンションされたユーザー一覧 */
+  mentionedUsers: Array<{ userId: string; displayName: string }>;
+  /** リンク・メンション・スラッシュコマンド等のアノテーション */
+  annotations: ChatAnnotation[];
+  /** 添付ファイル */
+  attachments: ChatAttachment[];
+  /** 編集済みフラグ */
+  isEdited: boolean;
+  /** 削除済みフラグ */
+  isDeleted: boolean;
+  /** 生ペイロード（将来の再解析用） */
+  rawPayload: Record<string, unknown> | null;
   processedAt: Timestamp | null;
   createdAt: Timestamp;
 }
@@ -90,8 +141,19 @@ export interface IntentRecord {
   category: ChatCategory;
   confidenceScore: number;
   extractedParams: Record<string, unknown> | null;
+  /** 分類方法: "regex"=正規表現, "ai"=LLM, "manual"=人手修正 */
+  classificationMethod: "ai" | "regex" | "manual";
+  /** regex 分類の場合にマッチしたパターン名 */
+  regexPattern: string | null;
   llmInput: string | null;
   llmOutput: string | null;
+  /** 手動修正フラグ */
+  isManualOverride: boolean;
+  /** 修正前のカテゴリ（手動修正時のみ） */
+  originalCategory: ChatCategory | null;
+  /** 修正者 email */
+  overriddenBy: string | null;
+  overriddenAt: Timestamp | null;
   createdAt: Timestamp;
 }
 

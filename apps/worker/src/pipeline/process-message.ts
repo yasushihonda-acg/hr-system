@@ -32,9 +32,21 @@ export async function processMessage(event: ChatEvent): Promise<void> {
     await chatMessageRef.set({
       spaceId: event.spaceName,
       googleMessageId: event.googleMessageId,
-      senderEmail: event.senderUserId, // Phase 1: userId を senderEmail として保存
+      senderUserId: event.senderUserId,
+      senderEmail: event.senderUserId, // Phase 2: People API で実名メールに置換
       senderName: event.senderName,
+      senderType: event.senderType,
       content: event.text,
+      formattedContent: event.formattedText,
+      messageType: event.messageType,
+      threadName: event.threadName,
+      parentMessageId: event.parentMessageId,
+      mentionedUsers: event.mentionedUsers,
+      annotations: event.annotations,
+      attachments: event.attachments,
+      isEdited: event.isEdited,
+      isDeleted: event.isDeleted,
+      rawPayload: event.rawPayload,
       processedAt: null,
       createdAt: FieldValue.serverTimestamp() as never,
     });
@@ -45,7 +57,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
   // 3. 監査ログ: chat_received
   await writeAuditLog("chat_received", "chat_message", chatMessageRef.id);
 
-  // 4. Intent 分類（LLM）
+  // 4. Intent 分類（regex → AI フォールバック）
   let intentResult: Awaited<ReturnType<typeof classifyIntent>>;
   try {
     intentResult = await classifyIntent(event.text);
@@ -62,8 +74,14 @@ export async function processMessage(event: ChatEvent): Promise<void> {
       category: intentResult.category,
       confidenceScore: intentResult.confidence,
       extractedParams: null,
-      llmInput: event.text,
-      llmOutput: intentResult.reasoning,
+      classificationMethod: intentResult.classificationMethod,
+      regexPattern: intentResult.regexPattern ?? null,
+      llmInput: intentResult.classificationMethod === "ai" ? event.text : null,
+      llmOutput: intentResult.classificationMethod === "ai" ? intentResult.reasoning : null,
+      isManualOverride: false,
+      originalCategory: null,
+      overriddenBy: null,
+      overriddenAt: null,
       createdAt: FieldValue.serverTimestamp() as never,
     });
   } catch (e) {
