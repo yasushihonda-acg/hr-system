@@ -87,5 +87,22 @@ export const AUDIT_EVENT_TYPES = [
   "status_changed",
   "notification_sent",
   "external_sync",
+  "user_added",
+  "user_removed",
+  "user_updated",
+  "classification_rule_changed",
 ] as const;
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
+
+/** ダッシュボードユーザーロール */
+export const USER_ROLES = ["admin", "viewer"] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+
+/** チャットメッセージ対応状況 */
+export const RESPONSE_STATUSES = [
+  "unresponded",
+  "in_progress",
+  "responded",
+  "not_required",
+] as const;
+export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
