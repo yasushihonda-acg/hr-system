@@ -8,7 +8,9 @@ export type {
   ChatCategory,
   DraftStatus,
   EmploymentType,
+  ResponseStatus,
   SalaryItemType,
+  UserRole,
 } from "./types.js";
 export {
   ACTOR_ROLES,
@@ -19,7 +21,9 @@ export {
   CHAT_CATEGORIES,
   DRAFT_STATUSES,
   EMPLOYMENT_TYPES,
+  RESPONSE_STATUSES,
   SALARY_ITEM_TYPES,
   TERMINAL_STATUSES,
+  USER_ROLES,
   VALID_TRANSITIONS,
 } from "./types.js";

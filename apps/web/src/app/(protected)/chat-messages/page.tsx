@@ -8,12 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getChatMessages } from "@/lib/api";
+import { getChatMessages, getStatsSpaces } from "@/lib/api";
 
 interface Props {
   searchParams: Promise<{
     category?: string;
     messageType?: "MESSAGE" | "THREAD_REPLY";
+    spaceId?: string;
     page?: string;
   }>;
 }
@@ -58,6 +59,20 @@ const METHOD_COLORS: Record<string, string> = {
   manual: "bg-amber-100 text-amber-800",
 };
 
+const RESPONSE_STATUS_LABELS: Record<string, string> = {
+  unresponded: "未対応",
+  in_progress: "対応中",
+  responded: "対応済",
+  not_required: "対応不要",
+};
+
+const RESPONSE_STATUS_COLORS: Record<string, string> = {
+  unresponded: "bg-red-100 text-red-800",
+  in_progress: "bg-yellow-100 text-yellow-800",
+  responded: "bg-green-100 text-green-800",
+  not_required: "bg-gray-100 text-gray-600",
+};
+
 function CategoryBadge({ category }: { category: string }) {
   const label = CATEGORY_LABELS[category] ?? category;
   const color = CATEGORY_COLORS[category] ?? "bg-gray-100 text-gray-600";
@@ -71,6 +86,16 @@ function CategoryBadge({ category }: { category: string }) {
 function MethodBadge({ method }: { method: string }) {
   const label = METHOD_LABELS[method] ?? method;
   const color = METHOD_COLORS[method] ?? "bg-gray-100 text-gray-600";
+  return (
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
+      {label}
+    </span>
+  );
+}
+
+function ResponseStatusBadge({ status }: { status: string }) {
+  const label = RESPONSE_STATUS_LABELS[status] ?? status;
+  const color = RESPONSE_STATUS_COLORS[status] ?? "bg-gray-100 text-gray-600";
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
       {label}
@@ -92,21 +117,32 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  const { data: messages, pagination } = await getChatMessages({
-    category: params.category,
-    messageType: params.messageType,
-    limit: PAGE_SIZE,
-    offset,
-  });
+  const [{ data: messages, pagination }, spacesData] = await Promise.all([
+    getChatMessages({
+      category: params.category,
+      messageType: params.messageType,
+      spaceId: params.spaceId,
+      limit: PAGE_SIZE,
+      offset,
+    }),
+    getStatsSpaces(),
+  ]);
 
-  function buildUrl(overrides: { category?: string; messageType?: string; page?: string }) {
+  function buildUrl(overrides: {
+    category?: string;
+    messageType?: string;
+    spaceId?: string;
+    page?: string;
+  }) {
     const sp = new URLSearchParams();
     const category = "category" in overrides ? overrides.category : params.category;
     const messageType = "messageType" in overrides ? overrides.messageType : params.messageType;
-    const page = overrides.page;
+    const spaceId = "spaceId" in overrides ? overrides.spaceId : params.spaceId;
+    const p = overrides.page;
     if (category) sp.set("category", category);
     if (messageType) sp.set("messageType", messageType);
-    if (page && page !== "1") sp.set("page", page);
+    if (spaceId) sp.set("spaceId", spaceId);
+    if (p && p !== "1") sp.set("page", p);
     const qs = sp.toString();
     return `/chat-messages${qs ? `?${qs}` : ""}`;
   }
@@ -121,6 +157,28 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
             : `${offset + messages.length}件`}
         </p>
       </div>
+
+      {/* スペースフィルタ */}
+      {spacesData.spaces.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">スペース</p>
+          <div className="flex flex-wrap gap-2">
+            <FilterLink
+              href={buildUrl({ spaceId: undefined, page: "1" })}
+              label="すべて"
+              active={!params.spaceId}
+            />
+            {spacesData.spaces.map(({ spaceId, count }) => (
+              <FilterLink
+                key={spaceId}
+                href={buildUrl({ spaceId, page: "1" })}
+                label={`${spaceId} (${count}件)`}
+                active={params.spaceId === spaceId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* カテゴリフィルタ */}
       <div className="space-y-2">
@@ -172,12 +230,13 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
               <TableHead className="w-[110px]">カテゴリ</TableHead>
               <TableHead className="w-[90px]">分類方法</TableHead>
               <TableHead className="w-[70px]">信頼度</TableHead>
+              <TableHead className="w-[90px]">対応状況</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {messages.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   メッセージがありません
                 </TableCell>
               </TableRow>
@@ -205,6 +264,11 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                       {msg.isEdited && (
                         <span className="mr-1 text-xs text-muted-foreground">[編集済]</span>
                       )}
+                      {msg.mentionedUsers.length > 0 && (
+                        <span className="mr-1 text-xs text-blue-600">
+                          @{msg.mentionedUsers.map((u) => u.displayName).join(" @")}
+                        </span>
+                      )}
                       {msg.content}
                     </Link>
                   </TableCell>
@@ -223,6 +287,13 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {msg.intent ? `${(msg.intent.confidenceScore * 100).toFixed(0)}%` : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {msg.intent ? (
+                      <ResponseStatusBadge status={msg.intent.responseStatus} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
