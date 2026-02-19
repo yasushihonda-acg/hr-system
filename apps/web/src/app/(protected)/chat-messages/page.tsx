@@ -59,6 +59,20 @@ const METHOD_COLORS: Record<string, string> = {
   manual: "bg-amber-100 text-amber-800",
 };
 
+const RESPONSE_STATUS_LABELS: Record<string, string> = {
+  unresponded: "未対応",
+  in_progress: "対応中",
+  responded: "対応済",
+  not_required: "対応不要",
+};
+
+const RESPONSE_STATUS_COLORS: Record<string, string> = {
+  unresponded: "bg-red-100 text-red-800",
+  in_progress: "bg-yellow-100 text-yellow-800",
+  responded: "bg-green-100 text-green-800",
+  not_required: "bg-gray-100 text-gray-600",
+};
+
 function CategoryBadge({ category }: { category: string }) {
   const label = CATEGORY_LABELS[category] ?? category;
   const color = CATEGORY_COLORS[category] ?? "bg-gray-100 text-gray-600";
@@ -72,6 +86,16 @@ function CategoryBadge({ category }: { category: string }) {
 function MethodBadge({ method }: { method: string }) {
   const label = METHOD_LABELS[method] ?? method;
   const color = METHOD_COLORS[method] ?? "bg-gray-100 text-gray-600";
+  return (
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
+      {label}
+    </span>
+  );
+}
+
+function ResponseStatusBadge({ status }: { status: string }) {
+  const label = RESPONSE_STATUS_LABELS[status] ?? status;
+  const color = RESPONSE_STATUS_COLORS[status] ?? "bg-gray-100 text-gray-600";
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${color}`}>
       {label}
@@ -206,12 +230,13 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
               <TableHead className="w-[110px]">カテゴリ</TableHead>
               <TableHead className="w-[90px]">分類方法</TableHead>
               <TableHead className="w-[70px]">信頼度</TableHead>
+              <TableHead className="w-[90px]">対応状況</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {messages.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                   メッセージがありません
                 </TableCell>
               </TableRow>
@@ -262,6 +287,13 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {msg.intent ? `${(msg.intent.confidenceScore * 100).toFixed(0)}%` : "-"}
+                  </TableCell>
+                  <TableCell>
+                    {msg.intent ? (
+                      <ResponseStatusBadge status={msg.intent.responseStatus} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

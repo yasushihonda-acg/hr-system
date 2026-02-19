@@ -182,6 +182,16 @@ export function reclassifyIntent(id: string, body: { category: string; comment?:
   );
 }
 
+export function updateResponseStatus(
+  id: string,
+  responseStatus: "unresponded" | "in_progress" | "responded" | "not_required",
+) {
+  return request<{ success: boolean; chatMessageId: string; responseStatus: string }>(
+    `/api/chat-messages/${id}/response-status`,
+    { method: "PATCH", body: JSON.stringify({ responseStatus }) },
+  );
+}
+
 // --- Stats ---
 
 export function getStatsSummary() {

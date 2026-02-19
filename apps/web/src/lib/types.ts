@@ -140,6 +140,7 @@ export interface IntentSummary {
   regexPattern: string | null;
   isManualOverride: boolean;
   originalCategory: string | null;
+  responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   createdAt: string;
 }
 
@@ -148,6 +149,8 @@ export interface IntentDetail extends IntentSummary {
   reasoning: string | null;
   overriddenBy: string | null;
   overriddenAt: string | null;
+  responseStatusUpdatedBy: string | null;
+  responseStatusUpdatedAt: string | null;
 }
 
 /** GET /api/chat-messages の1件 */

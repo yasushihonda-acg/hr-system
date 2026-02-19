@@ -7,6 +7,7 @@ import type {
   ChatCategory,
   DraftStatus,
   EmploymentType,
+  ResponseStatus,
   SalaryItemType,
   UserRole,
 } from "@hr-system/shared";
@@ -155,6 +156,11 @@ export interface IntentRecord {
   /** 修正者 email */
   overriddenBy: string | null;
   overriddenAt: Timestamp | null;
+  /** HR チームの対応状況 */
+  responseStatus: ResponseStatus;
+  /** 対応状況を更新した人の email */
+  responseStatusUpdatedBy: string | null;
+  responseStatusUpdatedAt: Timestamp | null;
   createdAt: Timestamp;
 }
 

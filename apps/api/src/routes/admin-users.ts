@@ -138,7 +138,7 @@ adminUserRoutes.delete("/:id", async (c) => {
     entityId: id,
     actorEmail: actor.email,
     actorRole: c.get("actorRole"),
-    details: { email: doc.data()!.email },
+    details: { email: doc.data()?.email },
     createdAt: FieldValue.serverTimestamp() as never,
   });
 
