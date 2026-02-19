@@ -1,15 +1,15 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-19（セッション終了時点）
-**ブランチ**: `main`（Task L PR #12 マージ済み）
+**ブランチ**: `main`（Task M PR #13 マージ済み）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker（実装完了）**
+**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤（実装完了）**
 
-Chat → Pub/Sub → Worker のエンドツーエンドパイプラインが実装されました。
+チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類フィードバックループが実装されました。
 
 ---
 
@@ -24,46 +24,53 @@ Chat → Pub/Sub → Worker のエンドツーエンドパイプラインが実�
 | Task H | Google OAuth + RBAC ミドルウェア (API) | main (#6) | 完了 |
 | Task I/J | REST API エンドポイント (salary-drafts / employees / audit-logs) | main (#10) | 完了 |
 | Task K | Next.js 承認ダッシュボード (Auth.js + shadcn/ui) | main (#11) | 完了 |
-| **Task L** | **Chat Webhook Worker** | **main (#12)** | **完了** |
+| Task L | Chat Webhook Worker | main (#12) | 完了 |
+| **Task M** | **チャットデータ収集・分析基盤** | **main (#13)** | **完了** |
 
 ---
 
-## 直近の変更（現セッション）
+## 直近の変更（Task M）
 
-### Chat Webhook Worker (`apps/worker/`)
+### チャットデータ収集・分析基盤
 
-Pub/Sub push イベントを受信し、AI 分類 → 給与計算 → SalaryDraft 作成までを自動処理。
+Google Chat の全メッセージをリッチに収集・分類・可視化する基盤を実装。
 
-**ディレクトリ構成:**
+#### 変更内容
+
+**packages/db**: ChatMessage/IntentRecord スキーマ大幅拡張
+- スレッド (`threadName`, `parentMessageId`, `messageType`)
+- メンション・アノテーション・添付ファイル (`mentionedUsers`, `annotations`, `attachments`)
+- 編集・削除フラグ (`isEdited`, `isDeleted`)
+- 生ペイロード (`rawPayload`)
+- 分類方法追跡 (`classificationMethod`, `regexPattern`, `isManualOverride`, `originalCategory`, `overriddenBy`, `overriddenAt`)
+
+**packages/ai**: ハイブリッド分類エンジン
+- 正規表現プレ分類レイヤー (15ルール)
+- confidence >= 0.85 でショートサーキット（AI コスト削減）
+- フォールバック: Gemini AI 分類
+- `IntentClassificationResult` に `classificationMethod`, `regexPattern` 追加
+
+**apps/worker**: リッチデータ収集
+- `event-parser.ts`: Chat API の全フィールドを取得 (`thread`, `annotations`, `attachment`, `formattedText`, `lastUpdateTime`)
+- `message.updated` イベントにも対応（編集メッセージ追跡）
+- `process-message.ts`: 全拡張フィールドを Firestore に保存
+
+**apps/api**: Chat Messages エンドポイント
 ```
-apps/worker/
-  package.json              @hr-system/worker
-  tsconfig.json
-  tsconfig.build.json
-  vitest.config.ts
-  .env.example
-  src/
-    index.ts                エントリポイント (port 3002)
-    app.ts                  Hono アプリ + ルートマウント
-    middleware/
-      pubsub-auth.ts        Pub/Sub OIDC トークン検証
-    routes/
-      pubsub.ts             POST /pubsub/push
-    lib/
-      errors.ts             WorkerError + workerErrorHandler
-      dedup.ts              googleMessageId 重複排除
-      event-parser.ts       Pub/Sub → ChatEvent 変換
-    pipeline/
-      process-message.ts    メインオーケストレーター
-      salary-handler.ts     給与カテゴリ専用ハンドラ
-    __tests__/
-      event-parser.test.ts  12 tests
-      dedup.test.ts          3 tests
-      process-message.test.ts 7 tests
-      salary-handler.test.ts 10 tests
+GET  /api/chat-messages         一覧（フィルタ: spaceId/messageType/threadName/category/pagination）
+GET  /api/chat-messages/:id     詳細（スレッド内メッセージ含む）
+PATCH /api/chat-messages/:id/intent  手動再分類（トランザクション + 監査ログ）
 ```
 
-**テスト結果**: 32/32 パス、typecheck OK、lint クリーン
+**apps/web**: チャット分析ダッシュボード
+- `/chat-messages` — 一覧ページ（カテゴリ/種別フィルタ、分類方法バッジ、信頼度表示）
+- `/chat-messages/:id` — 詳細ページ（スレッド可視化、手動再分類UI）
+- ナビゲーションに「チャット分析」追加
+- `ReclassifyForm` Client Component（PATCH API 呼び出し）
+
+#### 既知の制限（Phase 2 対応予定）
+- category フィルタ使用時、N+1 クエリにより `hasMore` の精度が低下する場合がある（Firestore JOIN 制限）
+  - 解決策: ChatMessage に `intentCategory` を非正規化（Phase 2 スキーマ最適化）
 
 ---
 
@@ -72,7 +79,7 @@ apps/worker/
 ```
 apps/
   api/          Hono (TypeScript) — Cloud Run API サーバー (port 3001)
-    routes/     salary-drafts.ts / employees.ts / audit-logs.ts
+    routes/     salary-drafts.ts / employees.ts / audit-logs.ts / chat-messages.ts
     middleware/ auth.ts (JWT検証) / rbac.ts (ロール制御)
     lib/        errors.ts / pagination.ts / serialize.ts
   worker/       Hono (TypeScript) — Chat Webhook Worker (port 3002)
@@ -81,19 +88,21 @@ apps/
     pipeline/   process-message.ts / salary-handler.ts
     lib/        errors.ts / dedup.ts / event-parser.ts
   web/          Next.js 15 App Router — 承認ダッシュボード (port 3000)
-    app/        page.tsx(一覧) / drafts/[id]/ / employees/ / audit-logs/ / login/
+    app/        page.tsx(一覧) / drafts/[id]/ / employees/ / audit-logs/
+                chat-messages/ (★NEW) / login/
+    app/api/    drafts/[id]/transition/ / chat-messages/[id]/intent/ (★NEW)
     src/auth.ts Auth.js (NextAuth v5) Google OAuth
     lib/api.ts  サーバーサイド API クライアント
 packages/
-  db/           Firestore 型定義・コレクション・クライアント
+  db/           Firestore 型定義・コレクション・クライアント（スキーマ拡張済み）
   shared/       DraftStatus, ApprovalAction, validateTransition 等
   salary/       確定的給与計算エンジン（LLM不使用）
-  ai/           Gemini intent分類・パラメータ抽出（金銭計算なし）
+  ai/           Gemini intent分類・パラメータ抽出（正規表現プレ分類レイヤー付き）
 ```
 
 ---
 
-## 処理パイプライン
+## 処理パイプライン（Task M 後の最終状態）
 
 ```
 Google Chat メッセージ
@@ -101,13 +110,15 @@ Google Chat メッセージ
   → Pub/Sub トピック (hr-chat-events)
   → Worker POST /pubsub/push
     → Pub/Sub OIDC 認証 (pubsub-auth.ts)
-    → event-parser: base64 decode → ChatEvent
+    → event-parser: base64 decode → ChatEvent（リッチフィールド含む）
     → dedup: googleMessageId 重複チェック
     → processMessage():
-        → ChatMessage 保存 (Firestore)
+        → ChatMessage 保存 (Firestore) — スレッド/メンション/添付/rawPayload 含む
         → AuditLog (chat_received)
-        → classifyIntent() [Gemini]
-        → IntentRecord 保存
+        → tryRegexClassify() — 正規表現プレ分類 (15ルール)
+            → confidence >= 0.85 なら AI スキップ
+            → それ以外は classifyIntent() [Gemini]
+        → IntentRecord 保存 (classificationMethod: "regex" | "ai")
         → AuditLog (intent_classified)
         → category === "salary" → handleSalary():
             → extractSalaryParams() [Gemini]
@@ -117,13 +128,20 @@ Google Chat メッセージ
             → salary パッケージで計算 [確定的コード]
             → SalaryDraft + SalaryDraftItems バッチ書き込み
             → AuditLog (draft_created)
+
+HR スタッフによる手動再分類:
+  → Dashboard /chat-messages/:id
+  → PATCH /api/chat-messages/:id/intent
+    → IntentRecord.classificationMethod = "manual"
+    → originalCategory 保存（フィードバックループ）
+    → AuditLog (intent_classified)
 ```
 
 ---
 
 ## 次のアクション候補
 
-1. **GCP セットアップ**（コード実装後の次ステップ）
+1. **GCP セットアップ**（コード実装完了、インフラ整備へ）
    - API 有効化: `workspaceevents.googleapis.com`, `chat.googleapis.com`, `pubsub.googleapis.com`
    - Pub/Sub トピック: `hr-chat-events` + DLQ: `hr-chat-events-dlq`
    - IAM: `chat-api-push@system.gserviceaccount.com` → Publisher
@@ -143,8 +161,10 @@ Google Chat メッセージ
    - Chat 投稿 → SalaryDraft 作成の一連フロー
    - Firebase Emulator: `pnpm emulator`
 
-4. **SmartHR / Google Sheets / Gmail 連携実装**
-   - approved → processing → completed 遷移時の外部連携
+4. **Phase 2 スキーマ最適化**
+   - ChatMessage に `intentCategory` を非正規化（カテゴリフィルタのページネーション精度向上）
+   - SmartHR / Google Sheets / Gmail 連携実装
+   - Chat への Bot 返信通知
 
 5. **Cloud Run デプロイ設定**
    - Dockerfile, Cloud Build, CI/CD パイプライン
@@ -158,8 +178,8 @@ Google Chat メッセージ
 | packages/salary | calculator.test.ts | 境界値テスト含む |
 | packages/shared | approval.test.ts + status-transitions.test.ts | |
 | apps/api | auth.test.ts + health.test.ts + salary-drafts.test.ts | 22 |
-| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts | **32** |
-| apps/web | なし（未実装） | — |
+| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts | 32 |
+| apps/web | smoke.test.ts | 1 |
 
 ---
 
@@ -183,7 +203,7 @@ draft → reviewed → approved → processing → completed
 | senderEmail | Chat userId をそのまま保存 | People API 連携で実名メール取得 |
 | 購読の自動更新 | 手動更新 | Cloud Scheduler による自動更新 |
 | Chat への返信通知 | 未実装 | Bot 登録後に実装 |
-| DB ヘルパーの共通化 | Worker 内に直接実装 | packages/db に移動 |
+| カテゴリフィルタ精度 | N+1 + 事前件数でhasMore判定 | intentCategory 非正規化で改善 |
 
 ---
 
