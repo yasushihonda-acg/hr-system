@@ -1,15 +1,15 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-19
-**ブランチ**: `feat/web-dashboard`（main に未マージ）
+**ブランチ**: `main`
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 1 — コアバックエンド + 承認ダッシュボード（実装中）**
+**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker（実装完了）**
 
-MVP の主要バックエンド機能は main にマージ済み。現在のブランチ（`feat/web-dashboard`）に Next.js 承認ダッシュボードが実装され、未プッシュ・未マージの状態。
+Chat → Pub/Sub → Worker のエンドツーエンドパイプラインが実装されました。
 
 ---
 
@@ -23,25 +23,47 @@ MVP の主要バックエンド機能は main にマージ済み。現在のブ�
 | Task F | Gemini Intent 分類パッケージ | main (#5) | 完了 |
 | Task H | Google OAuth + RBAC ミドルウェア (API) | main (#6) | 完了 |
 | Task I/J | REST API エンドポイント (salary-drafts / employees / audit-logs) | main (#10) | 完了 |
-| Task K | Next.js 承認ダッシュボード (Auth.js + shadcn/ui) | feat/web-dashboard (68f7bd6) | 実装済み・**未マージ** |
+| Task K | Next.js 承認ダッシュボード (Auth.js + shadcn/ui) | main (#11) | 完了 |
+| **Task L** | **Chat Webhook Worker** | **main (未コミット)** | **実装完了** |
 
 ---
 
-## 直近の変更（直近1週間）
+## 直近の変更（現セッション）
 
-1. **feat(web): add approval dashboard** (68f7bd6) — feat/web-dashboard
-   - Auth.js (NextAuth v5) + Google OAuth でログイン
-   - 給与ドラフト一覧ページ（ステータスフィルタ・ページネーション）
-   - ドラフト詳細ページ（Before/After 比較、承認アクションボタン）
-   - 従業員一覧ページ、監査ログページ
-   - shadcn/ui コンポーネント（Table, Card, Badge, Button など）
-   - API クライアント (`apps/web/src/lib/api.ts`) — Bearer トークン付き
+### Chat Webhook Worker (`apps/worker/`)
 
-2. **feat(api): implement REST API endpoints** (8a58a29) — main (#10)
-   - `GET/PATCH /drafts`, `POST /drafts/:id/transition`
-   - `GET /employees`, `GET /employees/:id`
-   - `GET /audit-logs`
-   - Zod バリデーション、ページネーション、エラーハンドリング
+Pub/Sub push イベントを受信し、AI 分類 → 給与計算 → SalaryDraft 作成までを自動処理。
+
+**ディレクトリ構成:**
+```
+apps/worker/
+  package.json              @hr-system/worker
+  tsconfig.json
+  tsconfig.build.json
+  vitest.config.ts
+  .env.example
+  src/
+    index.ts                エントリポイント (port 3002)
+    app.ts                  Hono アプリ + ルートマウント
+    middleware/
+      pubsub-auth.ts        Pub/Sub OIDC トークン検証
+    routes/
+      pubsub.ts             POST /pubsub/push
+    lib/
+      errors.ts             WorkerError + workerErrorHandler
+      dedup.ts              googleMessageId 重複排除
+      event-parser.ts       Pub/Sub → ChatEvent 変換
+    pipeline/
+      process-message.ts    メインオーケストレーター
+      salary-handler.ts     給与カテゴリ専用ハンドラ
+    __tests__/
+      event-parser.test.ts  12 tests
+      dedup.test.ts          3 tests
+      process-message.test.ts 7 tests
+      salary-handler.test.ts 10 tests
+```
+
+**テスト結果**: 32/32 パス、typecheck OK、lint クリーン
 
 ---
 
@@ -53,6 +75,11 @@ apps/
     routes/     salary-drafts.ts / employees.ts / audit-logs.ts
     middleware/ auth.ts (JWT検証) / rbac.ts (ロール制御)
     lib/        errors.ts / pagination.ts / serialize.ts
+  worker/       Hono (TypeScript) — Chat Webhook Worker (port 3002)
+    routes/     pubsub.ts (POST /pubsub/push)
+    middleware/ pubsub-auth.ts (OIDC 検証)
+    pipeline/   process-message.ts / salary-handler.ts
+    lib/        errors.ts / dedup.ts / event-parser.ts
   web/          Next.js 15 App Router — 承認ダッシュボード (port 3000)
     app/        page.tsx(一覧) / drafts/[id]/ / employees/ / audit-logs/ / login/
     src/auth.ts Auth.js (NextAuth v5) Google OAuth
@@ -66,49 +93,80 @@ packages/
 
 ---
 
-## 次のアクション候補
+## 処理パイプライン
 
-1. **feat/web-dashboard を PR → main へマージ**
-   - `git push -u origin feat/web-dashboard`
-   - `gh pr create` でレビュー依頼
-   - CI（typecheck / lint / test）がパスすることを確認
-
-2. **E2E テスト追加**（CLAUDE.md の Testing Guidelines に従い）
-   - Chat 投稿 → ドラフト生成 → 承認 → 通知の一連フロー
-   - Playwright or Vitest + Firebase Emulator
-
-3. **Chat Webhook Worker 実装**
-   - Google Chat イベント受信 → Pub/Sub → Gemini 分類 → SalaryDraft 生成
-   - 未着手タスク
-
-4. **SmartHR / Google Sheets / Gmail 連携実装**
-   - approved → processing → completed 遷移時の外部連携
-   - 未着手タスク
-
-5. **Cloud Run デプロイ設定**
-   - Dockerfile, Cloud Build, CI/CD パイプライン
-   - 未着手タスク
+```
+Google Chat メッセージ
+  → Workspace Events API (ユーザー認証で AAAA-qf5jX0 を購読)
+  → Pub/Sub トピック (hr-chat-events)
+  → Worker POST /pubsub/push
+    → Pub/Sub OIDC 認証 (pubsub-auth.ts)
+    → event-parser: base64 decode → ChatEvent
+    → dedup: googleMessageId 重複チェック
+    → processMessage():
+        → ChatMessage 保存 (Firestore)
+        → AuditLog (chat_received)
+        → classifyIntent() [Gemini]
+        → IntentRecord 保存
+        → AuditLog (intent_classified)
+        → category === "salary" → handleSalary():
+            → extractSalaryParams() [Gemini]
+            → 従業員検索 (employeeNumber or name)
+            → 現行給与取得
+            → MasterData 取得 (PitchTable + AllowanceMaster)
+            → salary パッケージで計算 [確定的コード]
+            → SalaryDraft + SalaryDraftItems バッチ書き込み
+            → AuditLog (draft_created)
+```
 
 ---
 
-## 未コミット・未プッシュの変更
+## 次のアクション候補
 
-| ファイル | 状態 | 対応 |
-|---------|------|------|
-| `.gitconfig.local` | untracked | .gitignore 対象（direnv 関連）— コミット不要 |
-| `.serena/` | untracked | .gitignore 対象（IDE メモリ）— コミット不要 |
-| `apps/web/next-env.d.ts` | untracked | Next.js 自動生成 — `.gitignore` に追加を検討 |
-| `feat/web-dashboard` ブランチ全体 | 未プッシュ | **次のアクション: `git push -u origin feat/web-dashboard`** |
+1. **Worker をコミット → PR → main マージ**
+   ```bash
+   git checkout -b feat/chat-webhook-worker
+   git add apps/worker/ docs/handoff/
+   git commit -m "feat(worker): Chat Webhook Worker (Task L)"
+   gh pr create
+   ```
+
+2. **GCP セットアップ**（コード実装後の次ステップ）
+   - API 有効化: `workspaceevents.googleapis.com`, `chat.googleapis.com`, `pubsub.googleapis.com`
+   - Pub/Sub トピック: `hr-chat-events` + DLQ: `hr-chat-events-dlq`
+   - IAM: `chat-api-push@system.gserviceaccount.com` → Publisher
+   - Workspace Events API 購読: ユーザー認証で `spaces/AAAA-qf5jX0` の message.created を購読
+   - Push Subscription: Worker Cloud Run URL へ配信（ACK 30秒、リトライ5回）
+
+3. **Worker ローカル動作確認**
+   ```bash
+   PUBSUB_SKIP_AUTH=true pnpm --filter @hr-system/worker dev
+   # 別ターミナル
+   curl -X POST http://localhost:3002/pubsub/push \
+     -H "Content-Type: application/json" \
+     -d '{"message":{"data":"<base64>","messageId":"test-1","publishTime":"2026-02-19T00:00:00Z"},"subscription":"test"}'
+   ```
+
+4. **E2E テスト**（Firestore Emulator）
+   - Chat 投稿 → SalaryDraft 作成の一連フロー
+   - Firebase Emulator: `pnpm emulator`
+
+5. **SmartHR / Google Sheets / Gmail 連携実装**
+   - approved → processing → completed 遷移時の外部連携
+
+6. **Cloud Run デプロイ設定**
+   - Dockerfile, Cloud Build, CI/CD パイプライン
 
 ---
 
 ## テスト状況
 
-| パッケージ/アプリ | テストファイル | 件数（概算） |
-|-----------------|--------------|-------------|
-| packages/salary | calculator.test.ts | 262行（境界値テスト含む） |
-| packages/shared | approval.test.ts + status-transitions.test.ts | 264行 |
-| apps/api | auth.test.ts + health.test.ts + salary-drafts.test.ts | 620行 |
+| パッケージ/アプリ | テストファイル | テスト数 |
+|-----------------|--------------|---------|
+| packages/salary | calculator.test.ts | 境界値テスト含む |
+| packages/shared | approval.test.ts + status-transitions.test.ts | |
+| apps/api | auth.test.ts + health.test.ts + salary-drafts.test.ts | 22 |
+| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts | **32** |
 | apps/web | なし（未実装） | — |
 
 ---
@@ -119,9 +177,21 @@ packages/
 draft → reviewed → approved → processing → completed
           ↓           ↓
        rejected    rejected
+裁量的変更: reviewed → pending_ceo_approval → approved
 ```
 
 行き止まりなし（rejected は再ドラフト可能な設計）
+
+---
+
+## Phase 1 の割り切り事項
+
+| 項目 | Phase 1 実装 | Phase 2 予定 |
+|------|------------|------------|
+| senderEmail | Chat userId をそのまま保存 | People API 連携で実名メール取得 |
+| 購読の自動更新 | 手動更新 | Cloud Scheduler による自動更新 |
+| Chat への返信通知 | 未実装 | Bot 登録後に実装 |
+| DB ヘルパーの共通化 | Worker 内に直接実装 | packages/db に移動 |
 
 ---
 
@@ -152,11 +222,8 @@ draft → reviewed → approved → processing → completed
 ```bash
 cd /Users/yyyhhh/ACG/hr-system
 
-# ブランチ確認
-git branch  # feat/web-dashboard にいること
-
-# 開発サーバー起動
-pnpm dev    # API: 3001, Web: 3000
+# 開発サーバー起動（API: 3001, Web: 3000, Worker: 3002）
+pnpm dev
 
 # Firebase Emulator（別ターミナル）
 pnpm emulator
@@ -164,7 +231,6 @@ pnpm emulator
 # テスト実行
 pnpm test
 
-# PR 作成（次のアクション）
-git push -u origin feat/web-dashboard
-gh pr create
+# Worker 単体テスト
+pnpm --filter @hr-system/worker test
 ```
