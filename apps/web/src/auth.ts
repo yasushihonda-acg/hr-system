@@ -28,14 +28,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     jwt({ token, account }) {
-      // 初回ログイン時に id_token を JWT に保存
       if (account?.id_token) {
         token.idToken = account.id_token;
       }
       return token;
     },
     session({ session, token }) {
-      // セッションに id_token を含めて API 転送用に使う
       session.idToken = token.idToken as string | undefined;
       return session;
     },

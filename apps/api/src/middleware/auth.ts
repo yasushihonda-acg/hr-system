@@ -1,3 +1,5 @@
+import { collections } from "@hr-system/db";
+import type { UserRole } from "@hr-system/shared";
 import { OAuth2Client } from "google-auth-library";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
@@ -8,6 +10,7 @@ export interface AuthUser {
   email: string;
   name: string;
   sub: string;
+  dashboardRole: UserRole | null;
 }
 
 // Hono の Context に型を付ける
@@ -28,13 +31,29 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     const ticket = await client.verifyIdToken({ idToken: token });
     const payload = ticket.getPayload();
     if (!payload?.email) throw new Error("No email in token");
+
+    // ホワイトリストチェック
+    const allowedSnap = await collections.allowedUsers
+      .where("email", "==", payload.email)
+      .where("isActive", "==", true)
+      .limit(1)
+      .get();
+
+    if (allowedSnap.empty) {
+      throw new HTTPException(403, { message: "Access denied: not in allowed users list" });
+    }
+
+    const dashboardRole = allowedSnap.docs[0]?.data().role ?? null;
+
     c.set("user", {
       email: payload.email,
       name: payload.name ?? "",
       sub: payload.sub ?? "",
+      dashboardRole,
     });
     await next();
-  } catch {
+  } catch (err) {
+    if (err instanceof HTTPException) throw err;
     throw new HTTPException(401, { message: "Invalid token" });
   }
 });
