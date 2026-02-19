@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { WorkerError } from "../lib/errors.js";
 import { parsePubSubEvent } from "../lib/event-parser.js";
 
@@ -88,14 +88,13 @@ describe("parsePubSubEvent", () => {
     });
 
     it("createTime がない場合は現在時刻を使用する", () => {
+      vi.setSystemTime(new Date("2026-02-19T10:00:00Z"));
       const payload = makeChatPayload();
       (payload.message as { createTime?: string }).createTime = undefined;
       const body = makePubSubBody({ data: makeData(payload) });
-      const before = new Date();
       const event = parsePubSubEvent(body);
-      const after = new Date();
-      expect(event?.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime() - 100);
-      expect(event?.createdAt.getTime()).toBeLessThanOrEqual(after.getTime() + 100);
+      expect(event?.createdAt).toEqual(new Date("2026-02-19T10:00:00Z"));
+      vi.useRealTimers();
     });
 
     it("ce-type が message.created の場合はパースする", () => {

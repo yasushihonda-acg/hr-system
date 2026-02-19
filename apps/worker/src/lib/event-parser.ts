@@ -31,9 +31,12 @@ export interface PubSubPushBody {
  * https://developers.google.com/workspace/events/reference/rest/v1/spaces.messages
  * https://developers.google.com/chat/api/reference/rest/v1/Event
  */
+/** Chat App Pub/Sub 接続で送られるイベントタイプ */
+type ChatAppEventType = "MESSAGE" | "ADDED_TO_SPACE" | "REMOVED_FROM_SPACE" | "CARD_CLICKED";
+
 interface ChatMessagePayload {
   /** Chat App イベントタイプ。Workspace Events API には存在しない。 */
-  type?: string;
+  type?: ChatAppEventType | (string & {});
   message?: {
     name: string; // "spaces/{space_id}/messages/{message_id}"
     sender?: {
@@ -175,8 +178,8 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
   const mentionedUsers = annotations
     .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
     .map((a) => ({
-      userId: a.userMention!.user.name,
-      displayName: a.userMention!.user.displayName,
+      userId: a.userMention?.user.name ?? "",
+      displayName: a.userMention?.user.displayName ?? "",
     }));
 
   // 添付ファイル正規化
