@@ -1,15 +1,15 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-19（セッション終了時点）
-**ブランチ**: `main`（Task N PR #20 マージ済み）
+**最終更新**: 2026-02-20（セッション終了時点）
+**ブランチ**: `main`（チャット分析ダッシュボード PR #35 マージ済み）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤 + GCP インフラ整備（実装完了）**
+**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤 + GCP インフラ整備 + チャット分析ダッシュボード（実装完了）**
 
-チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類フィードバックループが実装され、GCP 本番環境へのデプロイも完了しました。
+チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類・対応状況トラッキング・統計ダッシュボード・AI分類ルール管理・管理者ユーザー管理が実装完了しました。
 
 ---
 
@@ -26,11 +26,65 @@
 | Task K | Next.js 承認ダッシュボード (Auth.js + shadcn/ui) | main (#11) | 完了 |
 | Task L | Chat Webhook Worker | main (#12) | 完了 |
 | Task M | チャットデータ収集・分析基盤 | main (#13) | 完了 |
-| **Task N** | **GCP インフラ整備 (Dockerfile / Cloud Run / Pub/Sub / Chat App)** | **main (#20)** | **完了** |
+| Task N | GCP インフラ整備 (Dockerfile / Cloud Run / Pub/Sub / Chat App) | main (#20) | 完了 |
+| **Wave 1〜5** | **チャット分析ダッシュボード（認証・統計・ルール管理・対応状況）** | **main (#35)** | **完了** |
 
 ---
 
-## 直近の変更（Task N — 最新）
+## 直近の変更（Wave 1〜5 — チャット分析ダッシュボード — 最新）
+
+### チャット分析ダッシュボード完全実装
+
+PR #35 にてマージ済み（main `1e5bcee`）。Issue #21, #29, #30, #32, #33, #34 をクローズ。
+
+#### Wave 1: 認証・アクセス制御強化
+
+- `apps/api/src/middleware/auth.ts`: Firestore `allowedUsers` コレクションをホワイトリストとして JWT 認証に追加（`isActive: true` のみ許可）
+- `apps/api/src/routes/admin-users.ts`: 管理者ユーザー CRUD 4エンドポイント追加
+  - `GET /api/admin/users` / `POST /api/admin/users` / `PATCH /api/admin/users/:id` / `DELETE /api/admin/users/:id`
+- `apps/web/src/app/(protected)/admin/users/`: 管理画面（一覧・追加・編集・削除）
+
+#### Wave 2: 統計ダッシュボード
+
+- `apps/api/src/routes/stats.ts`: 統計 API 4エンドポイント
+  - `GET /api/stats/summary` (total/today/week/month)
+  - `GET /api/stats/categories` (10カテゴリ別件数・割合)
+  - `GET /api/stats/timeline` (日別/週別/月別トレンド)
+  - `GET /api/stats/spaces` (スペース別集計)
+- `apps/web/src/app/(protected)/`: トップダッシュボード (`/`) に統計サマリー・カテゴリ分布・タイムラインチャート（Recharts）実装
+
+#### Wave 3: AI分類ルール管理
+
+- `apps/api/src/routes/classification-rules.ts`: ルール管理 API
+  - `GET /api/classification-rules` / `PATCH /api/classification-rules/:category`
+- `packages/db`: `classificationRules` コレクション定義追加（`ClassificationRule` 型）
+- `apps/web/src/app/(protected)/classification-rules/`: AI分類ルール管理画面
+  - カテゴリ別キーワード・除外キーワード・パターン・優先度・サンプルメッセージ編集
+
+#### Wave 4: チャットメッセージ一覧・詳細強化
+
+- チャットメッセージ一覧ページに対応状況フィルタ・スレッド件数表示を追加
+- 詳細ページにスレッドビジュアライゼーション改善
+
+#### Wave 5: 対応状況トラッキング (C3)
+
+- `packages/shared/src/types.ts`: `AUDIT_EVENT_TYPES` に `"response_status_updated"` 追加
+- `packages/db/src/types.ts`: `IntentRecord` に `responseStatus`, `responseStatusUpdatedBy`, `responseStatusUpdatedAt` フィールド追加
+- `apps/api/src/routes/chat-messages.ts`:
+  - `PATCH /api/chat-messages/:id/response-status` 追加（Firestore トランザクション + 監査ログ）
+  - GET 一覧・詳細レスポンスに `responseStatus` 関連フィールド追加
+- `apps/worker/src/pipeline/process-message.ts`: IntentRecord 初期値に `responseStatus: "unresponded"` 追加
+- `apps/web/src/app/(protected)/chat-messages/[id]/response-status-control.tsx`: 対応状況操作 Client Component
+  - 4ステータスボタン（未対応/対応中/対応済/対応不要）、更新者・更新日時表示
+- `apps/web/src/app/(protected)/chat-messages/page.tsx`: 一覧テーブルに対応状況列追加
+
+#### テスト修正（Wave 5 同梱）
+
+- `apps/api/src/__tests__/auth.test.ts`, `salary-drafts.test.ts`: Wave 1 ホワイトリスト認証追加に伴う `allowedUsers` モック追加
+
+---
+
+## 直近の変更（Task N）
 
 ### GCP インフラ整備
 
@@ -130,9 +184,9 @@ apps/
     pipeline/   process-message.ts / salary-handler.ts
     lib/        errors.ts / dedup.ts / event-parser.ts
   web/          Next.js 15 App Router — 承認ダッシュボード (port 3000)
-    app/        page.tsx(一覧) / drafts/[id]/ / employees/ / audit-logs/
-                chat-messages/ (★NEW) / login/
-    app/api/    drafts/[id]/transition/ / chat-messages/[id]/intent/ (★NEW)
+    app/        page.tsx(統計ダッシュボード) / drafts/[id]/ / employees/ / audit-logs/
+                chat-messages/ / admin/users/ / classification-rules/ / login/
+    app/api/    drafts/[id]/transition/ / chat-messages/[id]/intent/ / chat-messages/[id]/response-status/
     src/auth.ts Auth.js (NextAuth v5) Google OAuth
     lib/api.ts  サーバーサイド API クライアント
 packages/
@@ -177,6 +231,13 @@ HR スタッフによる手動再分類:
     → IntentRecord.classificationMethod = "manual"
     → originalCategory 保存（フィードバックループ）
     → AuditLog (intent_classified)
+
+HR スタッフによる対応状況更新:
+  → Dashboard /chat-messages/:id (ResponseStatusControl)
+  → PATCH /api/chat-messages/:id/response-status
+    → IntentRecord.responseStatus 更新
+    → responseStatusUpdatedBy / responseStatusUpdatedAt 記録
+    → AuditLog (response_status_updated)
 ```
 
 ---
@@ -187,6 +248,7 @@ HR スタッフによる手動再分類:
    - `apps/web/Dockerfile` 作成 (Multi-stage build)
    - Cloud Run サービス作成: `hr-web`
    - Google OAuth 認証の本番 Redirect URI 設定
+   - `AUTH_SECRET`, `API_BASE_URL` 等の環境変数を Cloud Run シークレットに設定
 
 2. **API サーバー Cloud Run デプロイ**
    - `apps/api/Dockerfile` 作成
@@ -196,14 +258,58 @@ HR スタッフによる手動再分類:
 3. **Cloud Build / CI/CD パイプライン**
    - `cloudbuild.yaml` 作成（PR マージ時に自動ビルド＆デプロイ）
 
-4. **E2E テスト強化**（Firestore Emulator）
+4. **初期データ投入（本番 Firestore）**
+   - `classificationRules` コレクションへのシードデータ投入（10カテゴリ分のルール）
+   - `allowedUsers` への管理者アカウント追加
+
+5. **E2E テスト強化**（Firestore Emulator）
    - Chat 投稿 → SalaryDraft 作成 → 承認 → 完了の一連フロー
    - `scripts/test-worker-local.sh` を CI に組み込む
 
-5. **Phase 2 スキーマ最適化**
+6. **Phase 2 スキーマ最適化**
    - ChatMessage に `intentCategory` を非正規化（カテゴリフィルタのページネーション精度向上）
    - SmartHR / Google Sheets / Gmail 連携実装
-   - Chat への Bot 返信通知
+   - Chat への Bot 返信通知（`senderEmail` を People API で実名メールに変換）
+
+---
+
+## API エンドポイント一覧（現時点）
+
+```
+# 給与ドラフト
+GET    /api/salary-drafts              一覧（status/limit/offset フィルタ）
+GET    /api/salary-drafts/:id          詳細（items + approvalLogs + nextActions）
+POST   /api/salary-drafts/:id/transition  ステータス遷移（toStatus + comment）
+
+# 従業員
+GET    /api/employees                  一覧（employmentType/department/isActive フィルタ）
+GET    /api/employees/:id              詳細（currentSalary 含む）
+
+# 監査ログ
+GET    /api/audit-logs                 一覧（entityType/entityId フィルタ）
+
+# チャットメッセージ
+GET    /api/chat-messages              一覧（spaceId/messageType/threadName/category フィルタ）
+GET    /api/chat-messages/:id          詳細（スレッド内メッセージ + intent 含む）
+PATCH  /api/chat-messages/:id/intent   手動再分類（category + comment）
+PATCH  /api/chat-messages/:id/response-status  対応状況更新（responseStatus）
+
+# 統計
+GET    /api/stats/summary              総件数・本日・今週・今月
+GET    /api/stats/categories           10カテゴリ別件数・割合
+GET    /api/stats/timeline             日別/週別/月別トレンド（granularity/from/to）
+GET    /api/stats/spaces               スペース別集計
+
+# 管理者ユーザー
+GET    /api/admin/users                一覧
+POST   /api/admin/users                追加（email/displayName/role）
+PATCH  /api/admin/users/:id            更新（displayName/role/isActive）
+DELETE /api/admin/users/:id            削除（論理削除）
+
+# AI分類ルール
+GET    /api/classification-rules       全カテゴリのルール一覧
+PATCH  /api/classification-rules/:category  ルール更新（keywords/excludeKeywords/patterns 等）
+```
 
 ---
 
