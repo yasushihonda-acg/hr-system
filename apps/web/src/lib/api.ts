@@ -6,6 +6,7 @@ import type {
   CategoryStat,
   ChatMessageDetail,
   ChatMessageSummary,
+  ClassificationRule,
   DraftDetail,
   DraftSummary,
   EmployeeSummary,
@@ -238,5 +239,29 @@ export function updateAdminUser(
 export function deleteAdminUser(id: string) {
   return request<{ success: boolean }>(`/api/admin/users/${id}`, {
     method: "DELETE",
+  });
+}
+
+// --- Classification Rules ---
+
+export function getClassificationRules() {
+  return request<{ rules: ClassificationRule[] }>("/api/classification-rules");
+}
+
+export function updateClassificationRule(
+  category: string,
+  body: {
+    keywords?: string[];
+    excludeKeywords?: string[];
+    patterns?: string[];
+    priority?: number;
+    description?: string;
+    isActive?: boolean;
+    sampleMessages?: string[];
+  },
+) {
+  return request<{ success: boolean }>(`/api/classification-rules/${category}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
   });
 }

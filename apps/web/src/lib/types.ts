@@ -76,6 +76,22 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+// --- Classification Rules ---
+
+export interface ClassificationRule {
+  id: string;
+  category: string;
+  keywords: string[];
+  excludeKeywords: string[];
+  patterns: string[];
+  priority: number;
+  description: string;
+  isActive: boolean;
+  sampleMessages: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --- Stats ---
 
 export interface StatsSummary {

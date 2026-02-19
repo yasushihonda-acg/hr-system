@@ -8,12 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getChatMessages } from "@/lib/api";
+import { getChatMessages, getStatsSpaces } from "@/lib/api";
 
 interface Props {
   searchParams: Promise<{
     category?: string;
     messageType?: "MESSAGE" | "THREAD_REPLY";
+    spaceId?: string;
     page?: string;
   }>;
 }
@@ -92,21 +93,32 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  const { data: messages, pagination } = await getChatMessages({
-    category: params.category,
-    messageType: params.messageType,
-    limit: PAGE_SIZE,
-    offset,
-  });
+  const [{ data: messages, pagination }, spacesData] = await Promise.all([
+    getChatMessages({
+      category: params.category,
+      messageType: params.messageType,
+      spaceId: params.spaceId,
+      limit: PAGE_SIZE,
+      offset,
+    }),
+    getStatsSpaces(),
+  ]);
 
-  function buildUrl(overrides: { category?: string; messageType?: string; page?: string }) {
+  function buildUrl(overrides: {
+    category?: string;
+    messageType?: string;
+    spaceId?: string;
+    page?: string;
+  }) {
     const sp = new URLSearchParams();
     const category = "category" in overrides ? overrides.category : params.category;
     const messageType = "messageType" in overrides ? overrides.messageType : params.messageType;
-    const page = overrides.page;
+    const spaceId = "spaceId" in overrides ? overrides.spaceId : params.spaceId;
+    const p = overrides.page;
     if (category) sp.set("category", category);
     if (messageType) sp.set("messageType", messageType);
-    if (page && page !== "1") sp.set("page", page);
+    if (spaceId) sp.set("spaceId", spaceId);
+    if (p && p !== "1") sp.set("page", p);
     const qs = sp.toString();
     return `/chat-messages${qs ? `?${qs}` : ""}`;
   }
@@ -121,6 +133,28 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
             : `${offset + messages.length}件`}
         </p>
       </div>
+
+      {/* スペースフィルタ */}
+      {spacesData.spaces.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">スペース</p>
+          <div className="flex flex-wrap gap-2">
+            <FilterLink
+              href={buildUrl({ spaceId: undefined, page: "1" })}
+              label="すべて"
+              active={!params.spaceId}
+            />
+            {spacesData.spaces.map(({ spaceId, count }) => (
+              <FilterLink
+                key={spaceId}
+                href={buildUrl({ spaceId, page: "1" })}
+                label={`${spaceId} (${count}件)`}
+                active={params.spaceId === spaceId}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* カテゴリフィルタ */}
       <div className="space-y-2">
@@ -204,6 +238,11 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                     >
                       {msg.isEdited && (
                         <span className="mr-1 text-xs text-muted-foreground">[編集済]</span>
+                      )}
+                      {msg.mentionedUsers.length > 0 && (
+                        <span className="mr-1 text-xs text-blue-600">
+                          @{msg.mentionedUsers.map((u) => u.displayName).join(" @")}
+                        </span>
                       )}
                       {msg.content}
                     </Link>
