@@ -1,0 +1,9 @@
+# ===================================
+# hr-system Git設定
+# ===================================
+# このファイルは ~/.gitconfig の includeIf で読み込まれる
+# direnv が読み込まれない環境（IDE等）でも設定が適用される
+
+[user]
+    name = yasushihonda-acg
+    email = 248675557+yasushihonda-acg@users.noreply.github.com
