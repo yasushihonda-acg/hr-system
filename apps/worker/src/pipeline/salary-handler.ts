@@ -206,9 +206,8 @@ async function handleMechanical(
       if (!pitchEntry) {
         throw new WorkerError(
           "SALARY_CALC_ERROR",
-          `Pitch テーブルに targetSalary=${params.targetSalary} に対応するエントリが見つかりません`,
+          "Pitch テーブルに対応するエントリが見つかりません",
           false,
-          { employeeId, targetSalary: params.targetSalary },
         );
       }
       result = applyMechanicalChange(
@@ -226,7 +225,7 @@ async function handleMechanical(
   } catch (e) {
     if (e instanceof WorkerError) throw e;
     // applyMechanicalChange が throw した場合（エントリ未発見等）
-    throw new WorkerError("SALARY_CALC_ERROR", `給与計算失敗: ${String(e)}`, false, { employeeId });
+    throw new WorkerError("SALARY_CALC_ERROR", "給与計算失敗", false);
   }
 
   // バッチ書き込み
@@ -324,9 +323,7 @@ async function findEmployee(identifier: string | null): Promise<{ id: string } &
     if (doc) return { id: doc.id, ...doc.data() };
   }
 
-  throw new WorkerError("EMPLOYEE_NOT_FOUND", `従業員が見つかりません: ${identifier}`, false, {
-    identifier,
-  });
+  throw new WorkerError("EMPLOYEE_NOT_FOUND", "従業員が見つかりません", false);
 }
 
 /** 最新の有効な給与を取得する */
@@ -338,22 +335,12 @@ async function getCurrentSalary(employeeId: string): Promise<{ id: string } & Sa
     .get();
 
   if (snap.empty) {
-    throw new WorkerError(
-      "SALARY_CALC_ERROR",
-      `従業員 ${employeeId} の現行給与が見つかりません`,
-      false,
-      { employeeId },
-    );
+    throw new WorkerError("SALARY_CALC_ERROR", "現行給与が見つかりません", false);
   }
 
   const doc = snap.docs.at(0);
   if (!doc) {
-    throw new WorkerError(
-      "SALARY_CALC_ERROR",
-      `従業員 ${employeeId} の現行給与が見つかりません`,
-      false,
-      { employeeId },
-    );
+    throw new WorkerError("SALARY_CALC_ERROR", "現行給与が見つかりません", false);
   }
   return { id: doc.id, ...doc.data() };
 }

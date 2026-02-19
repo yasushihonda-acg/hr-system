@@ -23,8 +23,10 @@ export const pubsubAuthMiddleware = createMiddleware(async (c, next) => {
 
   const token = authHeader.slice(7);
   const audience = process.env.WORKER_URL ?? "";
-  const expectedEmail =
-    process.env.PUBSUB_SERVICE_ACCOUNT ?? "chat-api-push@system.gserviceaccount.com";
+  const expectedEmail = process.env.PUBSUB_SERVICE_ACCOUNT;
+  if (!expectedEmail) {
+    throw new HTTPException(500, { message: "PUBSUB_SERVICE_ACCOUNT is not configured" });
+  }
 
   try {
     const ticket = await client.verifyIdToken({ idToken: token, audience });
