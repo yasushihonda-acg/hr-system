@@ -4,6 +4,8 @@ export type {
   AllowanceMaster,
   ApprovalLog,
   AuditLog,
+  ChatAnnotation,
+  ChatAttachment,
   ChatMessage,
   Employee,
   IntentRecord,

@@ -75,3 +75,56 @@ export interface AuditLogEntry {
   details: Record<string, unknown>;
   createdAt: string;
 }
+
+/** Intent 分類結果（一覧・詳細共通） */
+export interface IntentSummary {
+  id: string;
+  category: string;
+  confidenceScore: number;
+  classificationMethod: "ai" | "regex" | "manual";
+  regexPattern: string | null;
+  isManualOverride: boolean;
+  originalCategory: string | null;
+  createdAt: string;
+}
+
+/** Intent 詳細（/api/chat-messages/:id に含まれる） */
+export interface IntentDetail extends IntentSummary {
+  reasoning: string | null;
+  overriddenBy: string | null;
+  overriddenAt: string | null;
+}
+
+/** GET /api/chat-messages の1件 */
+export interface ChatMessageSummary {
+  id: string;
+  spaceId: string;
+  googleMessageId: string;
+  senderUserId: string;
+  senderName: string;
+  senderType: "HUMAN" | "BOT";
+  content: string;
+  formattedContent: string | null;
+  messageType: "MESSAGE" | "THREAD_REPLY";
+  threadName: string | null;
+  parentMessageId: string | null;
+  mentionedUsers: Array<{ userId: string; displayName: string }>;
+  isEdited: boolean;
+  isDeleted: boolean;
+  processedAt: string | null;
+  createdAt: string;
+  intent: IntentSummary | null;
+}
+
+/** GET /api/chat-messages/:id */
+export interface ChatMessageDetail extends ChatMessageSummary {
+  rawPayload: Record<string, unknown> | null;
+  intent: IntentDetail | null;
+  threadMessages: Array<{
+    id: string;
+    senderName: string;
+    content: string;
+    messageType: string;
+    createdAt: string;
+  }>;
+}

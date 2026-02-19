@@ -1,6 +1,13 @@
 import type { DraftStatus } from "@hr-system/shared";
 import { auth } from "@/auth";
-import type { AuditLogEntry, DraftDetail, DraftSummary, EmployeeSummary } from "@/lib/types";
+import type {
+  AuditLogEntry,
+  ChatMessageDetail,
+  ChatMessageSummary,
+  DraftDetail,
+  DraftSummary,
+  EmployeeSummary,
+} from "@/lib/types";
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001";
 
@@ -130,4 +137,41 @@ export function getAuditLogs(params?: AuditLogListParams) {
     limit: number;
     offset: number;
   }>(`/api/audit-logs${qs ? `?${qs}` : ""}`);
+}
+
+// --- Chat Messages ---
+
+export interface ChatMessageListParams {
+  spaceId?: string;
+  messageType?: "MESSAGE" | "THREAD_REPLY";
+  threadName?: string;
+  category?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export function getChatMessages(params?: ChatMessageListParams) {
+  const sp = new URLSearchParams();
+  if (params?.spaceId) sp.set("spaceId", params.spaceId);
+  if (params?.messageType) sp.set("messageType", params.messageType);
+  if (params?.threadName) sp.set("threadName", params.threadName);
+  if (params?.category) sp.set("category", params.category);
+  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.offset) sp.set("offset", String(params.offset));
+  const qs = sp.toString();
+  return request<{
+    data: ChatMessageSummary[];
+    pagination: { limit: number; offset: number; hasMore: boolean };
+  }>(`/api/chat-messages${qs ? `?${qs}` : ""}`);
+}
+
+export function getChatMessage(id: string) {
+  return request<ChatMessageDetail>(`/api/chat-messages/${id}`);
+}
+
+export function reclassifyIntent(id: string, body: { category: string; comment?: string }) {
+  return request<{ success: boolean; chatMessageId: string; category: string }>(
+    `/api/chat-messages/${id}/intent`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
 }
