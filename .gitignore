@@ -46,3 +46,12 @@ next-env.d.ts
 
 # Prisma
 packages/db/src/generated/
+
+# Playwright MCP (runtime artifacts)
+.playwright-mcp/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
