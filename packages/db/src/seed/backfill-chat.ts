@@ -31,6 +31,7 @@
 
 import { fileURLToPath } from "node:url";
 import type { ChatCategory } from "@hr-system/shared";
+import type { ChatAnnotation, ChatAttachment } from "../types.js";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth, JWT } from "google-auth-library";
 import { collections } from "../collections.js";
@@ -218,16 +219,13 @@ function normalizeAnnotationType(type: string | undefined): NormalizedAnnotation
   }
 }
 
-function normalizeAnnotation(a: ChatApiAnnotation) {
+function normalizeAnnotation(a: ChatApiAnnotation): ChatAnnotation {
   const type = normalizeAnnotationType(a.type);
-  const base: {
-    type: NormalizedAnnotationType;
-    startIndex: number | null;
-    length: number | null;
-    userMention?: { user: { name: string; displayName: string; type: string } };
-    slashCommand?: { commandId: string; commandName: string };
-    richLink?: { uri: string; title: string | null };
-  } = { type, startIndex: a.startIndex ?? null, length: a.length ?? null };
+  const base: ChatAnnotation = { type };
+
+  // undefined のフィールドはキー自体を省略（Firestore は undefined を拒否するため）
+  if (a.startIndex !== undefined) base.startIndex = a.startIndex;
+  if (a.length !== undefined) base.length = a.length;
 
   if (type === "USER_MENTION" && a.userMention?.user) {
     base.userMention = {
@@ -245,10 +243,11 @@ function normalizeAnnotation(a: ChatApiAnnotation) {
     };
   }
   if (type === "RICH_LINK" && a.richLink) {
-    base.richLink = {
-      uri: a.richLink.uri ?? "",
-      title: a.richLink.richLinkMetadata?.title ?? null,
-    };
+    const richLink: ChatAnnotation["richLink"] = { uri: a.richLink.uri ?? "" };
+    if (a.richLink.richLinkMetadata?.title !== undefined) {
+      richLink.title = a.richLink.richLinkMetadata.title;
+    }
+    base.richLink = richLink;
   }
   return base;
 }
@@ -392,17 +391,17 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
           displayName: a.userMention?.user.displayName ?? "",
         }));
 
-      // 添付ファイル
-      const attachments = (msg.attachment ?? []).map((att) => ({
-        name: att.name ?? "",
-        contentName: att.contentName ?? null,
-        contentType: att.contentType ?? null,
-        downloadUri: att.downloadUri ?? null,
-        source:
-          att.source === "DRIVE_FILE" || att.source === "UPLOADED_CONTENT"
-            ? (att.source as "DRIVE_FILE" | "UPLOADED_CONTENT")
-            : null,
-      }));
+      // 添付ファイル（undefined フィールドはキーごと省略）
+      const attachments = (msg.attachment ?? []).map((att): ChatAttachment => {
+        const result: ChatAttachment = { name: att.name ?? "" };
+        if (att.contentName !== undefined) result.contentName = att.contentName;
+        if (att.contentType !== undefined) result.contentType = att.contentType;
+        if (att.downloadUri !== undefined) result.downloadUri = att.downloadUri;
+        if (att.source === "DRIVE_FILE" || att.source === "UPLOADED_CONTENT") {
+          result.source = att.source;
+        }
+        return result;
+      });
 
       const senderUserId = msg.sender?.name ?? "users/unknown";
       const senderName = msg.sender?.displayName ?? "";
