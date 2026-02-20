@@ -13,10 +13,10 @@
  *   pnpm --filter @hr-system/db db:backfill
  */
 
+import { fileURLToPath } from "node:url";
 import type { ChatCategory } from "@hr-system/shared";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth } from "google-auth-library";
-import { fileURLToPath } from "node:url";
 import { collections } from "../collections.js";
 
 // ============================================================
