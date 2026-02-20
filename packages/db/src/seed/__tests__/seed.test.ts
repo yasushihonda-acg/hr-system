@@ -74,8 +74,8 @@ describe("AllowanceMaster seed data", () => {
 });
 
 describe("Employee seed data", () => {
-  it("should have 7 test employees", () => {
-    expect(TEST_EMPLOYEES).toHaveLength(7);
+  it("should have at least 15 employees (ACG real staff)", () => {
+    expect(TEST_EMPLOYEES.length).toBeGreaterThanOrEqual(15);
   });
 
   it("should have valid employmentType for all employees", () => {
