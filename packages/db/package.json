@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "db:seed": "tsx src/seed/index.ts",
+    "db:backfill": "tsx src/seed/backfill-chat.ts",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "google-auth-library": "^10.5.0",
     "tsx": "^4.0.0",
     "vitest": "^3.2.4"
   }

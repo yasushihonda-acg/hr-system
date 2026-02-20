@@ -2,7 +2,9 @@ import { Timestamp } from "firebase-admin/firestore";
 import { collections } from "../collections.js";
 import { ALLOWANCE_MASTER_DATA } from "./allowance-master.js";
 import { INITIAL_ALLOWED_USERS } from "./allowed-users.js";
-import { seedChatMessages } from "./chat-messages.js";
+import { backfillChatMessages } from "./backfill-chat.js";
+// CSV版はフォールバック・テスト用として残す
+// import { seedChatMessages } from "./chat-messages.js";
 import { INITIAL_CLASSIFICATION_RULES } from "./classification-rules.js";
 import { TEST_EMPLOYEES } from "./employees.js";
 import { PITCH_TABLE_DATA } from "./pitch-table.js";
@@ -102,8 +104,8 @@ async function main(): Promise<void> {
   await seedEmployees();
   await seedAllowedUsers();
   await seedClassificationRules();
-  console.log("Seeding chat messages + intent records from CSV...");
-  await seedChatMessages();
+  console.log("Seeding chat messages + intent records from Chat REST API...");
+  await backfillChatMessages();
   console.log("Seed completed successfully");
 }
 
