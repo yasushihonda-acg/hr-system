@@ -1,15 +1,15 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-20（セッション終了時点）
-**ブランチ**: `main`（チャット分析ダッシュボード PR #35 マージ済み）
+**最終更新**: 2026-02-20 14:10（セッション終了時点）
+**ブランチ**: `main`（認証修正 + UI テーマ + 構造化ロガー コミット済み、未プッシュ 4件）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤 + GCP インフラ整備 + チャット分析ダッシュボード（実装完了）**
+**Phase 1 — コアバックエンド + 承認ダッシュボード + Chat Webhook Worker + チャット分析基盤 + GCP インフラ整備 + チャット分析ダッシュボード + 認証修正 + UI刷新（実装完了）**
 
-チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類・対応状況トラッキング・統計ダッシュボード・AI分類ルール管理・管理者ユーザー管理が実装完了しました。
+チャットデータの完全収集・AI/正規表現ハイブリッド分類・可視化・手動再分類・対応状況トラッキング・統計ダッシュボード・AI分類ルール管理・管理者ユーザー管理が実装完了しました。本セッションでログイン認証を完全修正し、Executive Slate × Amber UIテーマ適用、構造化ロガー追加、Terraform OAuth 定義追加を実施しました。
 
 ---
 
@@ -28,10 +28,49 @@
 | Task M | チャットデータ収集・分析基盤 | main (#13) | 完了 |
 | Task N | GCP インフラ整備 (Dockerfile / Cloud Run / Pub/Sub / Chat App) | main (#20) | 完了 |
 | **Wave 1〜5** | **チャット分析ダッシュボード（認証・統計・ルール管理・対応状況）** | **main (#35)** | **完了** |
+| **Auth Fix** | **ログイン機能完全修正（dev-login + Google OAuth 両方）** | **main (3d8c173)** | **完了** |
+| **Logger** | **構造化ロガー追加 + auth ミドルウェア DRY 改善** | **main (858cc58)** | **完了** |
+| **UI Theme** | **Executive Slate × Amber テーマ全面適用** | **main (36839d5)** | **完了** |
+| **Infra** | **.gitignore + Terraform OAuth 設定** | **main (ad86524)** | **完了** |
 
 ---
 
-## 直近の変更（Wave 1〜5 — チャット分析ダッシュボード — 最新）
+## 直近の変更（本セッション — 認証修正 + UI + ロガー + Infra — 最新）
+
+### fix(auth): ログイン機能を完全修正 (3d8c173)
+
+- `apps/api/src/middleware/auth.ts`: dev token バイパス処理を追加、`allowed_users` コレクションでアクセス制御
+- `apps/api/package.json`: devスクリプトに `NODE_ENV=development` を追加（dev-loginバイパス有効化）
+- `apps/web/src/auth.ts`: JWT callback の `if` を `else if` に修正（Google OAuth で email が id_token を上書きするバグを修正）、Credentials プロバイダー追加（isDev フラグで本番は無効）
+- `apps/web/src/app/login/page.tsx`: 開発専用ログインフォームを追加（NODE_ENV=development のみ表示）
+- `apps/web/src/app/layout.tsx`: favicon 設定を追加
+- `firebase.json`: Auth emulator ポート設定を追加
+- 本番 Firestore: 正しいコレクション `allowed_users` にドキュメント作成（誤 `allowedUsers` を削除）
+
+### feat(api): 構造化ロガー追加 + auth ミドルウェア DRY 改善 (858cc58)
+
+- `apps/api/src/lib/logger.ts` 新規作成
+  - 開発環境: ANSI カラー + タイムスタンプ表示
+  - 本番環境: Cloud Logging 向け JSON 出力
+  - PII マスキング: email/userEmail フィールドを自動マスク
+- `auth.ts`: resolveAllowedRole() を DRY ヘルパーとして抽出
+
+### feat(ui): Executive Slate × Amber テーマ全面適用 (36839d5)
+
+- `globals.css`: OKLCH カラー変数定義（インディゴ紺 + アンバーアクセント）
+- `status-badge.tsx`: ステータス別カラーバッジ（pulse アニメ付き）
+- `layout.tsx`: Noto Sans JP フォント (next/font/google, 400/500/700)
+- `login/page.tsx`: グリッド背景 + アンバーグロー + グラデーションボーダーカード
+- `header.tsx` / `nav.tsx`: インディゴ→アンバーグラデーション、アクティブ項目アンバーライン
+
+### chore: .gitignore + Terraform OAuth 設定 (ad86524)
+
+- `.gitignore`: `.playwright-mcp/`、terraform state ファイルを除外
+- `infra/oauth/main.tf`: Google OAuth クライアント Terraform 定義
+
+---
+
+## 直近の変更（Wave 1〜5 — チャット分析ダッシュボード）
 
 ### チャット分析ダッシュボード完全実装
 
