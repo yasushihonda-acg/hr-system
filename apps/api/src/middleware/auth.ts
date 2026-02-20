@@ -27,6 +27,24 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     throw new HTTPException(401, { message: "Unauthorized" });
   }
   const token = authHeader.slice(7);
+
+  // 開発環境: "dev:{email}" 形式のトークンをバイパス
+  if (process.env.NODE_ENV === "development" && token.startsWith("dev:")) {
+    const email = token.slice(4);
+    const allowedSnap = await collections.allowedUsers
+      .where("email", "==", email)
+      .where("isActive", "==", true)
+      .limit(1)
+      .get();
+    if (allowedSnap.empty) {
+      throw new HTTPException(403, { message: "Access denied: not in allowed users list" });
+    }
+    const dashboardRole = allowedSnap.docs[0]!.data().role ?? null;
+    c.set("user", { email, name: email, sub: email, dashboardRole });
+    await next();
+    return;
+  }
+
   try {
     const ticket = await client.verifyIdToken({ idToken: token });
     const payload = ticket.getPayload();
