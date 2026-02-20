@@ -236,13 +236,17 @@ function normalizeAnnotation(a: ChatApiAnnotation) {
 // Chat REST API クライアント
 // ============================================================
 
-async function fetchMessages(auth: GoogleAuth): Promise<ChatApiMessage[]> {
-  const client = await auth.getClient();
+async function fetchMessages(
+  auth: GoogleAuth | null,
+  bearerToken?: string,
+): Promise<ChatApiMessage[]> {
   const filterTime = ONE_YEAR_AGO.toISOString();
-
   const allMessages: ChatApiMessage[] = [];
   let pageToken: string | undefined;
   let pageCount = 0;
+
+  // ADC クライアント（bearerToken 未指定時のみ初期化）
+  const client = bearerToken ? null : await auth!.getClient();
 
   console.log(`  フィルタ: createTime > ${filterTime}`);
 
@@ -254,8 +258,22 @@ async function fetchMessages(auth: GoogleAuth): Promise<ChatApiMessage[]> {
     url.searchParams.set("showDeleted", "true");
     if (pageToken) url.searchParams.set("pageToken", pageToken);
 
-    const res = await client.request<ListMessagesResponse>({ url: url.toString() });
-    const data = res.data;
+    let data: ListMessagesResponse;
+    if (bearerToken) {
+      // --- REST API / CLI トークン直接渡し ---
+      const res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${bearerToken}` },
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Chat API エラー ${res.status}: ${body}`);
+      }
+      data = (await res.json()) as ListMessagesResponse;
+    } else {
+      // --- ADC (google-auth-library) ---
+      const res = await client!.request<ListMessagesResponse>({ url: url.toString() });
+      data = res.data;
+    }
 
     const msgs = data.messages ?? [];
     allMessages.push(...msgs);
@@ -449,14 +467,25 @@ export async function backfillChatMessages(): Promise<void> {
   console.log(`対象スペース: ${SPACE_NAME}`);
   console.log(`取得期間: ${ONE_YEAR_AGO.toLocaleDateString("ja-JP")} 〜 現在`);
 
-  // ADC 認証
-  const auth = new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
-  });
+  // 認証方法の選択:
+  //   (1) GOOGLE_ACCESS_TOKEN 環境変数 → Bearer トークン直接渡し (CLI / REST API 対応)
+  //   (2) 未設定               → ADC (google-auth-library) を使用
+  const bearerToken = process.env.GOOGLE_ACCESS_TOKEN;
+  const auth = bearerToken
+    ? null
+    : new GoogleAuth({
+        scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+      });
+
+  if (bearerToken) {
+    console.log("  認証: GOOGLE_ACCESS_TOKEN 環境変数を使用");
+  } else {
+    console.log("  認証: ADC (Application Default Credentials) を使用");
+  }
 
   // 1. Chat API からメッセージ取得
   console.log("\n[1/3] Chat REST API からメッセージ取得中...");
-  const messages = await fetchMessages(auth);
+  const messages = await fetchMessages(auth, bearerToken);
   console.log(`  合計 ${messages.length} 件取得`);
 
   if (messages.length === 0) {
