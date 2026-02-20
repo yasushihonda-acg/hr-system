@@ -134,6 +134,7 @@ chatMessageRoutes.get("/:id", async (c) => {
   const docSnap = await collections.chatMessages.doc(id).get();
   if (!docSnap.exists) throw notFound("ChatMessage", id);
 
+  // biome-ignore lint/style/noNonNullAssertion: docSnap.exists checked above
   const msg = docSnap.data()!;
 
   // IntentRecord
@@ -232,6 +233,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
   await db.runTransaction(async (tx) => {
     if (!intentSnap.empty) {
       // 既存レコードを更新
+      // biome-ignore lint/style/noNonNullAssertion: intentSnap.empty checked above
       const existingDoc = intentSnap.docs[0]!;
       const intentRef = existingDoc.ref;
       const current = existingDoc.data();
@@ -321,6 +323,7 @@ chatMessageRoutes.patch(
       return c.json({ error: "IntentRecord not found" }, 404);
     }
 
+    // biome-ignore lint/style/noNonNullAssertion: intentSnap.empty checked above
     const intentDoc = intentSnap.docs[0]!;
 
     await db.runTransaction(async (tx) => {

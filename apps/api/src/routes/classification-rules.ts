@@ -59,6 +59,7 @@ classificationRulesRoutes.get("/:category", async (c) => {
     notFound("ClassificationRule", category);
   }
 
+  // biome-ignore lint/style/noNonNullAssertion: snapshot.empty checked above
   const doc = snapshot.docs[0]!;
   const d = doc.data();
   return c.json({
@@ -95,6 +96,7 @@ classificationRulesRoutes.patch("/:category", zValidator("json", updateRuleSchem
     notFound("ClassificationRule", category);
   }
 
+  // biome-ignore lint/style/noNonNullAssertion: snapshot.empty checked above
   const docRef = snapshot.docs[0]!.ref;
   await docRef.update({
     ...updates,

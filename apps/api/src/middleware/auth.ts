@@ -32,6 +32,7 @@ async function resolveAllowedRole(email: string): Promise<UserRole | null> {
   if (snap.empty) {
     throw new HTTPException(403, { message: "Access denied: not in allowed users list" });
   }
+  // biome-ignore lint/style/noNonNullAssertion: snap.empty checked above
   return snap.docs[0]!.data().role ?? null;
 }
 
