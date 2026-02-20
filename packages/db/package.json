@@ -22,6 +22,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "db:seed": "tsx src/seed/index.ts",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
     "vitest": "^3.2.4"
   }
 }
