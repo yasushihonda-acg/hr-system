@@ -1,5 +1,9 @@
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquare, Paperclip } from "lucide-react";
 import Link from "next/link";
+import { AttachmentList } from "@/components/chat/attachment-list";
+import { MentionBadge } from "@/components/chat/mention-badge";
+import { RichContent } from "@/components/chat/rich-content";
+import { ThreadView } from "@/components/chat/thread-view";
 import { ReclassifyForm } from "@/components/reclassify-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getChatMessage } from "@/lib/api";
@@ -75,8 +79,8 @@ export default async function ChatMessageDetailPage({ params }: Props) {
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold">メッセージ詳細</h1>
         {msg.messageType === "THREAD_REPLY" && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            スレッド返信
+          <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+            ↩ スレッド返信
           </span>
         )}
         {msg.isEdited && (
@@ -92,10 +96,8 @@ export default async function ChatMessageDetailPage({ params }: Props) {
           <CardHeader>
             <CardTitle className="text-lg">メッセージ</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="rounded-md bg-muted p-4 text-base leading-relaxed whitespace-pre-wrap">
-              {msg.content}
-            </div>
+          <CardContent className="space-y-4 text-sm">
+            {/* 送信者・日時 */}
             <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
               <Row label="送信者" value={msg.senderName} />
               <Row label="種別" value={msg.senderType === "HUMAN" ? "ユーザー" : "Bot"} />
@@ -105,10 +107,32 @@ export default async function ChatMessageDetailPage({ params }: Props) {
                 value={msg.processedAt ? formatDateTime(msg.processedAt) : "未処理"}
               />
             </div>
+
+            {/* メンション */}
             {msg.mentionedUsers.length > 0 && (
-              <div className="text-sm">
-                <span className="text-muted-foreground">メンション: </span>
-                {msg.mentionedUsers.map((u) => u.displayName).join(", ")}
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">メンション</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {msg.mentionedUsers.map((u) => (
+                    <MentionBadge key={u.userId} displayName={u.displayName} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 本文（リッチテキスト対応） */}
+            <div className="rounded-md bg-muted p-4 text-base">
+              <RichContent formattedContent={msg.formattedContent} content={msg.content} />
+            </div>
+
+            {/* 添付ファイル */}
+            {msg.attachments.length > 0 && (
+              <div className="space-y-1">
+                <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  添付ファイル ({msg.attachments.length}件)
+                </p>
+                <AttachmentList attachments={msg.attachments} />
               </div>
             )}
           </CardContent>
@@ -202,7 +226,7 @@ export default async function ChatMessageDetailPage({ params }: Props) {
         )}
       </div>
 
-      {/* スレッドメッセージ */}
+      {/* スレッドメッセージ（会話ツリー） */}
       {msg.threadMessages.length > 0 && (
         <Card>
           <CardHeader>
@@ -212,22 +236,7 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {msg.threadMessages.map((t) => (
-                <div key={t.id} className="rounded-md border p-3 text-sm">
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="font-medium">{t.senderName}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDateTime(t.createdAt)}
-                      {t.messageType === "THREAD_REPLY" && (
-                        <span className="ml-1 text-muted-foreground">↩</span>
-                      )}
-                    </span>
-                  </div>
-                  <p className="leading-relaxed text-muted-foreground">{t.content}</p>
-                </div>
-              ))}
-            </div>
+            <ThreadView messages={msg.threadMessages} />
           </CardContent>
         </Card>
       )}

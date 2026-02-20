@@ -153,6 +153,23 @@ export interface IntentDetail extends IntentSummary {
   responseStatusUpdatedAt: string | null;
 }
 
+export interface ChatAnnotation {
+  type: "USER_MENTION" | "SLASH_COMMAND" | "RICH_LINK" | "UNKNOWN";
+  startIndex?: number;
+  length?: number;
+  userMention?: { user: { name: string; displayName: string; type: string } };
+  slashCommand?: { commandId: string; commandName: string };
+  richLink?: { uri: string; title?: string };
+}
+
+export interface ChatAttachment {
+  name: string;
+  contentName?: string;
+  contentType?: string;
+  downloadUri?: string;
+  source?: "DRIVE_FILE" | "UPLOADED_CONTENT";
+}
+
 /** GET /api/chat-messages の1件 */
 export interface ChatMessageSummary {
   id: string;
@@ -167,6 +184,8 @@ export interface ChatMessageSummary {
   threadName: string | null;
   parentMessageId: string | null;
   mentionedUsers: Array<{ userId: string; displayName: string }>;
+  annotations: ChatAnnotation[];
+  attachments: ChatAttachment[];
   isEdited: boolean;
   isDeleted: boolean;
   processedAt: string | null;
@@ -182,7 +201,8 @@ export interface ChatMessageDetail extends ChatMessageSummary {
     id: string;
     senderName: string;
     content: string;
-    messageType: string;
+    formattedContent: string | null;
+    messageType: "MESSAGE" | "THREAD_REPLY";
     createdAt: string;
   }>;
 }
