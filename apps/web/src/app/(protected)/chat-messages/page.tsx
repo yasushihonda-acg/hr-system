@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { MentionBadge } from "@/components/chat/mention-badge";
+import { stripHtml } from "@/components/chat/rich-content";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -71,6 +73,11 @@ const RESPONSE_STATUS_COLORS: Record<string, string> = {
   in_progress: "bg-yellow-100 text-yellow-800",
   responded: "bg-green-100 text-green-800",
   not_required: "bg-gray-100 text-gray-600",
+};
+
+/** スペースIDをフレンドリー名に変換 */
+const SPACE_NAMES: Record<string, string> = {
+  "AAAA-qf5jX0": "人事関連(全社共通)",
 };
 
 function CategoryBadge({ category }: { category: string }) {
@@ -172,7 +179,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
               <FilterLink
                 key={spaceId}
                 href={buildUrl({ spaceId, page: "1" })}
-                label={`${spaceId} (${count}件)`}
+                label={`${SPACE_NAMES[spaceId] ?? spaceId} (${count}件)`}
                 active={params.spaceId === spaceId}
               />
             ))}
@@ -241,62 +248,76 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                 </TableCell>
               </TableRow>
             ) : (
-              messages.map((msg) => (
-                <TableRow key={msg.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                    <Link href={`/chat-messages/${msg.id}`} className="block">
-                      {formatDateTime(msg.createdAt)}
-                      {msg.messageType === "THREAD_REPLY" && (
-                        <span className="ml-1 text-[10px] text-muted-foreground">↩</span>
+              messages.map((msg) => {
+                const preview = msg.formattedContent
+                  ? stripHtml(msg.formattedContent)
+                  : msg.content;
+                return (
+                  <TableRow
+                    key={msg.id}
+                    className={`cursor-pointer hover:bg-muted/50 ${msg.messageType === "THREAD_REPLY" ? "border-l-2 border-amber-400" : ""}`}
+                  >
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      <Link href={`/chat-messages/${msg.id}`} className="block">
+                        {formatDateTime(msg.createdAt)}
+                        {msg.messageType === "THREAD_REPLY" && (
+                          <span className="ml-1 text-[10px] text-amber-600">↩ 返信</span>
+                        )}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="max-w-[100px] truncate text-sm">
+                      <Link href={`/chat-messages/${msg.id}`} className="block">
+                        {msg.senderName}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/chat-messages/${msg.id}`} className="block">
+                        <div className="flex max-w-[400px] flex-col gap-1">
+                          {msg.isEdited && (
+                            <span className="text-xs text-muted-foreground">[編集済]</span>
+                          )}
+                          {msg.mentionedUsers.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {msg.mentionedUsers.slice(0, 3).map((u) => (
+                                <MentionBadge key={u.userId} displayName={u.displayName} />
+                              ))}
+                              {msg.mentionedUsers.length > 3 && (
+                                <span className="text-xs text-muted-foreground">
+                                  +{msg.mentionedUsers.length - 3}人
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <span className="truncate text-sm">{preview}</span>
+                        </div>
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {msg.intent ? (
+                        <CategoryBadge category={msg.intent.category} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">未分類</span>
                       )}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="max-w-[100px] truncate text-sm">
-                    <Link href={`/chat-messages/${msg.id}`} className="block">
-                      {msg.senderName}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/chat-messages/${msg.id}`}
-                      className="block max-w-[400px] truncate text-sm"
-                    >
-                      {msg.isEdited && (
-                        <span className="mr-1 text-xs text-muted-foreground">[編集済]</span>
+                      {msg.intent?.isManualOverride && (
+                        <span className="ml-1 text-[10px] text-amber-600">修正済</span>
                       )}
-                      {msg.mentionedUsers.length > 0 && (
-                        <span className="mr-1 text-xs text-blue-600">
-                          @{msg.mentionedUsers.map((u) => u.displayName).join(" @")}
-                        </span>
+                    </TableCell>
+                    <TableCell>
+                      {msg.intent && <MethodBadge method={msg.intent.classificationMethod} />}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {msg.intent ? `${(msg.intent.confidenceScore * 100).toFixed(0)}%` : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {msg.intent ? (
+                        <ResponseStatusBadge status={msg.intent.responseStatus} />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
-                      {msg.content}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {msg.intent ? (
-                      <CategoryBadge category={msg.intent.category} />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">未分類</span>
-                    )}
-                    {msg.intent?.isManualOverride && (
-                      <span className="ml-1 text-[10px] text-amber-600">修正済</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {msg.intent && <MethodBadge method={msg.intent.classificationMethod} />}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {msg.intent ? `${(msg.intent.confidenceScore * 100).toFixed(0)}%` : "-"}
-                  </TableCell>
-                  <TableCell>
-                    {msg.intent ? (
-                      <ResponseStatusBadge status={msg.intent.responseStatus} />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

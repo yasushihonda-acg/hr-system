@@ -159,6 +159,7 @@ chatMessageRoutes.get("/:id", async (c) => {
         id: d.id,
         senderName: d.data().senderName,
         content: d.data().content,
+        formattedContent: d.data().formattedContent ?? null,
         messageType: d.data().messageType,
         createdAt: toISO(d.data().createdAt),
       }));
