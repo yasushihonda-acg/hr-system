@@ -14,20 +14,20 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/", label: "ドラフト一覧", icon: FileText },
+  { href: "/", label: "ドラフト", icon: FileText },
   { href: "/dashboard", label: "ダッシュボード", icon: BarChart3 },
   { href: "/employees", label: "従業員", icon: Users },
   { href: "/chat-messages", label: "チャット分析", icon: MessageSquare },
   { href: "/audit-logs", label: "監査ログ", icon: ClipboardList },
-  { href: "/ai-settings", label: "AI分類設定", icon: Bot },
-  { href: "/admin/users", label: "ユーザー管理", icon: Settings },
+  { href: "/ai-settings", label: "AI設定", icon: Bot },
+  { href: "/admin/users", label: "管理", icon: Settings },
 ] as const;
 
 export function Nav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1">
+    <nav className="flex items-center gap-0.5">
       {links.map(({ href, label, icon: Icon }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
         return (
@@ -35,11 +35,18 @@ export function Nav() {
             key={href}
             href={href}
             className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent",
-              active ? "bg-accent text-accent-foreground" : "text-muted-foreground",
+              "relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-all duration-150",
+              active
+                ? "text-primary nav-active-indicator"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent",
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon
+              className={cn(
+                "h-3.5 w-3.5 flex-shrink-0",
+                active ? "text-[oklch(0.73_0.18_55)]" : "",
+              )}
+            />
             {label}
           </Link>
         );
