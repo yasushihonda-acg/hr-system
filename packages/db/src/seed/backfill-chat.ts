@@ -4,10 +4,26 @@
  * Google Chat REST API (spaces.messages.list) で過去1年分の全メッセージを取得し、
  * 完全なメタデータ付きで Firestore の chat_messages / intent_records を上書きする。
  *
- * 前提: ADC に chat.messages.readonly スコープが付与されていること。
- *   gcloud auth application-default login \
- *     --scopes="https://www.googleapis.com/auth/cloud-platform,\
- *               https://www.googleapis.com/auth/chat.messages.readonly"
+ * 認証方法（優先順位順）:
+ *
+ *   (1) GOOGLE_ACCESS_TOKEN 環境変数
+ *       任意の方法で取得した Bearer トークンを直接渡す。
+ *       例: GOOGLE_ACCESS_TOKEN=$(gcloud auth print-access-token) だと chat スコープがないが、
+ *           Desktop OAuth クライアントで取得したトークンなら有効。
+ *       例: GOOGLE_ACCESS_TOKEN=ya29.xxx pnpm --filter @hr-system/db db:backfill
+ *
+ *   (2) DWD（Domain-Wide Delegation）
+ *       SA + DWD でユーザーを代理してアクセス。
+ *       DWD_SA_KEY_FILE と DWD_SUBJECT の両方が必要。
+ *       前提: Cloud Console でSAのDWD有効化 + admin.google.com でスコープ承認済み。
+ *       例: DWD_SA_KEY_FILE=/path/to/key.json DWD_SUBJECT=user@domain.com \
+ *             pnpm --filter @hr-system/db db:backfill
+ *
+ *   (3) ADC（Application Default Credentials）
+ *       gcloud auth application-default login \
+ *         --scopes="https://www.googleapis.com/auth/cloud-platform,\
+ *                   https://www.googleapis.com/auth/chat.messages.readonly"
+ *       ※ Workspace管理者ポリシーでgcloudクライアントがブロックされている場合は失敗する。
  *
  * 実行:
  *   pnpm --filter @hr-system/db db:backfill
@@ -16,8 +32,13 @@
 import { fileURLToPath } from "node:url";
 import type { ChatCategory } from "@hr-system/shared";
 import { Timestamp } from "firebase-admin/firestore";
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, JWT } from "google-auth-library";
 import { collections } from "../collections.js";
+
+/** google-auth-library の request インターフェースを最小限で抽象化 */
+type RequestClient = {
+  request: <T>(opts: { url: string }) => Promise<{ data: T }>;
+};
 
 // ============================================================
 // 定数
@@ -237,16 +258,13 @@ function normalizeAnnotation(a: ChatApiAnnotation) {
 // ============================================================
 
 async function fetchMessages(
-  auth: GoogleAuth | null,
+  client: RequestClient | null,
   bearerToken?: string,
 ): Promise<ChatApiMessage[]> {
   const filterTime = ONE_YEAR_AGO.toISOString();
   const allMessages: ChatApiMessage[] = [];
   let pageToken: string | undefined;
   let pageCount = 0;
-
-  // ADC クライアント（bearerToken 未指定時のみ初期化）
-  const client = bearerToken ? null : await auth!.getClient();
 
   console.log(`  フィルタ: createTime > ${filterTime}`);
 
@@ -270,8 +288,9 @@ async function fetchMessages(
       }
       data = (await res.json()) as ListMessagesResponse;
     } else {
-      // --- ADC (google-auth-library) ---
-      const res = await client!.request<ListMessagesResponse>({ url: url.toString() });
+      // --- ADC / DWD (google-auth-library) ---
+      if (!client) throw new Error("client が null — 認証設定を確認してください");
+      const res = await client.request<ListMessagesResponse>({ url: url.toString() });
       data = res.data;
     }
 
@@ -467,25 +486,36 @@ export async function backfillChatMessages(): Promise<void> {
   console.log(`対象スペース: ${SPACE_NAME}`);
   console.log(`取得期間: ${ONE_YEAR_AGO.toLocaleDateString("ja-JP")} 〜 現在`);
 
-  // 認証方法の選択:
-  //   (1) GOOGLE_ACCESS_TOKEN 環境変数 → Bearer トークン直接渡し (CLI / REST API 対応)
-  //   (2) 未設定               → ADC (google-auth-library) を使用
+  // 認証方法の選択（優先順位順）:
+  //   (1) GOOGLE_ACCESS_TOKEN 環境変数 → Bearer トークン直接渡し
+  //   (2) DWD_SA_KEY_FILE + DWD_SUBJECT → JWT (Domain-Wide Delegation)
+  //   (3) 未設定 → ADC (Application Default Credentials)
   const bearerToken = process.env.GOOGLE_ACCESS_TOKEN;
-  const auth = bearerToken
-    ? null
-    : new GoogleAuth({
-        scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
-      });
+  const dwdKeyFile = process.env.DWD_SA_KEY_FILE;
+  const dwdSubject = process.env.DWD_SUBJECT;
+
+  let requestClient: RequestClient | null = null;
 
   if (bearerToken) {
     console.log("  認証: GOOGLE_ACCESS_TOKEN 環境変数を使用");
+  } else if (dwdKeyFile && dwdSubject) {
+    console.log(`  認証: DWD (Domain-Wide Delegation) — subject: ${dwdSubject}`);
+    requestClient = new JWT({
+      keyFile: dwdKeyFile,
+      scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+      subject: dwdSubject,
+    });
   } else {
     console.log("  認証: ADC (Application Default Credentials) を使用");
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+    });
+    requestClient = await auth.getClient();
   }
 
   // 1. Chat API からメッセージ取得
   console.log("\n[1/3] Chat REST API からメッセージ取得中...");
-  const messages = await fetchMessages(auth, bearerToken);
+  const messages = await fetchMessages(requestClient, bearerToken);
   console.log(`  合計 ${messages.length} 件取得`);
 
   if (messages.length === 0) {
