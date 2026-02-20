@@ -31,10 +31,10 @@
 
 import { fileURLToPath } from "node:url";
 import type { ChatCategory } from "@hr-system/shared";
-import type { ChatAnnotation, ChatAttachment } from "../types.js";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth, JWT } from "google-auth-library";
 import { collections } from "../collections.js";
+import type { ChatAnnotation, ChatAttachment } from "../types.js";
 
 /** google-auth-library の request インターフェースを最小限で抽象化 */
 type RequestClient = {
