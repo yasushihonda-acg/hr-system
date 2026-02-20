@@ -222,12 +222,12 @@ function normalizeAnnotation(a: ChatApiAnnotation) {
   const type = normalizeAnnotationType(a.type);
   const base: {
     type: NormalizedAnnotationType;
-    startIndex?: number;
-    length?: number;
+    startIndex: number | null;
+    length: number | null;
     userMention?: { user: { name: string; displayName: string; type: string } };
     slashCommand?: { commandId: string; commandName: string };
-    richLink?: { uri: string; title?: string };
-  } = { type, startIndex: a.startIndex, length: a.length };
+    richLink?: { uri: string; title: string | null };
+  } = { type, startIndex: a.startIndex ?? null, length: a.length ?? null };
 
   if (type === "USER_MENTION" && a.userMention?.user) {
     base.userMention = {
@@ -247,7 +247,7 @@ function normalizeAnnotation(a: ChatApiAnnotation) {
   if (type === "RICH_LINK" && a.richLink) {
     base.richLink = {
       uri: a.richLink.uri ?? "",
-      title: a.richLink.richLinkMetadata?.title,
+      title: a.richLink.richLinkMetadata?.title ?? null,
     };
   }
   return base;
@@ -395,13 +395,13 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
       // 添付ファイル
       const attachments = (msg.attachment ?? []).map((att) => ({
         name: att.name ?? "",
-        contentName: att.contentName,
-        contentType: att.contentType,
-        downloadUri: att.downloadUri,
+        contentName: att.contentName ?? null,
+        contentType: att.contentType ?? null,
+        downloadUri: att.downloadUri ?? null,
         source:
           att.source === "DRIVE_FILE" || att.source === "UPLOADED_CONTENT"
             ? (att.source as "DRIVE_FILE" | "UPLOADED_CONTENT")
-            : undefined,
+            : null,
       }));
 
       const senderUserId = msg.sender?.name ?? "users/unknown";
@@ -433,7 +433,7 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
         attachments,
         isEdited,
         isDeleted,
-        rawPayload: msg as unknown as Record<string, unknown>,
+        rawPayload: JSON.parse(JSON.stringify(msg)) as Record<string, unknown>,
         processedAt: null,
         createdAt,
       });
