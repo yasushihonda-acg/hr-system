@@ -16,6 +16,7 @@
 import type { ChatCategory } from "@hr-system/shared";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth } from "google-auth-library";
+import { fileURLToPath } from "node:url";
 import { collections } from "../collections.js";
 
 // ============================================================
@@ -474,8 +475,11 @@ export async function backfillChatMessages(): Promise<void> {
   console.log("\n=== バックフィル完了 ===");
 }
 
-// スクリプトとして直接実行された場合
-backfillChatMessages().catch((err) => {
-  console.error("バックフィル失敗:", err);
-  process.exit(1);
-});
+// このファイルがエントリーポイントとして直接実行された場合のみバックフィルを実行
+// import されただけの場合（seed/index.ts から呼ばれる場合など）はここを通らない
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  backfillChatMessages().catch((err) => {
+    console.error("バックフィル失敗:", err);
+    process.exit(1);
+  });
+}
