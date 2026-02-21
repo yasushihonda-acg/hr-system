@@ -50,6 +50,12 @@ resource "google_project_iam_member" "sa_token_creator" {
   member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
 }
 
+resource "google_project_iam_member" "secret_accessor" {
+  project = "hr-system-487809"
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
+}
+
 # ---------------------------------------------------------------------------
 # 3. Artifact Registry リポジトリ
 # ---------------------------------------------------------------------------
@@ -147,8 +153,9 @@ resource "google_cloud_run_v2_service" "web" {
       }
 
       env {
+        # uri には https:// が含まれるためプレフィックス不要
         name  = "API_BASE_URL"
-        value = "https://${google_cloud_run_v2_service.api.uri}"
+        value = google_cloud_run_v2_service.api.uri
       }
     }
   }
