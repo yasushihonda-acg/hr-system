@@ -3,7 +3,7 @@
  * 親メッセージ → 返信メッセージのインデント付き会話ビューを表示する。
  */
 import { MessageSquare } from "lucide-react";
-import { RichContent } from "./rich-content";
+import { ContentWithMentions } from "./rich-content";
 
 interface ThreadMessage {
   id: string;
@@ -66,7 +66,10 @@ function MessageBubble({ message, isReply }: { message: ThreadMessage; isReply: 
           </time>
         </div>
         <div className="rounded-md bg-muted/40 px-3 py-2 text-sm">
-          <RichContent formattedContent={message.formattedContent} content={message.content} />
+          <ContentWithMentions
+            formattedContent={message.formattedContent}
+            content={message.content}
+          />
         </div>
       </div>
     </div>

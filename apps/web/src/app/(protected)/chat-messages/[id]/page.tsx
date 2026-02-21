@@ -2,7 +2,7 @@ import { ArrowLeft, MessageSquare, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { MentionBadge } from "@/components/chat/mention-badge";
-import { RichContent } from "@/components/chat/rich-content";
+import { ContentWithMentions } from "@/components/chat/rich-content";
 import { ThreadView } from "@/components/chat/thread-view";
 import { ReclassifyForm } from "@/components/reclassify-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,9 +120,9 @@ export default async function ChatMessageDetailPage({ params }: Props) {
               </div>
             )}
 
-            {/* 本文（リッチテキスト対応） */}
+            {/* 本文（メンションインライン対応） */}
             <div className="rounded-md bg-muted p-4 text-base">
-              <RichContent formattedContent={msg.formattedContent} content={msg.content} />
+              <ContentWithMentions formattedContent={msg.formattedContent} content={msg.content} />
             </div>
 
             {/* 添付ファイル */}
