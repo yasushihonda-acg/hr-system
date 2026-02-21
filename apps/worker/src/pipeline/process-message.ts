@@ -2,10 +2,21 @@ import { classifyIntent } from "@hr-system/ai";
 import { collections, db } from "@hr-system/db";
 import type { AuditEventType } from "@hr-system/shared";
 import { FieldValue } from "firebase-admin/firestore";
+import { createChatApiClient } from "../lib/chat-api.js";
 import { isDuplicate } from "../lib/dedup.js";
+import { enrichChatEvent } from "../lib/enrich-event.js";
 import { WorkerError } from "../lib/errors.js";
 import type { ChatEvent } from "../lib/event-parser.js";
 import { handleSalary } from "./salary-handler.js";
+
+/** Chat API クライアントの lazy singleton */
+let _chatApiClient: ReturnType<typeof createChatApiClient> | undefined;
+function getChatApiClient(): ReturnType<typeof createChatApiClient> {
+  if (!_chatApiClient) {
+    _chatApiClient = createChatApiClient();
+  }
+  return _chatApiClient;
+}
 
 /**
  * Chat メッセージを受け取り、Intent 分類 → カテゴリ別ハンドラへルーティングする
@@ -26,27 +37,31 @@ export async function processMessage(event: ChatEvent): Promise<void> {
     throw new WorkerError("DB_ERROR", `重複チェック失敗: ${String(e)}`, true);
   }
 
+  // 1.5. メタデータ補完（Chat API で formattedText / annotations / attachments を取得）
+  // best-effort: 失敗時は元の event で続行（NACK しない）
+  const enrichedEvent = await enrichChatEvent(event, getChatApiClient());
+
   // 2. ChatMessage を Firestore に保存
   const chatMessageRef = collections.chatMessages.doc();
   try {
     await chatMessageRef.set({
-      spaceId: event.spaceName,
-      googleMessageId: event.googleMessageId,
-      senderUserId: event.senderUserId,
-      senderEmail: event.senderUserId, // Phase 2: People API で実名メールに置換
-      senderName: event.senderName,
-      senderType: event.senderType,
-      content: event.text,
-      formattedContent: event.formattedText,
-      messageType: event.messageType,
-      threadName: event.threadName,
-      parentMessageId: event.parentMessageId,
-      mentionedUsers: event.mentionedUsers,
-      annotations: event.annotations,
-      attachments: event.attachments,
-      isEdited: event.isEdited,
-      isDeleted: event.isDeleted,
-      rawPayload: event.rawPayload,
+      spaceId: enrichedEvent.spaceName,
+      googleMessageId: enrichedEvent.googleMessageId,
+      senderUserId: enrichedEvent.senderUserId,
+      senderEmail: enrichedEvent.senderUserId, // Phase 2: People API で実名メールに置換
+      senderName: enrichedEvent.senderName,
+      senderType: enrichedEvent.senderType,
+      content: enrichedEvent.text,
+      formattedContent: enrichedEvent.formattedText,
+      messageType: enrichedEvent.messageType,
+      threadName: enrichedEvent.threadName,
+      parentMessageId: enrichedEvent.parentMessageId,
+      mentionedUsers: enrichedEvent.mentionedUsers,
+      annotations: enrichedEvent.annotations,
+      attachments: enrichedEvent.attachments,
+      isEdited: enrichedEvent.isEdited,
+      isDeleted: enrichedEvent.isDeleted,
+      rawPayload: enrichedEvent.rawPayload,
       processedAt: null,
       createdAt: FieldValue.serverTimestamp() as never,
     });
@@ -60,7 +75,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
   // 4. Intent 分類（regex → AI フォールバック）
   let intentResult: Awaited<ReturnType<typeof classifyIntent>>;
   try {
-    intentResult = await classifyIntent(event.text);
+    intentResult = await classifyIntent(enrichedEvent.text);
   } catch (e) {
     // LLM エラー → NACK してリトライ
     throw new WorkerError("LLM_ERROR", `Intent 分類失敗: ${String(e)}`, true);
@@ -76,7 +91,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
       extractedParams: null,
       classificationMethod: intentResult.classificationMethod,
       regexPattern: intentResult.regexPattern ?? null,
-      llmInput: intentResult.classificationMethod === "ai" ? event.text : null,
+      llmInput: intentResult.classificationMethod === "ai" ? enrichedEvent.text : null,
       llmOutput: intentResult.classificationMethod === "ai" ? intentResult.reasoning : null,
       isManualOverride: false,
       originalCategory: null,
@@ -96,7 +111,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
 
   // 7. カテゴリ別ハンドラへルーティング
   if (intentResult.category === "salary") {
-    await handleSalary(chatMessageRef.id, event, intentResult);
+    await handleSalary(chatMessageRef.id, enrichedEvent, intentResult);
   } else {
     // Phase 1: 給与以外はログのみ記録
     console.info(

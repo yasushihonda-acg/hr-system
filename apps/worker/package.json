@@ -12,6 +12,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@googleapis/chat": "^44.0.0",
     "@hono/node-server": "^1.19.0",
     "@hr-system/ai": "workspace:*",
     "@hr-system/db": "workspace:*",

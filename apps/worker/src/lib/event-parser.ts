@@ -223,7 +223,7 @@ export function parsePubSubEvent(body: unknown): ChatEvent | null {
   };
 }
 
-type RawAnnotation = {
+export type RawAnnotation = {
   type?: string;
   startIndex?: number;
   length?: number;
@@ -240,7 +240,7 @@ type RawAnnotation = {
   richLink?: { uri?: string; richLinkMetadata?: { title?: string; mimeType?: string } };
 };
 
-function normalizeAnnotation(a: RawAnnotation): ChatAnnotation {
+export function normalizeAnnotation(a: RawAnnotation): ChatAnnotation {
   const type = normalizeAnnotationType(a.type);
   const base: ChatAnnotation = {
     type,
