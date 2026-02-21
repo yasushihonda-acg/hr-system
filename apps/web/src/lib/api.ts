@@ -12,6 +12,7 @@ import type {
   EmployeeSummary,
   SpaceStat,
   StatsSummary,
+  SyncStatus,
   TimelinePoint,
 } from "@/lib/types";
 
@@ -274,4 +275,16 @@ export function updateClassificationRule(
     method: "PATCH",
     body: JSON.stringify(body),
   });
+}
+
+// --- Chat Sync ---
+
+export function triggerChatSync() {
+  return request<{ message: string }>("/api/chat-messages/sync", {
+    method: "POST",
+  });
+}
+
+export function getChatSyncStatus() {
+  return request<SyncStatus>("/api/chat-messages/sync/status");
 }

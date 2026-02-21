@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ContentWithMentions, stripHtml } from "@/components/chat/rich-content";
+import { ChatSyncButton } from "@/components/chat/sync-button";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -157,11 +158,14 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">チャット分析</h1>
-        <p className="text-sm text-muted-foreground">
-          {pagination.hasMore
-            ? `${offset + messages.length}件以上`
-            : `${offset + messages.length}件`}
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-muted-foreground">
+            {pagination.hasMore
+              ? `${offset + messages.length}件以上`
+              : `${offset + messages.length}件`}
+          </p>
+          <ChatSyncButton />
+        </div>
       </div>
 
       {/* スペースフィルタ */}
