@@ -13,7 +13,6 @@ import type {
   LlmClassificationRule,
   SpaceStat,
   StatsSummary,
-  SyncStatus,
   TestClassificationResult,
   TimelinePoint,
 } from "@/lib/types";
@@ -193,16 +192,6 @@ export function updateResponseStatus(
     `/api/chat-messages/${id}/response-status`,
     { method: "PATCH", body: JSON.stringify({ responseStatus }) },
   );
-}
-
-// --- Chat Sync ---
-
-export function triggerChatSync() {
-  return request<{ status: string }>("/api/chat-messages/sync", { method: "POST" });
-}
-
-export function getChatSyncStatus() {
-  return request<SyncStatus>("/api/chat-messages/sync/status");
 }
 
 // --- Stats ---
