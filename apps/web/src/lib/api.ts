@@ -13,6 +13,7 @@ import type {
   LlmClassificationRule,
   SpaceStat,
   StatsSummary,
+  SyncStatus,
   TestClassificationResult,
   TimelinePoint,
 } from "@/lib/types";
@@ -311,4 +312,16 @@ export function deleteLlmRule(id: string) {
   return request<{ success: boolean }>(`/api/llm-rules/${id}`, {
     method: "DELETE",
   });
+}
+
+// --- Chat Sync ---
+
+export function triggerChatSync() {
+  return request<{ message: string }>("/api/chat-messages/sync", {
+    method: "POST",
+  });
+}
+
+export function getChatSyncStatus() {
+  return request<SyncStatus>("/api/chat-messages/sync/status");
 }

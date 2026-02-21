@@ -19,6 +19,7 @@ import type {
   Salary,
   SalaryDraft,
   SalaryDraftItem,
+  SyncMetadata,
 } from "./types.js";
 
 function typedCollection<T extends DocumentData>(name: string): CollectionReference<T> {
@@ -47,4 +48,5 @@ export const collections = {
   allowedUsers: typedCollection<AllowedUser>("allowed_users"),
   classificationRules: typedCollection<ClassificationRule>("classification_rules"),
   llmClassificationRules: typedCollection<LlmClassificationRule>("llm_classification_rules"),
+  syncMetadata: typedCollection<SyncMetadata>("sync_metadata"),
 };

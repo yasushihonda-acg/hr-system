@@ -220,6 +220,19 @@ export interface ChatMessageSummary {
   intent: IntentSummary | null;
 }
 
+/** 同期ステータス */
+export interface SyncStatus {
+  status: "idle" | "running" | "error";
+  lastSyncedAt: string | null;
+  lastResult: {
+    newMessages: number;
+    duplicateSkipped: number;
+    durationMs: number;
+    syncedAt: string;
+  } | null;
+  errorMessage: string | null;
+}
+
 /** GET /api/chat-messages/:id */
 export interface ChatMessageDetail extends ChatMessageSummary {
   rawPayload: Record<string, unknown> | null;
