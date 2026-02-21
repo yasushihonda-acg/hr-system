@@ -89,7 +89,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   name="email"
-                  defaultValue="yasushi.honda@aozora-cg.com"
+                  defaultValue=""
                   required
                   className="rounded-md border border-amber-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
                   placeholder="許可済みメールアドレス"

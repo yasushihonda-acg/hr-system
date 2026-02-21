@@ -6,8 +6,8 @@ export const INITIAL_ALLOWED_USERS: Array<{
   role: UserRole;
 }> = [
   {
-    email: "yasushi.honda@aozora-cg.com",
-    displayName: "本田 泰志",
+    email: "admin@example.com",
+    displayName: "管理者",
     role: "admin",
   },
 ];

@@ -1,8 +1,7 @@
-import type { AllowanceType, EmploymentType } from "@hr-system/shared";
-import { ALLOWANCE_TYPES, EMPLOYMENT_TYPES } from "@hr-system/shared";
+import type { AllowanceType } from "@hr-system/shared";
+import { ALLOWANCE_TYPES } from "@hr-system/shared";
 import { describe, expect, it } from "vitest";
 import { ALLOWANCE_MASTER_DATA } from "../allowance-master.js";
-import { TEST_EMPLOYEES } from "../employees.js";
 import { PITCH_TABLE_DATA } from "../pitch-table.js";
 
 describe("PitchTable seed data", () => {
@@ -69,30 +68,6 @@ describe("AllowanceMaster seed data", () => {
   it("should have isActive set to true for all entries", () => {
     for (const entry of ALLOWANCE_MASTER_DATA) {
       expect(entry.isActive).toBe(true);
-    }
-  });
-});
-
-describe("Employee seed data", () => {
-  it("should have at least 15 employees (ACG real staff)", () => {
-    expect(TEST_EMPLOYEES.length).toBeGreaterThanOrEqual(15);
-  });
-
-  it("should have valid employmentType for all employees", () => {
-    const validTypes: readonly EmploymentType[] = EMPLOYMENT_TYPES;
-    for (const emp of TEST_EMPLOYEES) {
-      expect(validTypes).toContain(emp.employmentType);
-    }
-  });
-
-  it("should have unique employee numbers", () => {
-    const numbers = TEST_EMPLOYEES.map((e) => e.employeeNumber);
-    expect(new Set(numbers).size).toBe(numbers.length);
-  });
-
-  it("should have isActive set to true for all employees", () => {
-    for (const emp of TEST_EMPLOYEES) {
-      expect(emp.isActive).toBe(true);
     }
   });
 });

@@ -3,10 +3,7 @@ import { collections } from "../collections.js";
 import { ALLOWANCE_MASTER_DATA } from "./allowance-master.js";
 import { INITIAL_ALLOWED_USERS } from "./allowed-users.js";
 import { backfillChatMessages } from "./backfill-chat.js";
-// CSV版はフォールバック・テスト用として残す
-// import { seedChatMessages } from "./chat-messages.js";
 import { INITIAL_CLASSIFICATION_RULES } from "./classification-rules.js";
-import { TEST_EMPLOYEES } from "./employees.js";
 import { PITCH_TABLE_DATA } from "./pitch-table.js";
 
 async function seedPitchTable(): Promise<void> {
@@ -39,24 +36,6 @@ async function seedAllowanceMaster(): Promise<void> {
 
   await batch.commit();
   console.log(`Seeded ${ALLOWANCE_MASTER_DATA.length} allowance master rows`);
-}
-
-async function seedEmployees(): Promise<void> {
-  const col = collections.employees;
-  const batch = col.firestore.batch();
-  const now = Timestamp.now();
-
-  for (const emp of TEST_EMPLOYEES) {
-    batch.set(col.doc(emp.employeeNumber), {
-      ...emp,
-      hireDate: now,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
-
-  await batch.commit();
-  console.log(`Seeded ${TEST_EMPLOYEES.length} test employees`);
 }
 
 async function seedAllowedUsers(): Promise<void> {
@@ -101,7 +80,6 @@ async function main(): Promise<void> {
   console.log("Starting seed...");
   await seedPitchTable();
   await seedAllowanceMaster();
-  await seedEmployees();
   await seedAllowedUsers();
   await seedClassificationRules();
   console.log("Seeding chat messages + intent records from Chat REST API...");
