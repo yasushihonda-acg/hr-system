@@ -7,6 +7,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
   patterns: string[];
   priority: number;
   description: string;
+  confidenceScore: number;
   sampleMessages: string[];
 }> = [
   {
@@ -30,6 +31,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["時給.*変更", "給与.*改定", "手当.*追加"],
     priority: 1,
+    confidenceScore: 0.92,
     description:
       "最低賃金改定に伴う時給変更、給与明細の発行、社会保険の加入・脱退手続き、住民税の特別徴収切り替えなど（66件実績）",
     sampleMessages: [
@@ -55,6 +57,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["退職.*届", "休職.*手続", "復職.*条件"],
     priority: 2,
+    confidenceScore: 0.92,
     description:
       "従業員の退職届の受理、退職に伴う備品回収の確認、休職手続きや復職に伴う条件変更など（45件実績）",
     sampleMessages: [
@@ -80,6 +83,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["面接.*日程", "入社.*手続", "採用.*決定"],
     priority: 3,
+    confidenceScore: 0.9,
     description:
       "求人への応募対応、面接日程の調整、入社オリエンテーションの準備、採用決定後の初動対応など（38件実績）",
     sampleMessages: [
@@ -102,6 +106,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["契約.*更新", "条件.*変更", "雇用契約.*締結"],
     priority: 5,
+    confidenceScore: 0.9,
     description:
       "労働条件通知書の作成・締結、雇用契約の更新、職種変更に伴う契約の巻き直しなど（22件実績）",
     sampleMessages: ["労働条件通知書の作成をお願いします", "雇用契約の更新手続きについて"],
@@ -112,6 +117,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["異動.*拠点", "移転.*対応", "寮.*準備"],
     priority: 6,
+    confidenceScore: 0.88,
     description:
       "拠点の移転対応、寮の準備、社用車の修理・廃車手続き、人事異動に伴う拠点間の調整など（12件実績）",
     sampleMessages: [
@@ -125,6 +131,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["特定技能.*届出", "ビザ.*更新", "在留.*資格"],
     priority: 7,
+    confidenceScore: 0.92,
     description:
       "特定技能実習生の入管届出、ビザ更新申請の準備、外国人職員の生活サポートなど（12件実績）",
     sampleMessages: ["特定技能実習生の入管届出をお願いします", "ビザ更新申請の準備について"],
@@ -135,6 +142,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["研修.*実施", "監査.*準備", "証明書.*発行"],
     priority: 8,
+    confidenceScore: 0.88,
     description:
       "身体拘束廃止などの研修実施、行政監査の準備資料作成、就労証明書などの各種書類発行など（9件実績）",
     sampleMessages: ["身体拘束廃止研修の実施について", "行政監査の準備資料を作成してください"],
@@ -145,6 +153,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["健康診断.*予約", "面談.*実施", "産業医.*面談"],
     priority: 9,
+    confidenceScore: 0.9,
     description: "定期健康診断の予約管理、産業医や人事担当者による個別面談の実施など（8件実績）",
     sampleMessages: ["定期健康診断の予約管理をお願いします", "産業医面談の実施について"],
   },
@@ -154,6 +163,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: ["勤怠.*入力", "シフト.*確認", "有給.*取得"],
     priority: 10,
+    confidenceScore: 0.88,
     description:
       "勤怠管理システムの入力ルール調整、シフトの確認、有給休暇や特別休暇の取得相談など（5件実績）",
     sampleMessages: ["勤怠管理システムの入力ルールについて", "有給休暇の取得相談です"],
@@ -164,6 +174,7 @@ export const INITIAL_CLASSIFICATION_RULES: Array<{
     excludeKeywords: [],
     patterns: [],
     priority: 99,
+    confidenceScore: 0.5,
     description: "特定のキーワードに該当しない個別の相談事項や、単発の連絡事項など（34件実績）",
     sampleMessages: [],
   },

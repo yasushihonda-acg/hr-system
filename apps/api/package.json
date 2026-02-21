@@ -15,6 +15,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.0",
     "@hono/zod-validator": "^0.4.3",
+    "@hr-system/ai": "workspace:*",
     "@hr-system/db": "workspace:*",
     "@hr-system/shared": "workspace:*",
     "firebase-admin": "^13.6.0",

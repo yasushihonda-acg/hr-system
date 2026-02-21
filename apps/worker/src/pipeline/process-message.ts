@@ -3,6 +3,7 @@ import { collections, db } from "@hr-system/db";
 import type { AuditEventType } from "@hr-system/shared";
 import { FieldValue } from "firebase-admin/firestore";
 import { createChatApiClient } from "../lib/chat-api.js";
+import { getClassificationConfig } from "../lib/classification-config.js";
 import { isDuplicate } from "../lib/dedup.js";
 import { enrichChatEvent } from "../lib/enrich-event.js";
 import { WorkerError } from "../lib/errors.js";
@@ -83,10 +84,11 @@ export async function processMessage(event: ChatEvent): Promise<void> {
     }
   }
 
-  // 4. Intent 分類（regex → AI フォールバック、スレッドコンテキスト付き）
+  // 4. Intent 分類（regex → AI フォールバック、スレッドコンテキスト付き、動的ルール対応）
   let intentResult: Awaited<ReturnType<typeof classifyIntent>>;
   try {
-    intentResult = await classifyIntent(enrichedEvent.text, threadContext);
+    const config = await getClassificationConfig();
+    intentResult = await classifyIntent(enrichedEvent.text, threadContext, config);
   } catch (e) {
     // LLM エラー → NACK してリトライ
     throw new WorkerError("LLM_ERROR", `Intent 分類失敗: ${String(e)}`, true);

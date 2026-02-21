@@ -10,9 +10,11 @@ import type {
   DraftDetail,
   DraftSummary,
   EmployeeSummary,
+  LlmClassificationRule,
   SpaceStat,
   StatsSummary,
   SyncStatus,
+  TestClassificationResult,
   TimelinePoint,
 } from "@/lib/types";
 
@@ -274,6 +276,41 @@ export function updateClassificationRule(
   return request<{ success: boolean }>(`/api/classification-rules/${category}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export function testClassification(message: string) {
+  return request<TestClassificationResult>("/api/classification-rules/test", {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
+// --- LLM Rules ---
+
+export function getLlmRules() {
+  return request<{ rules: LlmClassificationRule[] }>("/api/llm-rules");
+}
+
+export function createLlmRule(
+  body: Omit<LlmClassificationRule, "id" | "createdBy" | "createdAt" | "updatedAt">,
+) {
+  return request<{ success: boolean; id: string }>("/api/llm-rules", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateLlmRule(id: string, body: Partial<LlmClassificationRule>) {
+  return request<{ success: boolean }>(`/api/llm-rules/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteLlmRule(id: string) {
+  return request<{ success: boolean }>(`/api/llm-rules/${id}`, {
+    method: "DELETE",
   });
 }
 

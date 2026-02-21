@@ -1,5 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
-import { collections } from "@hr-system/db";
+import { classifyIntent } from "@hr-system/ai";
+import { collections, loadClassificationConfig } from "@hr-system/db";
 import { CHAT_CATEGORIES, type ChatCategory } from "@hr-system/shared";
 import { FieldValue } from "firebase-admin/firestore";
 import { Hono } from "hono";
@@ -8,6 +9,10 @@ import { notFound } from "../lib/errors.js";
 import { toISO } from "../lib/serialize.js";
 
 export const classificationRulesRoutes = new Hono();
+
+const testClassifySchema = z.object({
+  message: z.string().min(1).max(1000),
+});
 
 const updateRuleSchema = z.object({
   keywords: z.array(z.string()).optional(),
@@ -115,4 +120,18 @@ classificationRulesRoutes.patch("/:category", zValidator("json", updateRuleSchem
   });
 
   return c.json({ success: true });
+});
+
+// POST /api/classification-rules/test — テスト分類
+classificationRulesRoutes.post("/test", zValidator("json", testClassifySchema), async (c) => {
+  const { message } = c.req.valid("json");
+  const config = await loadClassificationConfig();
+  const result = await classifyIntent(message, undefined, config);
+  return c.json({
+    category: result.category,
+    confidence: result.confidence,
+    reasoning: result.reasoning,
+    classificationMethod: result.classificationMethod,
+    regexPattern: result.regexPattern,
+  });
 });

@@ -27,8 +27,19 @@ export interface ThreadContext {
   replyCount: number;
 }
 
+/** 動的分類設定（Firestoreルールから構築） */
+export interface ClassificationConfig {
+  regexRules?: RegexRule[];
+  systemPrompt?: string;
+  fewShotExamples?: Array<{
+    input: string;
+    category: ChatCategory;
+    explanation: string;
+  }>;
+}
+
 /** 正規表現パターン定義 */
-interface RegexRule {
+export interface RegexRule {
   /** パターン識別名（ログ・学習用） */
   name: string;
   pattern: RegExp;
@@ -163,10 +174,13 @@ const REGEX_RULES: RegexRule[] = [
  * 最高 confidence のルールをマッチ、閾値 0.85 以上で採用。
  * 複数マッチの場合は confidence が最も高いものを選択。
  */
-function tryRegexClassify(message: string): IntentClassificationResult | null {
+function tryRegexClassify(
+  message: string,
+  rules: RegexRule[] = REGEX_RULES,
+): IntentClassificationResult | null {
   let best: { rule: RegexRule; confidence: number } | null = null;
 
-  for (const rule of REGEX_RULES) {
+  for (const rule of rules) {
     if (rule.pattern.test(message)) {
       if (!best || rule.confidence > best.confidence) {
         best = { rule, confidence: rule.confidence };
@@ -211,6 +225,7 @@ function buildContextualPrompt(base: string, ctx: ThreadContext): string {
  *
  * @param message - 分類対象のチャットメッセージテキスト
  * @param context - スレッド返信の場合の親メッセージコンテキスト（省略可）
+ * @param config - 動的分類設定（Firestoreルールから構築、省略可・後方互換）
  *
  * 処理フロー:
  * 1. スレッドコンテキストの親 confidence >= 0.90 → 返信は同カテゴリを継承（AI 呼び出しなし）
@@ -220,6 +235,7 @@ function buildContextualPrompt(base: string, ctx: ThreadContext): string {
 export async function classifyIntent(
   message: string,
   context?: ThreadContext,
+  config?: ClassificationConfig,
 ): Promise<IntentClassificationResult> {
   // スレッドコンテキスト継承: 親の確信度が高い場合は返信も同カテゴリとみなす
   if (context && context.parentConfidence >= 0.9) {
@@ -232,16 +248,35 @@ export async function classifyIntent(
     };
   }
 
-  // regex 事前分類
-  const regexResult = tryRegexClassify(message);
+  // regex 事前分類（動的ルールがあればそちらを使用）
+  const regexResult = tryRegexClassify(message, config?.regexRules ?? REGEX_RULES);
   if (regexResult) {
     return regexResult;
   }
 
-  // AI 分類（Gemini）— コンテキストがある場合はプロンプトに追記
-  const prompt = context
-    ? buildContextualPrompt(INTENT_CLASSIFICATION_PROMPT, context)
-    : INTENT_CLASSIFICATION_PROMPT;
+  // AI 分類（Gemini）— コンテキスト・カスタムプロンプトに対応
+  const basePrompt = config?.systemPrompt ?? INTENT_CLASSIFICATION_PROMPT;
+  const prompt = context ? buildContextualPrompt(basePrompt, context) : basePrompt;
+
+  // Few-shot examples を user/model ターン対で構築
+  const fewShotMessages: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  if (config?.fewShotExamples) {
+    for (const ex of config.fewShotExamples) {
+      fewShotMessages.push({ role: "user", parts: [{ text: ex.input }] });
+      fewShotMessages.push({
+        role: "model",
+        parts: [
+          {
+            text: JSON.stringify({
+              category: ex.category,
+              confidence: 0.95,
+              reasoning: ex.explanation,
+            }),
+          },
+        ],
+      });
+    }
+  }
 
   const model = getGenerativeModel();
   const response = await model.generateContent({
@@ -251,6 +286,7 @@ export async function classifyIntent(
         role: "model",
         parts: [{ text: "理解しました。チャットメッセージをJSON形式で分類します。" }],
       },
+      ...fewShotMessages,
       { role: "user", parts: [{ text: message }] },
     ],
   });

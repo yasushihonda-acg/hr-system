@@ -4,6 +4,7 @@ import { ALLOWANCE_MASTER_DATA } from "./allowance-master.js";
 import { INITIAL_ALLOWED_USERS } from "./allowed-users.js";
 import { backfillChatMessages } from "./backfill-chat.js";
 import { INITIAL_CLASSIFICATION_RULES } from "./classification-rules.js";
+import { INITIAL_LLM_RULES } from "./llm-rules.js";
 import { PITCH_TABLE_DATA } from "./pitch-table.js";
 
 async function seedPitchTable(): Promise<void> {
@@ -76,12 +77,33 @@ async function seedClassificationRules(): Promise<void> {
   console.log(`Seeded ${INITIAL_CLASSIFICATION_RULES.length} classification rules`);
 }
 
+async function seedLlmRules(): Promise<void> {
+  const col = collections.llmClassificationRules;
+  const batch = col.firestore.batch();
+  const now = Timestamp.now();
+
+  for (const [index, rule] of INITIAL_LLM_RULES.entries()) {
+    const docId = `${rule.type}_${index}`;
+    batch.set(col.doc(docId), {
+      ...rule,
+      isActive: true,
+      createdBy: "system",
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  await batch.commit();
+  console.log(`Seeded ${INITIAL_LLM_RULES.length} LLM classification rules`);
+}
+
 async function main(): Promise<void> {
   console.log("Starting seed...");
   await seedPitchTable();
   await seedAllowanceMaster();
   await seedAllowedUsers();
   await seedClassificationRules();
+  await seedLlmRules();
   console.log("Seeding chat messages + intent records from Chat REST API...");
   await backfillChatMessages();
   console.log("Seed completed successfully");

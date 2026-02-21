@@ -14,6 +14,7 @@ import type {
   ClassificationRule,
   Employee,
   IntentRecord,
+  LlmClassificationRule,
   PitchTable,
   Salary,
   SalaryDraft,
@@ -46,5 +47,6 @@ export const collections = {
   allowanceMasters: typedCollection<AllowanceMaster>("allowance_masters"),
   allowedUsers: typedCollection<AllowedUser>("allowed_users"),
   classificationRules: typedCollection<ClassificationRule>("classification_rules"),
+  llmClassificationRules: typedCollection<LlmClassificationRule>("llm_classification_rules"),
   syncMetadata: typedCollection<SyncMetadata>("sync_metadata"),
 };

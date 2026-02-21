@@ -26,6 +26,9 @@ importers:
       '@hono/zod-validator':
         specifier: ^0.4.3
         version: 0.4.3(hono@4.11.10)(zod@3.25.76)
+      '@hr-system/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@hr-system/db':
         specifier: workspace:*
         version: link:../../packages/db

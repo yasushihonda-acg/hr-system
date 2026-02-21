@@ -92,6 +92,33 @@ export interface ClassificationRule {
   updatedAt: string;
 }
 
+/** LLM 分類ルール */
+export interface LlmClassificationRule {
+  id: string;
+  type: "system_prompt" | "few_shot_example" | "category_definition";
+  content: string | null;
+  category: string | null;
+  description: string | null;
+  keywords: string[] | null;
+  inputText: string | null;
+  expectedCategory: string | null;
+  explanation: string | null;
+  priority: number;
+  isActive: boolean;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** テスト分類結果 */
+export interface TestClassificationResult {
+  category: string;
+  confidence: number;
+  reasoning: string;
+  classificationMethod: "ai" | "regex";
+  regexPattern: string | null;
+}
+
 // --- Stats ---
 
 export interface StatsSummary {
