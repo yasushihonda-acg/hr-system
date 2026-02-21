@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-21（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `1ee963d` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `0e0937d` — 全変更 push 済み、未プッシュなし）
 
 ---
 
@@ -10,7 +10,7 @@
 **Phase 1 — 全コア実装完了 + Cloud Run IaC + CI/CD パイプライン整備（実装完了）**
 
 Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP インフラ（Worker デプロイ済み）・CI/CD パイプライン（GitHub Actions）が完成しています。
-現在の最重要課題: **CI が GitHub Billing 問題で失敗中**（コードの問題ではなく、支払い制限）。
+**WIF（Workload Identity Federation）認証の設定が完了し、Worker の本番デプロイが成功しています。**
 
 ---
 
@@ -41,6 +41,11 @@ Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP
 ---
 
 ## 直近の変更（本セッション — 最新）
+
+### ci: WIF認証確認 — Worker 本番デプロイ成功 (0e0937d, cea5324)
+- GitHub Secrets に `WIF_PROVIDER` / `WIF_SERVICE_ACCOUNT` を登録
+- `Deploy to Cloud Run` ワークフローで Worker の本番デプロイが成功（1m57s）
+- WIF（Workload Identity Federation）認証が通ることを確認
 
 ### feat(web): メンションをインライン表示 (1ee963d, PR #45)
 - `ContentWithMentions` コンポーネント新規追加（rich-content.tsx）
@@ -95,26 +100,9 @@ Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP
 
 ---
 
-## 緊急対応が必要な問題
-
-### CI 失敗（Billing 停止）
-
-```
-X The job was not started because recent account payments have failed or
-  your spending limit needs to be increased.
-  Check the 'Billing & plans' section in your settings
-```
-
-- GitHub Actions の `Deploy to Cloud Run` ワークフローが Billing 制限で停止中
-- コードの問題ではない
-- **対応**: GitHub のアカウント設定 > Billing & plans で支払い方法・上限を確認
-
----
-
 ## 次のアクション候補
 
-1. **[緊急] GitHub Billing 修正** — Actions が停止中。課金設定を確認
-2. **Cloud Run 本番デプロイ（API + Web）**
+1. **Cloud Run 本番デプロイ（API + Web）**
    - Workload Identity Federation の設定（`infra/cloud-run/main.tf` 参照）
    - GitHub Secrets に `WIF_PROVIDER` / `WIF_SERVICE_ACCOUNT` を設定
    - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL` を Cloud Run シークレットへ
@@ -139,7 +127,7 @@ X The job was not started because recent account payments have failed or
 | Artifact Registry | 作成済み | `asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system` |
 | Firestore | 本番稼働中 | Native モード (asia-northeast1) — 1000件超のシードデータ投入済み |
 | Pub/Sub | 稼働中 | `hr-chat-events` + `hr-chat-events-dlq` |
-| GitHub Actions CI | Billing 問題で停止中 | `.github/workflows/ci.yml` / `deploy.yml` |
+| GitHub Actions (Worker) | デプロイ成功 (WIF認証確認済み) | `.github/workflows/deploy.yml` — Worker: 成功、API/Web: 未デプロイ |
 
 ---
 
