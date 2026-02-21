@@ -2,6 +2,7 @@ export { getGenerativeModel } from "./gemini-client.js";
 export {
   classifyIntent,
   type IntentClassificationResult,
+  type ThreadContext,
 } from "./intent-classifier.js";
 export {
   extractSalaryParams,

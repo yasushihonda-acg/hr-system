@@ -12,6 +12,21 @@ export interface IntentClassificationResult {
   regexPattern: string | null;
 }
 
+/**
+ * スレッド返信メッセージの分類精度向上のために使用する親スレッドのコンテキスト情報。
+ * classifyIntent の第2引数として渡す（省略可、後方互換）。
+ */
+export interface ThreadContext {
+  /** 親メッセージの分類カテゴリ */
+  parentCategory: ChatCategory;
+  /** 親メッセージの分類確信度 (0-1) */
+  parentConfidence: number;
+  /** 親メッセージ本文の先頭100文字 */
+  parentSnippet: string;
+  /** スレッド内の返信数（親を除く） */
+  replyCount: number;
+}
+
 /** 正規表現パターン定義 */
 interface RegexRule {
   /** パターン識別名（ログ・学習用） */
@@ -177,22 +192,61 @@ function extractJson(text: string): string {
 }
 
 /**
- * メッセージを分類する。
- * 1. regex ルールで高確信度マッチ → 即座に返す（AI 呼び出しなし）
- * 2. マッチなし → Gemini で分類
+ * スレッドコンテキストをプロンプトに追記する。
+ * 親メッセージのカテゴリ・確信度・本文スニペットを Gemini に提供し、
+ * 返信メッセージの分類精度を向上させる。
  */
-export async function classifyIntent(message: string): Promise<IntentClassificationResult> {
+function buildContextualPrompt(base: string, ctx: ThreadContext): string {
+  return (
+    `${base}\n\n` +
+    `## Thread Context\n` +
+    `Parent category: ${ctx.parentCategory} (confidence: ${ctx.parentConfidence.toFixed(2)})\n` +
+    `Parent message: "${ctx.parentSnippet}"\n` +
+    `Reply count in thread: ${ctx.replyCount}`
+  );
+}
+
+/**
+ * メッセージを分類する。
+ *
+ * @param message - 分類対象のチャットメッセージテキスト
+ * @param context - スレッド返信の場合の親メッセージコンテキスト（省略可）
+ *
+ * 処理フロー:
+ * 1. スレッドコンテキストの親 confidence >= 0.90 → 返信は同カテゴリを継承（AI 呼び出しなし）
+ * 2. regex ルールで高確信度マッチ → 即座に返す（AI 呼び出しなし）
+ * 3. マッチなし → Gemini でコンテキスト付きプロンプトにより分類
+ */
+export async function classifyIntent(
+  message: string,
+  context?: ThreadContext,
+): Promise<IntentClassificationResult> {
+  // スレッドコンテキスト継承: 親の確信度が高い場合は返信も同カテゴリとみなす
+  if (context && context.parentConfidence >= 0.9) {
+    return {
+      category: context.parentCategory,
+      confidence: context.parentConfidence * 0.9,
+      reasoning: `親スレッドのカテゴリ "${context.parentCategory}" を継承（親confidence: ${context.parentConfidence.toFixed(2)}）`,
+      classificationMethod: "regex",
+      regexPattern: "thread_context_inheritance",
+    };
+  }
+
   // regex 事前分類
   const regexResult = tryRegexClassify(message);
   if (regexResult) {
     return regexResult;
   }
 
-  // AI 分類（Gemini）
+  // AI 分類（Gemini）— コンテキストがある場合はプロンプトに追記
+  const prompt = context
+    ? buildContextualPrompt(INTENT_CLASSIFICATION_PROMPT, context)
+    : INTENT_CLASSIFICATION_PROMPT;
+
   const model = getGenerativeModel();
   const response = await model.generateContent({
     contents: [
-      { role: "user", parts: [{ text: INTENT_CLASSIFICATION_PROMPT }] },
+      { role: "user", parts: [{ text: prompt }] },
       {
         role: "model",
         parts: [{ text: "理解しました。チャットメッセージをJSON形式で分類します。" }],
