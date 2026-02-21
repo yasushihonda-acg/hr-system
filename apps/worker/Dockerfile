@@ -71,7 +71,7 @@ COPY --from=builder /app/packages/db/dist ./packages/db/dist
 COPY --from=builder /app/packages/salary/dist ./packages/salary/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
-EXPOSE 3002
+EXPOSE 8080
 
 # 非 root ユーザーで実行
 USER node

@@ -1,0 +1,70 @@
+name: Deploy Service (Reusable)
+# 1サービス分のビルド + Cloud Run デプロイを行う再利用可能ワークフロー
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: "Cloud Run サービス名 (例: hr-api)"
+        type: string
+        required: true
+      app_name:
+        description: "Artifact Registry イメージ名 (例: api, web, worker)"
+        type: string
+        required: true
+      dockerfile_path:
+        description: "Dockerfile の相対パス (例: apps/api/Dockerfile)"
+        type: string
+        required: true
+    secrets:
+      WIF_PROVIDER:
+        required: true
+      WIF_SERVICE_ACCOUNT:
+        required: true
+
+env:
+  PROJECT_ID: hr-system-487809
+  REGION: asia-northeast1
+  AR_REPO: hr-system
+
+jobs:
+  deploy:
+    name: Deploy ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build & Push image
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/${{ inputs.app_name }}"
+          docker build \
+            -t "${IMAGE}:${{ github.sha }}" \
+            -t "${IMAGE}:latest" \
+            -f ${{ inputs.dockerfile_path }} \
+            .
+          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:latest"
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ inputs.service_name }} \
+            --image "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/${{ inputs.app_name }}:${{ github.sha }}" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --quiet
