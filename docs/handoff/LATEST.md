@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-21（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `4e4ec4e` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `1ee963d` — 全変更 push 済み、未プッシュなし）
 
 ---
 
@@ -41,6 +41,18 @@ Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP
 ---
 
 ## 直近の変更（本セッション — 最新）
+
+### feat(web): メンションをインライン表示 (1ee963d, PR #45)
+- `ContentWithMentions` コンポーネント新規追加（rich-content.tsx）
+- `@数字.名前` パターンを正規表現で分割し `MentionBadge` をインライン挿入
+- `thread-view.tsx` / `chat-messages/page.tsx` / `[id]/page.tsx` を更新
+- CI は Billing 問題で失敗（コードの問題ではない）
+
+### security: Public化対応 — 個人情報・内部データを除去 (7955df4)
+- `docs/raw/` を git 全履歴から削除（実在スタッフ名・電話番号入り CSV）
+- `packages/db/src/seed/employees.ts` / `chat-messages.ts` を削除
+- `allowed-users.ts`: 実在メールを仮メールに変更
+- `.gitignore`: `docs/raw/` を除外ルールに追加
 
 ### feat: Pub/Sub メタデータ補完 + Cloud Run IaC + CI/CD (4e4ec4e, PR #43)
 
@@ -153,6 +165,7 @@ X The job was not started because recent account payments have failed or
 | #18 | 正規表現ルール管理 UI | P2, enhancement |
 | #19 | 分類分析ダッシュボード強化 | P3, enhancement |
 | #38 | LLM 分類ルール管理 UI（Few-shot 例・システムプロンプト動的追加） | P2, enhancement, ai |
+| #44 | チャットメッセージの定期差分取得 + 手動取得ボタン | P2, enhancement |
 
 ---
 
