@@ -32,7 +32,6 @@ COPY apps/web/tsconfig.json ./apps/web/
 COPY apps/web/next.config.ts ./apps/web/
 COPY apps/web/postcss.config.mjs ./apps/web/
 COPY apps/web/components.json ./apps/web/
-COPY apps/web/next-env.d.ts ./apps/web/
 COPY packages/db/src ./packages/db/src
 COPY packages/db/tsconfig.json ./packages/db/
 COPY packages/db/tsconfig.build.json ./packages/db/
