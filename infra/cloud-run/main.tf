@@ -7,79 +7,155 @@ terraform {
   }
 }
 
-provider "google" {
+locals {
   project = "hr-system-487809"
   region  = "asia-northeast1"
 }
 
+provider "google" {
+  project = local.project
+  region  = local.region
+}
+
 # ---------------------------------------------------------------------------
-# 1. Cloud Run 用サービスアカウント
+# 1. Cloud Run 用サービスアカウント（個別 SA）
+#
+# NOTE: 本番リソースと同期済み。初回 terraform apply 前に以下を実行:
+#   terraform import google_service_account.hr_api \
+#     projects/hr-system-487809/serviceAccounts/hr-api@hr-system-487809.iam.gserviceaccount.com
+#   terraform import google_service_account.hr_web \
+#     projects/hr-system-487809/serviceAccounts/hr-web@hr-system-487809.iam.gserviceaccount.com
+#   terraform import google_service_account.hr_worker \
+#     projects/hr-system-487809/serviceAccounts/hr-worker@hr-system-487809.iam.gserviceaccount.com
+#   terraform import google_service_account.hr_pubsub_push \
+#     projects/hr-system-487809/serviceAccounts/hr-pubsub-push@hr-system-487809.iam.gserviceaccount.com
 # ---------------------------------------------------------------------------
 
-resource "google_service_account" "hr_system_cloud_run" {
-  account_id   = "hr-system-cloud-run"
-  display_name = "HR System Cloud Run"
-  description  = "API / Web / Worker 共通のサービスアカウント"
+resource "google_service_account" "hr_api" {
+  account_id   = "hr-api"
+  display_name = "HR System API"
+  description  = "API サーバー用サービスアカウント"
+}
+
+resource "google_service_account" "hr_web" {
+  account_id   = "hr-web"
+  display_name = "HR System Web"
+  description  = "Web（Next.js）用サービスアカウント"
+}
+
+resource "google_service_account" "hr_worker" {
+  account_id   = "hr-worker"
+  display_name = "HR System Worker"
+  description  = "Chat Worker（Pub/Sub 処理）用サービスアカウント"
+}
+
+resource "google_service_account" "hr_pubsub_push" {
+  account_id   = "hr-pubsub-push"
+  display_name = "HR System Pub/Sub Push"
+  description  = "Pub/Sub push サブスクリプション認証用サービスアカウント"
 }
 
 # ---------------------------------------------------------------------------
 # 2. IAM ロール付与
 # ---------------------------------------------------------------------------
 
-resource "google_project_iam_member" "vertex_ai_user" {
-  project = "hr-system-487809"
-  role    = "roles/aiplatform.user"
-  member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
-}
-
-resource "google_project_iam_member" "firestore_user" {
-  project = "hr-system-487809"
+# API: Firestore + Secret Manager
+resource "google_project_iam_member" "api_firestore" {
+  project = local.project
   role    = "roles/datastore.user"
-  member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
+  member  = "serviceAccount:${google_service_account.hr_api.email}"
 }
 
-resource "google_project_iam_member" "chat_service_agent" {
-  project = "hr-system-487809"
-  role    = "roles/chat.serviceAgent"
-  member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
-}
-
-resource "google_project_iam_member" "sa_token_creator" {
-  project = "hr-system-487809"
-  role    = "roles/iam.serviceAccountTokenCreator"
-  member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
-}
-
-resource "google_project_iam_member" "secret_accessor" {
-  project = "hr-system-487809"
+resource "google_project_iam_member" "api_secret" {
+  project = local.project
   role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.hr_system_cloud_run.email}"
+  member  = "serviceAccount:${google_service_account.hr_api.email}"
+}
+
+# Web: Secret Manager
+resource "google_project_iam_member" "web_secret" {
+  project = local.project
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.hr_web.email}"
+}
+
+# Worker: Firestore + Vertex AI + Secret Manager + Chat Agent
+resource "google_project_iam_member" "worker_firestore" {
+  project = local.project
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.hr_worker.email}"
+}
+
+resource "google_project_iam_member" "worker_vertex_ai" {
+  project = local.project
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_service_account.hr_worker.email}"
+}
+
+resource "google_project_iam_member" "worker_secret" {
+  project = local.project
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.hr_worker.email}"
+}
+
+resource "google_project_iam_member" "worker_chat_agent" {
+  project = local.project
+  role    = "roles/chat.serviceAgent"
+  member  = "serviceAccount:${google_service_account.hr_worker.email}"
 }
 
 # ---------------------------------------------------------------------------
 # 3. Artifact Registry リポジトリ
+#
+# NOTE: terraform import:
+#   terraform import google_artifact_registry_repository.hr_system \
+#     projects/hr-system-487809/locations/asia-northeast1/repositories/hr-system
 # ---------------------------------------------------------------------------
 
 resource "google_artifact_registry_repository" "hr_system" {
-  location      = "asia-northeast1"
+  location      = local.region
   repository_id = "hr-system"
   description   = "HR System Docker images"
   format        = "DOCKER"
+
+  # 最新 2 件を保持し、それ以外を自動削除（ストレージコスト抑制）
+  cleanup_policies {
+    id     = "keep-latest-2"
+    action = "KEEP"
+    most_recent_versions {
+      keep_count = 2
+    }
+  }
+
+  cleanup_policies {
+    id     = "delete-all-others"
+    action = "DELETE"
+  }
+
+  cleanup_policy_dry_run = false
 }
 
 # ---------------------------------------------------------------------------
 # 4. Cloud Run サービス (3つ)
+#
+# NOTE: terraform import:
+#   terraform import google_cloud_run_v2_service.api \
+#     projects/hr-system-487809/locations/asia-northeast1/services/hr-api
+#   terraform import google_cloud_run_v2_service.web \
+#     projects/hr-system-487809/locations/asia-northeast1/services/hr-web
+#   terraform import google_cloud_run_v2_service.worker \
+#     projects/hr-system-487809/locations/asia-northeast1/services/hr-worker
 # ---------------------------------------------------------------------------
 
 resource "google_cloud_run_v2_service" "api" {
   name     = "hr-api"
-  location = "asia-northeast1"
+  location = local.region
 
   template {
-    service_account = google_service_account.hr_system_cloud_run.email
+    service_account = google_service_account.hr_api.email
 
     containers {
-      image = "asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system/api:latest"
+      image = "asia-northeast1-docker.pkg.dev/${local.project}/hr-system/api:latest"
 
       ports {
         container_port = 8080
@@ -110,16 +186,16 @@ resource "google_cloud_run_v2_service" "api" {
 
 resource "google_cloud_run_v2_service" "web" {
   name     = "hr-web"
-  location = "asia-northeast1"
+  location = local.region
 
   template {
-    service_account = google_service_account.hr_system_cloud_run.email
+    service_account = google_service_account.hr_web.email
 
     containers {
-      image = "asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system/web:latest"
+      image = "asia-northeast1-docker.pkg.dev/${local.project}/hr-system/web:latest"
 
       ports {
-        container_port = 3000
+        container_port = 8080
       }
 
       env {
@@ -161,21 +237,15 @@ resource "google_cloud_run_v2_service" "web" {
   }
 }
 
-variable "worker_url" {
-  description = "Worker Cloud Run URL（初回 apply 後に設定）"
-  type        = string
-  default     = "https://hr-worker-placeholder.run.app"
-}
-
 resource "google_cloud_run_v2_service" "worker" {
   name     = "hr-worker"
-  location = "asia-northeast1"
+  location = local.region
 
   template {
-    service_account = google_service_account.hr_system_cloud_run.email
+    service_account = google_service_account.hr_worker.email
 
     containers {
-      image = "asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system/worker:latest"
+      image = "asia-northeast1-docker.pkg.dev/${local.project}/hr-system/worker:latest"
 
       ports {
         container_port = 8080
@@ -183,12 +253,7 @@ resource "google_cloud_run_v2_service" "worker" {
 
       env {
         name  = "PUBSUB_SERVICE_ACCOUNT"
-        value = google_service_account.hr_system_cloud_run.email
-      }
-
-      env {
-        name  = "WORKER_URL"
-        value = var.worker_url
+        value = google_service_account.hr_pubsub_push.email
       }
     }
   }
@@ -196,6 +261,14 @@ resource "google_cloud_run_v2_service" "worker" {
 
 # ---------------------------------------------------------------------------
 # 5. Workload Identity Federation (GitHub Actions 認証)
+#
+# NOTE: terraform import:
+#   terraform import google_iam_workload_identity_pool.github \
+#     projects/hr-system-487809/locations/global/workloadIdentityPools/github-pool
+#   terraform import google_iam_workload_identity_pool_provider.github \
+#     projects/hr-system-487809/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+#   terraform import google_service_account.github_actions \
+#     projects/hr-system-487809/serviceAccounts/github-actions@hr-system-487809.iam.gserviceaccount.com
 # ---------------------------------------------------------------------------
 
 resource "google_iam_workload_identity_pool" "github" {
@@ -235,19 +308,19 @@ resource "google_service_account_iam_member" "github_wif_binding" {
 }
 
 resource "google_project_iam_member" "github_ar_writer" {
-  project = "hr-system-487809"
+  project = local.project
   role    = "roles/artifactregistry.writer"
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
 resource "google_project_iam_member" "github_run_developer" {
-  project = "hr-system-487809"
+  project = local.project
   role    = "roles/run.developer"
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
 
 resource "google_project_iam_member" "github_sa_user" {
-  project = "hr-system-487809"
+  project = local.project
   role    = "roles/iam.serviceAccountUser"
   member  = "serviceAccount:${google_service_account.github_actions.email}"
 }
@@ -256,9 +329,24 @@ resource "google_project_iam_member" "github_sa_user" {
 # Outputs
 # ---------------------------------------------------------------------------
 
-output "cloud_run_sa_email" {
-  description = "Cloud Run サービスアカウントのメールアドレス"
-  value       = google_service_account.hr_system_cloud_run.email
+output "hr_api_sa_email" {
+  description = "API サービスアカウントのメールアドレス"
+  value       = google_service_account.hr_api.email
+}
+
+output "hr_web_sa_email" {
+  description = "Web サービスアカウントのメールアドレス"
+  value       = google_service_account.hr_web.email
+}
+
+output "hr_worker_sa_email" {
+  description = "Worker サービスアカウントのメールアドレス"
+  value       = google_service_account.hr_worker.email
+}
+
+output "hr_pubsub_push_sa_email" {
+  description = "Pub/Sub Push サービスアカウントのメールアドレス"
+  value       = google_service_account.hr_pubsub_push.email
 }
 
 output "github_actions_sa_email" {
@@ -273,5 +361,5 @@ output "workload_identity_provider" {
 
 output "artifact_registry_url" {
   description = "Artifact Registry の Docker リポジトリ URL"
-  value       = "asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system"
+  value       = "asia-northeast1-docker.pkg.dev/${local.project}/hr-system"
 }

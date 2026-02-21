@@ -59,7 +59,7 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/db/dist ./packages/db/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
-EXPOSE 3001
+EXPOSE 8080
 
 # 非 root ユーザーで実行
 USER node
