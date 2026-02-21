@@ -226,8 +226,26 @@ export interface ClassificationRule {
   patterns: string[];
   priority: number;
   description: string;
+  confidenceScore: number;
   isActive: boolean;
   sampleMessages: string[];
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** LLM分類ルール（システムプロンプト・Few-shot例） */
+export interface LlmClassificationRule {
+  type: "system_prompt" | "few_shot_example" | "category_definition";
+  content: string | null;
+  category: ChatCategory | null;
+  description: string | null;
+  keywords: string[] | null;
+  inputText: string | null;
+  expectedCategory: ChatCategory | null;
+  explanation: string | null;
+  priority: number;
+  isActive: boolean;
+  createdBy: string | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

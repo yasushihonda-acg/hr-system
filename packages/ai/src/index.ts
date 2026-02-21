@@ -1,7 +1,9 @@
 export { getGenerativeModel } from "./gemini-client.js";
 export {
+  type ClassificationConfig,
   classifyIntent,
   type IntentClassificationResult,
+  type RegexRule,
   type ThreadContext,
 } from "./intent-classifier.js";
 export {

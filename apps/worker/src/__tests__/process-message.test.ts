@@ -22,6 +22,11 @@ vi.mock("@hr-system/ai", () => ({
   extractSalaryParams: vi.fn(),
 }));
 
+const mockGetClassificationConfig = vi.fn();
+vi.mock("../lib/classification-config.js", () => ({
+  getClassificationConfig: mockGetClassificationConfig,
+}));
+
 const mockHandleSalary = vi.fn();
 vi.mock("../pipeline/salary-handler.js", () => ({ handleSalary: mockHandleSalary }));
 
@@ -134,6 +139,8 @@ describe("processMessage", () => {
     mockEnrichChatEvent.mockImplementation((event: ChatEvent) => Promise.resolve(event));
     // デフォルト: 重複なし
     mockIsDuplicate.mockResolvedValue(false);
+    // デフォルト: 空の分類設定
+    mockGetClassificationConfig.mockResolvedValue({});
     // デフォルト: 非給与カテゴリ
     mockClassifyIntent.mockResolvedValue({
       category: "other",
@@ -243,6 +250,7 @@ describe("processMessage", () => {
       expect(mockClassifyIntent).toHaveBeenCalledWith(
         expect.any(String),
         undefined, // context なし
+        expect.any(Object), // config
       );
       // スレッド検索クエリは実行されない
       expect(mockChatMessagesQueryGet).not.toHaveBeenCalled();
@@ -293,6 +301,7 @@ describe("processMessage", () => {
           parentSnippet: "田中さんの給与変更をお願いします",
           replyCount: 1,
         }),
+        expect.any(Object), // config
       );
     });
 
@@ -313,7 +322,11 @@ describe("processMessage", () => {
         ),
       ).resolves.toBeUndefined();
 
-      expect(mockClassifyIntent).toHaveBeenCalledWith("確認しました", undefined);
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        "確認しました",
+        undefined,
+        expect.any(Object),
+      );
     });
 
     it("スレッド返信: 親 IntentRecord が存在しない場合、デフォルト値（category: other, confidence: 0）を使用", async () => {
@@ -347,6 +360,7 @@ describe("processMessage", () => {
           parentSnippet: "よろしくお願いします",
           replyCount: 0,
         }),
+        expect.any(Object), // config
       );
     });
   });

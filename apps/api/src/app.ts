@@ -9,6 +9,7 @@ import { auditLogRoutes } from "./routes/audit-logs.js";
 import { chatMessageRoutes } from "./routes/chat-messages.js";
 import { classificationRulesRoutes } from "./routes/classification-rules.js";
 import { employeeRoutes } from "./routes/employees.js";
+import { llmRulesRoutes } from "./routes/llm-rules.js";
 import { salaryDraftRoutes } from "./routes/salary-drafts.js";
 import { statsRoutes } from "./routes/stats.js";
 
@@ -38,6 +39,7 @@ app.route("/api/chat-messages", chatMessageRoutes);
 app.route("/api/stats", statsRoutes);
 app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/classification-rules", classificationRulesRoutes);
+app.route("/api/llm-rules", llmRulesRoutes);
 
 // グローバルエラーハンドラ
 app.onError(appErrorHandler);

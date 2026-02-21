@@ -14,7 +14,7 @@ vi.mock("@google-cloud/vertexai", () => ({
 // Import after mocking
 const { classifyIntent } = await import("../intent-classifier.js");
 
-import type { ThreadContext } from "../intent-classifier.js";
+import type { ClassificationConfig, ThreadContext } from "../intent-classifier.js";
 
 function mockGeminiResponse(text: string) {
   mockGenerateContent.mockResolvedValueOnce({
@@ -201,6 +201,97 @@ describe("classifyIntent — ThreadContext", () => {
     const result = await classifyIntent("了解です", boundaryContext);
 
     expect(result.category).toBe("contract");
+    expect(result.classificationMethod).toBe("regex");
+    expect(mockGenerateContent).not.toHaveBeenCalled();
+  });
+});
+
+describe("classifyIntent — ClassificationConfig", () => {
+  beforeEach(() => {
+    mockGenerateContent.mockReset();
+  });
+
+  it("カスタム regex ルールが指定された場合、それを使用する", async () => {
+    const config: ClassificationConfig = {
+      regexRules: [
+        {
+          name: "custom_training",
+          pattern: /カスタム研修/,
+          category: "training",
+          confidence: 0.95,
+        },
+      ],
+    };
+
+    const result = await classifyIntent("カスタム研修の実施について", undefined, config);
+
+    expect(result.category).toBe("training");
+    expect(result.classificationMethod).toBe("regex");
+    expect(result.regexPattern).toBe("custom_training");
+    expect(mockGenerateContent).not.toHaveBeenCalled();
+  });
+
+  it("カスタム systemPrompt が指定された場合、それを使用する", async () => {
+    mockGeminiResponse(
+      JSON.stringify({
+        category: "salary",
+        confidence: 0.88,
+        reasoning: "カスタムプロンプトで分類",
+      }),
+    );
+
+    const config: ClassificationConfig = {
+      systemPrompt: "カスタムプロンプト: メッセージを分類してください",
+    };
+
+    const result = await classifyIntent("テストメッセージ", undefined, config);
+
+    expect(result.category).toBe("salary");
+    expect(result.classificationMethod).toBe("ai");
+    // プロンプトにカスタム内容が含まれていることを確認
+    // biome-ignore lint/style/noNonNullAssertion: test assertion
+    const callArgs = mockGenerateContent.mock.calls[0]![0];
+    expect(callArgs.contents[0].parts[0].text).toContain("カスタムプロンプト");
+  });
+
+  it("fewShotExamples が指定された場合、user/model ターン対がメッセージに追加される", async () => {
+    mockGeminiResponse(
+      JSON.stringify({
+        category: "hiring",
+        confidence: 0.9,
+        reasoning: "Few-shot 例に基づき分類",
+      }),
+    );
+
+    const config: ClassificationConfig = {
+      regexRules: [], // regex をスキップして AI に到達させる
+      fewShotExamples: [
+        {
+          input: "来月入社予定の方の手続き",
+          category: "hiring",
+          explanation: "入社手続きは hiring",
+        },
+      ],
+    };
+
+    const result = await classifyIntent("新入社員の対応", undefined, config);
+
+    expect(result.category).toBe("hiring");
+    // Few-shot のターン対が含まれていることを確認
+    // biome-ignore lint/style/noNonNullAssertion: test assertion
+    const callArgs = mockGenerateContent.mock.calls[0]![0];
+    // prompt + model ack + few_shot_user + few_shot_model + actual_message = 5
+    expect(callArgs.contents.length).toBe(5);
+    expect(callArgs.contents[2].role).toBe("user");
+    expect(callArgs.contents[2].parts[0].text).toBe("来月入社予定の方の手続き");
+    expect(callArgs.contents[3].role).toBe("model");
+  });
+
+  it("config を渡さない場合（後方互換）、デフォルトの REGEX_RULES を使用する", async () => {
+    // "昇給" はデフォルト REGEX_RULES にマッチする
+    const result = await classifyIntent("昇給の相談です");
+
+    expect(result.category).toBe("salary");
     expect(result.classificationMethod).toBe("regex");
     expect(mockGenerateContent).not.toHaveBeenCalled();
   });
