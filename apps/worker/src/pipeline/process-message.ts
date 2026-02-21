@@ -1,4 +1,4 @@
-import { classifyIntent } from "@hr-system/ai";
+import { classifyIntent, type ThreadContext } from "@hr-system/ai";
 import { collections, db } from "@hr-system/db";
 import type { AuditEventType } from "@hr-system/shared";
 import { FieldValue } from "firebase-admin/firestore";
@@ -72,10 +72,21 @@ export async function processMessage(event: ChatEvent): Promise<void> {
   // 3. 監査ログ: chat_received
   await writeAuditLog("chat_received", "chat_message", chatMessageRef.id);
 
-  // 4. Intent 分類（regex → AI フォールバック）
+  // 3.5. スレッドコンテキスト取得（返信メッセージの分類精度向上）
+  // best-effort: 失敗時は context なしで分類を継続（NACK しない）
+  let threadContext: ThreadContext | undefined;
+  if (enrichedEvent.threadName) {
+    try {
+      threadContext = await getThreadContext(enrichedEvent.threadName, chatMessageRef.id);
+    } catch (e) {
+      console.warn(`[Worker] Thread context 取得失敗: ${String(e)}`);
+    }
+  }
+
+  // 4. Intent 分類（regex → AI フォールバック、スレッドコンテキスト付き）
   let intentResult: Awaited<ReturnType<typeof classifyIntent>>;
   try {
-    intentResult = await classifyIntent(enrichedEvent.text);
+    intentResult = await classifyIntent(enrichedEvent.text, threadContext);
   } catch (e) {
     // LLM エラー → NACK してリトライ
     throw new WorkerError("LLM_ERROR", `Intent 分類失敗: ${String(e)}`, true);
@@ -126,6 +137,48 @@ export async function processMessage(event: ChatEvent): Promise<void> {
     // processedAt 更新失敗は致命的ではないが記録する
     console.warn(`[Worker] processedAt 更新失敗: ${String(e)}`);
   }
+}
+
+/**
+ * スレッドの最初のメッセージ（親）の分類結果を取得してコンテキストを構築する。
+ * firestore.indexes.json の threadName+createdAt(asc) インデックスを使用。
+ */
+async function getThreadContext(
+  threadName: string,
+  currentMessageId: string,
+): Promise<ThreadContext | undefined> {
+  // スレッド内の全メッセージを createdAt 昇順で取得（先頭が親）
+  const snapshot = await collections.chatMessages
+    .where("threadName", "==", threadName)
+    .orderBy("createdAt", "asc")
+    .limit(2)
+    .get();
+
+  if (snapshot.empty) return undefined;
+
+  // 先頭メッセージが親（現在処理中のメッセージと同一の場合は親なし）
+  const parentDoc = snapshot.docs[0];
+  if (!parentDoc || parentDoc.id === currentMessageId) return undefined;
+
+  const parentData = parentDoc.data();
+
+  // 親の IntentRecord を取得
+  const intentSnapshot = await collections.intentRecords
+    .where("chatMessageId", "==", parentDoc.id)
+    .limit(1)
+    .get();
+
+  const parentIntent = intentSnapshot.empty ? null : intentSnapshot.docs[0]?.data();
+
+  // スレッドの返信数（親を除く）
+  const replyCount = snapshot.size > 1 ? snapshot.size - 1 : 0;
+
+  return {
+    parentCategory: parentIntent?.category ?? "other",
+    parentConfidence: parentIntent?.confidenceScore ?? 0,
+    parentSnippet: parentData.content.slice(0, 100),
+    replyCount,
+  };
 }
 
 /** 監査ログを書き込む（失敗しても NACK しない） */

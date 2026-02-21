@@ -42,25 +42,43 @@ const mockAuditRef = { id: "audit-001", set: mockAuditSet };
 
 const mockRunTransaction = vi.fn();
 
-vi.mock("@hr-system/db", () => ({
-  db: {
-    runTransaction: mockRunTransaction,
-  },
-  collections: {
-    chatMessages: {
-      doc: vi.fn(() => mockChatMessageRef),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn(),
+// クエリ用の get モック（スレッドコンテキスト取得で使用）
+const mockChatMessagesQueryGet = vi.fn();
+const mockIntentRecordsQueryGet = vi.fn();
+
+vi.mock("@hr-system/db", () => {
+  // chatMessages のクエリチェーン: .where().orderBy().limit().get()
+  // vi.fn().mockReturnThis() は vi.mock ファクトリ内では this が未定義になるため
+  // 明示的なチェーンオブジェクトを使用する
+  const chatMsgsChain: Record<string, unknown> = {};
+  chatMsgsChain.orderBy = vi.fn(() => chatMsgsChain);
+  chatMsgsChain.limit = vi.fn(() => chatMsgsChain);
+  chatMsgsChain.get = mockChatMessagesQueryGet;
+
+  // intentRecords のクエリチェーン: .where().limit().get()
+  const intentChain: Record<string, unknown> = {};
+  intentChain.limit = vi.fn(() => intentChain);
+  intentChain.get = mockIntentRecordsQueryGet;
+
+  return {
+    db: {
+      runTransaction: mockRunTransaction,
     },
-    intentRecords: {
-      doc: vi.fn(() => mockIntentRef),
+    collections: {
+      chatMessages: {
+        doc: vi.fn(() => mockChatMessageRef),
+        where: vi.fn(() => chatMsgsChain),
+      },
+      intentRecords: {
+        doc: vi.fn(() => mockIntentRef),
+        where: vi.fn(() => intentChain),
+      },
+      auditLogs: {
+        doc: vi.fn(() => mockAuditRef),
+      },
     },
-    auditLogs: {
-      doc: vi.fn(() => mockAuditRef),
-    },
-  },
-}));
+  };
+});
 
 vi.mock("firebase-admin/firestore", () => ({
   FieldValue: { serverTimestamp: vi.fn(() => "SERVER_TIMESTAMP") },
@@ -93,6 +111,16 @@ function makeEvent(overrides: Partial<ChatEvent> = {}): ChatEvent {
   };
 }
 
+/** Firestore ドキュメントスナップショットを模倣するヘルパー */
+function makeDocSnapshot(id: string, data: Record<string, unknown>) {
+  return { id, data: () => data };
+}
+
+/** Firestore クエリスナップショットを模倣するヘルパー */
+function makeQuerySnapshot(docs: ReturnType<typeof makeDocSnapshot>[]) {
+  return { empty: docs.length === 0, docs, size: docs.length };
+}
+
 // ---------------------------------------------------------------------------
 // テストケース
 // ---------------------------------------------------------------------------
@@ -120,6 +148,9 @@ describe("processMessage", () => {
     mockRunTransaction.mockImplementation((fn: (tx: unknown) => Promise<void>) =>
       fn({ set: mockAuditSet }),
     );
+    // デフォルト: スレッドコンテキストなし（空のクエリ結果）
+    mockChatMessagesQueryGet.mockResolvedValue(makeQuerySnapshot([]));
+    mockIntentRecordsQueryGet.mockResolvedValue(makeQuerySnapshot([]));
   });
 
   afterEach(() => {
@@ -201,6 +232,122 @@ describe("processMessage", () => {
 
       // エラーなく完了するべき
       await expect(processMessage(makeEvent())).resolves.toBeUndefined();
+    });
+  });
+
+  describe("スレッドコンテキスト（Step 3.5）", () => {
+    it("threadName が null の場合、classifyIntent は context なしで呼ばれる", async () => {
+      // threadName: null（デフォルト）
+      await processMessage(makeEvent({ threadName: null }));
+
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        expect.any(String),
+        undefined, // context なし
+      );
+      // スレッド検索クエリは実行されない
+      expect(mockChatMessagesQueryGet).not.toHaveBeenCalled();
+    });
+
+    it("スレッド返信: 親メッセージが存在する場合、ThreadContext が classifyIntent に渡される", async () => {
+      const THREAD_NAME = "spaces/AAAA-qf5jX0/threads/thread-001";
+      const PARENT_DOC_ID = "parent-chat-msg-001";
+
+      // 親メッセージのクエリ結果
+      mockChatMessagesQueryGet.mockResolvedValue(
+        makeQuerySnapshot([
+          makeDocSnapshot(PARENT_DOC_ID, {
+            content: "田中さんの給与変更をお願いします",
+            threadName: THREAD_NAME,
+          }),
+          makeDocSnapshot("chat-msg-001", {
+            content: "承知しました",
+            threadName: THREAD_NAME,
+          }),
+        ]),
+      );
+
+      // 親の IntentRecord
+      mockIntentRecordsQueryGet.mockResolvedValue(
+        makeQuerySnapshot([
+          makeDocSnapshot("intent-parent-001", {
+            chatMessageId: PARENT_DOC_ID,
+            category: "salary",
+            confidenceScore: 0.95,
+          }),
+        ]),
+      );
+
+      await processMessage(
+        makeEvent({
+          threadName: THREAD_NAME,
+          messageType: "THREAD_REPLY",
+          text: "承知しました",
+        }),
+      );
+
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        "承知しました",
+        expect.objectContaining({
+          parentCategory: "salary",
+          parentConfidence: 0.95,
+          parentSnippet: "田中さんの給与変更をお願いします",
+          replyCount: 1,
+        }),
+      );
+    });
+
+    it("スレッド返信: getThreadContext が失敗しても best-effort で処理を続行する", async () => {
+      const THREAD_NAME = "spaces/AAAA-qf5jX0/threads/thread-002";
+
+      // Firestore クエリがエラー
+      mockChatMessagesQueryGet.mockRejectedValue(new Error("Firestore unavailable"));
+
+      // エラーなく完了し、classifyIntent は context なしで呼ばれる
+      await expect(
+        processMessage(
+          makeEvent({
+            threadName: THREAD_NAME,
+            messageType: "THREAD_REPLY",
+            text: "確認しました",
+          }),
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(mockClassifyIntent).toHaveBeenCalledWith("確認しました", undefined);
+    });
+
+    it("スレッド返信: 親 IntentRecord が存在しない場合、デフォルト値（category: other, confidence: 0）を使用", async () => {
+      const THREAD_NAME = "spaces/AAAA-qf5jX0/threads/thread-003";
+      const PARENT_DOC_ID = "parent-chat-msg-003";
+
+      // 親メッセージは存在するが IntentRecord は未作成
+      mockChatMessagesQueryGet.mockResolvedValue(
+        makeQuerySnapshot([
+          makeDocSnapshot(PARENT_DOC_ID, {
+            content: "よろしくお願いします",
+            threadName: THREAD_NAME,
+          }),
+        ]),
+      );
+      mockIntentRecordsQueryGet.mockResolvedValue(makeQuerySnapshot([]));
+
+      await processMessage(
+        makeEvent({
+          threadName: THREAD_NAME,
+          messageType: "THREAD_REPLY",
+          text: "了解です",
+        }),
+      );
+
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        "了解です",
+        expect.objectContaining({
+          parentCategory: "other",
+          parentConfidence: 0,
+          parentSnippet: "よろしくお願いします",
+          replyCount: 0,
+        }),
+      );
     });
   });
 });
