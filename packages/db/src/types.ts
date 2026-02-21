@@ -218,6 +218,20 @@ export interface AllowedUser {
   updatedAt: Timestamp;
 }
 
+/** 同期メタデータ */
+export interface SyncMetadata {
+  lastSyncedAt: Timestamp | null;
+  status: "idle" | "running" | "error";
+  lastResult: {
+    newMessages: number;
+    duplicateSkipped: number;
+    durationMs: number;
+    syncedAt: Timestamp;
+  } | null;
+  errorMessage: string | null;
+  updatedAt: Timestamp;
+}
+
 /** AI分類ルール */
 export interface ClassificationRule {
   category: ChatCategory;

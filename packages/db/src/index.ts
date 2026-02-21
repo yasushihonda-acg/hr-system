@@ -15,4 +15,5 @@ export type {
   Salary,
   SalaryDraft,
   SalaryDraftItem,
+  SyncMetadata,
 } from "./types.js";
