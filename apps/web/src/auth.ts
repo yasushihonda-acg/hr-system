@@ -47,15 +47,52 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       : []),
   ],
   callbacks: {
-    jwt({ token, account, user }) {
+    async jwt({ token, account, user }) {
       if (account?.id_token) {
-        // Google OAuth: 実際の ID トークンをセット
+        // Google OAuth 初回ログイン: トークン一式を保存
         token.idToken = account.id_token;
-      } else if (user?.email) {
-        // dev Credentials: "dev:{email}" 形式のトークンをセット
-        // account が null の Credentials プロバイダーのみここに入る
-        token.idToken = `dev:${user.email}`;
+        token.refreshToken = account.refresh_token;
+        // expires_at は秒単位の UNIX タイムスタンプ
+        token.expiresAt = account.expires_at;
+        return token;
       }
+
+      if (user?.email) {
+        // dev Credentials プロバイダー
+        token.idToken = `dev:${user.email}`;
+        return token;
+      }
+
+      // 以降: セッション更新時 (account は null)
+      // ID トークンの期限を 5 分前に切ってリフレッシュ
+      const expiresAt = token.expiresAt as number | undefined;
+      if (!expiresAt || Date.now() / 1000 < expiresAt - 300) {
+        // まだ有効
+        return token;
+      }
+
+      // リフレッシュトークンで新しい ID トークンを取得
+      try {
+        const response = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+            client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+            grant_type: "refresh_token",
+            refresh_token: (token.refreshToken as string) ?? "",
+          }),
+        });
+        const tokens = await response.json();
+        if (!response.ok) throw new Error(tokens.error ?? "Token refresh failed");
+
+        token.idToken = tokens.id_token ?? token.idToken;
+        token.expiresAt = Math.floor(Date.now() / 1000) + (tokens.expires_in as number);
+      } catch (err) {
+        // リフレッシュ失敗時は期限切れのまま返す（次のリクエストで再試行）
+        console.error("Failed to refresh Google token:", err);
+      }
+
       return token;
     },
     session({ session, token }) {
