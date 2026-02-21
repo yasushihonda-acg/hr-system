@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { MentionBadge } from "@/components/chat/mention-badge";
-import { stripHtml } from "@/components/chat/rich-content";
+import { ContentWithMentions, stripHtml } from "@/components/chat/rich-content";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -272,23 +271,15 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                     </TableCell>
                     <TableCell>
                       <Link href={`/chat-messages/${msg.id}`} className="block">
-                        <div className="flex max-w-[400px] flex-col gap-1">
+                        <div className="max-w-[400px]">
                           {msg.isEdited && (
-                            <span className="text-xs text-muted-foreground">[編集済]</span>
+                            <span className="text-xs text-muted-foreground">[編集済] </span>
                           )}
-                          {msg.mentionedUsers.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {msg.mentionedUsers.slice(0, 3).map((u) => (
-                                <MentionBadge key={u.userId} displayName={u.displayName} />
-                              ))}
-                              {msg.mentionedUsers.length > 3 && (
-                                <span className="text-xs text-muted-foreground">
-                                  +{msg.mentionedUsers.length - 3}人
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          <span className="truncate text-sm">{preview}</span>
+                          <ContentWithMentions
+                            content={preview}
+                            formattedContent={null}
+                            className="line-clamp-2 text-sm"
+                          />
                         </div>
                       </Link>
                     </TableCell>
