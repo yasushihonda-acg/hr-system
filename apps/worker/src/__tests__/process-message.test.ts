@@ -6,6 +6,13 @@ import type { ChatEvent } from "../lib/event-parser.js";
 // モック設定
 // ---------------------------------------------------------------------------
 
+const mockEnrichChatEvent = vi.fn();
+vi.mock("../lib/enrich-event.js", () => ({ enrichChatEvent: mockEnrichChatEvent }));
+
+vi.mock("../lib/chat-api.js", () => ({
+  createChatApiClient: vi.fn(() => ({})),
+}));
+
 const mockIsDuplicate = vi.fn();
 vi.mock("../lib/dedup.js", () => ({ isDuplicate: mockIsDuplicate }));
 
@@ -95,6 +102,8 @@ const { processMessage } = await import("../pipeline/process-message.js");
 describe("processMessage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // デフォルト: enrichChatEvent は event をそのまま返す
+    mockEnrichChatEvent.mockImplementation((event: ChatEvent) => Promise.resolve(event));
     // デフォルト: 重複なし
     mockIsDuplicate.mockResolvedValue(false);
     // デフォルト: 非給与カテゴリ
