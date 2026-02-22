@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-21（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `0e0937d` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `2393772` — 全変更 push 済み、未プッシュなし）
 
 ---
 
@@ -42,16 +42,29 @@ Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP
 
 ## 直近の変更（本セッション — 最新）
 
+### feat: 分類ルール動的管理 (2393772, PR #48) — Closes #18, #38
+- `packages/ai/src/rules/`: 正規表現ルール + LLM Few-shot 例・システムプロンプトを Firestore で動的管理
+- 管理 UI: `apps/web/src/app/(dashboard)/settings/classification-rules/` 新規追加
+- ルール CRUD API: `apps/api/src/routes/classification-rules.ts`
+
+### feat: チャットメッセージ差分同期 (0a26817, PR #49) — Closes #44
+- `apps/worker/src/lib/chat-sync.ts`: Google Chat API から最新メッセージを差分取得し Firestore へ保存
+- Web ダッシュボードに「今すぐ同期」ボタン追加（`apps/web/src/app/(dashboard)/chat-messages/`）
+- Pub/Sub スケジュール同期の基盤整備
+
+### feat(ai,worker): スレッドコンテキストによる Intent 分類精度向上 (49772f6, PR #47) — Closes #15
+- `packages/ai/src/classify.ts`: スレッド内の過去メッセージをコンテキストとして Gemini に渡す
+- `apps/worker/src/lib/process-message.ts`: `threadMessages` を取得して分類器に注入
+- 分類精度の向上（特に返信メッセージでの文脈理解）
+
+### feat(infra): CI/CD DRY化・Terraform本番同期・Dockerfile EXPOSE修正 (10023cc, PR #46)
+- `.github/workflows/deploy-service.yml`: 再利用可能ワークフロー化
+- `infra/cloud-run/main.tf`: 本番 Terraform 状態に同期
+
 ### ci: WIF認証確認 — Worker 本番デプロイ成功 (0e0937d, cea5324)
 - GitHub Secrets に `WIF_PROVIDER` / `WIF_SERVICE_ACCOUNT` を登録
 - `Deploy to Cloud Run` ワークフローで Worker の本番デプロイが成功（1m57s）
 - WIF（Workload Identity Federation）認証が通ることを確認
-
-### feat(web): メンションをインライン表示 (1ee963d, PR #45)
-- `ContentWithMentions` コンポーネント新規追加（rich-content.tsx）
-- `@数字.名前` パターンを正規表現で分割し `MentionBadge` をインライン挿入
-- `thread-view.tsx` / `chat-messages/page.tsx` / `[id]/page.tsx` を更新
-- CI は Billing 問題で失敗（コードの問題ではない）
 
 ### security: Public化対応 — 個人情報・内部データを除去 (7955df4)
 - `docs/raw/` を git 全履歴から削除（実在スタッフ名・電話番号入り CSV）
@@ -103,17 +116,15 @@ Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP
 ## 次のアクション候補
 
 1. **Cloud Run 本番デプロイ（API + Web）**
-   - Workload Identity Federation の設定（`infra/cloud-run/main.tf` 参照）
-   - GitHub Secrets に `WIF_PROVIDER` / `WIF_SERVICE_ACCOUNT` を設定
-   - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL` を Cloud Run シークレットへ
-3. **Google OAuth 本番 Redirect URI 設定**
+   - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL` を Cloud Run シークレットへ設定
+   - `gcloud run deploy hr-api` / `hr-web` 実行
+2. **Google OAuth 本番 Redirect URI 設定**
    - GCP Console > APIs & Services > Credentials で `https://[hr-web URL]/api/auth/callback/google` を追加
-4. **Phase 2 スキーマ最適化**
+3. **Phase 2 スキーマ最適化**
    - `ChatMessage` に `intentCategory` を非正規化（カテゴリフィルタのページネーション精度向上）
    - SmartHR / Google Sheets / Gmail 連携実装
-5. **Issue #15**: スレッドコンテキストを使った分類精度向上（P1）
-6. **Issue #18**: 正規表現ルール管理 UI（P2）
-7. **Issue #38**: LLM 分類ルール管理 UI — Few-shot 例・システムプロンプトの動的追加（P2）
+4. **Issue #17**: 分類フィードバック学習ループ — 手動修正を自動分類精度改善に反映（P2）
+5. **Issue #19**: 分類分析ダッシュボード強化 — 精度可視化・カテゴリ傾向分析（P3）
 
 ---
 
@@ -148,12 +159,10 @@ Chat 収集・AI 分類・給与ドラフト・承認ダッシュボード・GCP
 
 | # | タイトル | ラベル |
 |---|---------|--------|
-| #15 | スレッドコンテキストを使った分類精度向上 | P1, enhancement, ai |
 | #17 | 分類フィードバック学習ループ | P2, enhancement, ai |
-| #18 | 正規表現ルール管理 UI | P2, enhancement |
 | #19 | 分類分析ダッシュボード強化 | P3, enhancement |
-| #38 | LLM 分類ルール管理 UI（Few-shot 例・システムプロンプト動的追加） | P2, enhancement, ai |
-| #44 | チャットメッセージの定期差分取得 + 手動取得ボタン | P2, enhancement |
+
+（#15, #18, #38, #44 は本セッションの PR #47, #48, #49 でクローズ済み）
 
 ---
 
