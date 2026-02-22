@@ -156,10 +156,7 @@ export default async function ChatMessageDetailPage({ params }: Props) {
                   <Paperclip className="h-3.5 w-3.5" />
                   添付ファイル ({msg.attachments.length}件)
                 </p>
-                <AttachmentList
-                  attachments={msg.attachments}
-                  chatUrl={buildChatUrl(msg.googleMessageId) || undefined}
-                />
+                <AttachmentList attachments={msg.attachments} />
               </div>
             )}
           </CardContent>
