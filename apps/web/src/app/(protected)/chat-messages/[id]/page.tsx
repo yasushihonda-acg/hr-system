@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink, MessageSquare, Paperclip } from "lucide-react";
+import { ArrowLeft, MessageSquare, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { MentionBadge } from "@/components/chat/mention-badge";
@@ -7,6 +7,7 @@ import { ThreadView } from "@/components/chat/thread-view";
 import { ReclassifyForm } from "@/components/reclassify-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getChatMessage } from "@/lib/api";
+import { ChatOpenButton } from "./chat-open-button";
 import { ResponseStatusControl } from "./response-status-control";
 
 interface Props {
@@ -98,15 +99,7 @@ export default async function ChatMessageDetailPage({ params }: Props) {
           )}
         </div>
         {buildChatUrl(msg.googleMessageId) && (
-          <a
-            href={buildChatUrl(msg.googleMessageId)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Google Chat で開く
-          </a>
+          <ChatOpenButton url={buildChatUrl(msg.googleMessageId)} />
         )}
       </div>
 
