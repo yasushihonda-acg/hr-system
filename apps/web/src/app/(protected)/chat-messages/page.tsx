@@ -2,6 +2,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CornerDownRight,
+  ExternalLink,
   MessageSquare,
   Paperclip,
   Pencil,
@@ -128,6 +129,13 @@ function getInitials(name: string): string {
   return name.slice(0, 2);
 }
 
+/** googleMessageId ("spaces/{spaceId}/messages/{messageId}") から Google Chat URL を生成 */
+function buildChatUrl(googleMessageId: string): string {
+  const match = googleMessageId.match(/^spaces\/([^/]+)\/messages\/([^/]+)$/);
+  if (!match) return "";
+  return `https://chat.google.com/room/${match[1]}/${match[2]}`;
+}
+
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("ja-JP", {
     month: "2-digit",
@@ -227,9 +235,23 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                   </span>
                 )}
               </div>
-              <time className="shrink-0 font-mono text-xs text-slate-400 tabular-nums">
-                {formatDateTime(msg.createdAt)}
-              </time>
+              <div className="flex shrink-0 items-center gap-2">
+                <time className="font-mono text-xs text-slate-400 tabular-nums">
+                  {formatDateTime(msg.createdAt)}
+                </time>
+                {buildChatUrl(msg.googleMessageId) && (
+                  <a
+                    href={buildChatUrl(msg.googleMessageId)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-slate-400 transition-colors hover:text-slate-600"
+                    title="Google Chat で開く"
+                  >
+                    <ExternalLink size={12} />
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Content */}

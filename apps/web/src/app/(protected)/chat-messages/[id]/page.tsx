@@ -1,4 +1,4 @@
-import { ArrowLeft, MessageSquare, Paperclip } from "lucide-react";
+import { ArrowLeft, ExternalLink, MessageSquare, Paperclip } from "lucide-react";
 import Link from "next/link";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { MentionBadge } from "@/components/chat/mention-badge";
@@ -49,6 +49,13 @@ function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("ja-JP");
 }
 
+/** googleMessageId ("spaces/{spaceId}/messages/{messageId}") から Google Chat URL を生成 */
+function buildChatUrl(googleMessageId: string): string {
+  const match = googleMessageId.match(/^spaces\/([^/]+)\/messages\/([^/]+)$/);
+  if (!match) return "";
+  return `https://chat.google.com/room/${match[1]}/${match[2]}`;
+}
+
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
@@ -76,17 +83,30 @@ export default async function ChatMessageDetailPage({ params }: Props) {
       </Link>
 
       {/* ヘッダー */}
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold">メッセージ詳細</h1>
-        {msg.messageType === "THREAD_REPLY" && (
-          <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
-            ↩ スレッド返信
-          </span>
-        )}
-        {msg.isEdited && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            編集済
-          </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">メッセージ詳細</h1>
+          {msg.messageType === "THREAD_REPLY" && (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+              ↩ スレッド返信
+            </span>
+          )}
+          {msg.isEdited && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              編集済
+            </span>
+          )}
+        </div>
+        {buildChatUrl(msg.googleMessageId) && (
+          <a
+            href={buildChatUrl(msg.googleMessageId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Google Chat で開く
+          </a>
         )}
       </div>
 
