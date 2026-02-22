@@ -19,12 +19,12 @@ describe("resolveUserMentions", () => {
     );
   });
 
-  it("未知のuserIdはIDのみ（users/プレフィックスなし）にフォールバックする", () => {
-    expect(resolveUserMentions("<users/99999>", users)).toBe("99999");
+  it("未知のuserIdは「不明ユーザー」を表示する", () => {
+    expect(resolveUserMentions("<users/99999>", users)).toBe("不明ユーザー");
   });
 
-  it("mentionedUsersが空配列の場合はIDのみにフォールバックする", () => {
-    expect(resolveUserMentions("<users/12345>", [])).toBe("12345");
+  it("mentionedUsersが空配列の場合は「不明ユーザー」を表示する", () => {
+    expect(resolveUserMentions("<users/12345>", [])).toBe("不明ユーザー");
   });
 
   it("<users/ID> を含まないテキストはそのまま返す", () => {
