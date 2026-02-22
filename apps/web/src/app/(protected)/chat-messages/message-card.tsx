@@ -113,6 +113,7 @@ function buildChatUrl(googleMessageId: string): string {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
