@@ -533,11 +533,179 @@ export async function backfillChatMessages(): Promise<void> {
   console.log("\n=== バックフィル完了 ===");
 }
 
-// このファイルがエントリーポイントとして直接実行された場合のみバックフィルを実行
+// ============================================================
+// 1件メッセージ取得（repair 用）
+// ============================================================
+
+/**
+ * Chat REST API で単一メッセージを取得する。
+ * 取得失敗時は null を返す（best-effort）。
+ */
+async function fetchMessage(
+  client: RequestClient | null,
+  bearerToken: string | undefined,
+  messageName: string,
+): Promise<ChatApiMessage | null> {
+  const url = `https://chat.googleapis.com/v1/${messageName}`;
+  try {
+    if (bearerToken) {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${bearerToken}` },
+      });
+      if (!res.ok) {
+        console.warn(`  API エラー ${res.status} for ${messageName}`);
+        return null;
+      }
+      return (await res.json()) as ChatApiMessage;
+    }
+    if (!client) throw new Error("client が null — 認証設定を確認してください");
+    const res = await client.request<ChatApiMessage>({ url });
+    return res.data;
+  } catch (e) {
+    console.warn(`  fetchMessage 失敗 (${messageName}): ${String(e)}`);
+    return null;
+  }
+}
+
+// ============================================================
+// 欠損データ修復
+// ============================================================
+
+/**
+ * PR #62 マージ前に蓄積された chatMessages の欠損フィールドを補完する。
+ *
+ * 対象: senderName が空のドキュメント（Worker (Pub/Sub) 経由で受信した旧データ）
+ * 処理: Chat REST API spaces.messages.get で再取得し update() で更新。
+ * 非破壊: processedAt / createdAt / intentRecords には一切触らない。
+ */
+export async function repairChatMessages(): Promise<void> {
+  console.log("\n=== Chat メッセージ修復開始 ===");
+
+  // 認証（backfillChatMessages と同一ロジック）
+  const bearerToken = process.env.GOOGLE_ACCESS_TOKEN;
+  const dwdKeyFile = process.env.DWD_SA_KEY_FILE;
+  const dwdSubject = process.env.DWD_SUBJECT;
+  let requestClient: RequestClient | null = null;
+
+  if (bearerToken) {
+    console.log("  認証: GOOGLE_ACCESS_TOKEN 環境変数を使用");
+  } else if (dwdKeyFile && dwdSubject) {
+    console.log(`  認証: DWD (Domain-Wide Delegation) — subject: ${dwdSubject}`);
+    requestClient = new JWT({
+      keyFile: dwdKeyFile,
+      scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+      subject: dwdSubject,
+    });
+  } else {
+    console.log("  認証: ADC (Application Default Credentials) を使用");
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+    });
+    requestClient = await auth.getClient();
+  }
+
+  // [1/3] 修復対象ドキュメントを Firestore から取得
+  console.log("\n[1/3] 修復対象ドキュメントを検索中...");
+  const snap = await collections.chatMessages.where("senderName", "==", "").get();
+  console.log(`  修復対象: ${snap.docs.length} 件 (senderName が空)`);
+
+  if (snap.docs.length === 0) {
+    console.log("  修復対象なし。処理を終了します。");
+    return;
+  }
+
+  // [2/3] Chat API で補完データを取得し update
+  console.log("\n[2/3] Chat API で欠損フィールドを補完中...");
+
+  /** Chat API 呼び出し間のディレイ (ms) — spaces.messages.get: 600 req/min */
+  const REQUEST_DELAY_MS = 200;
+
+  let repaired = 0;
+  let failed = 0;
+  let docIndex = 0;
+
+  for (const doc of snap.docs) {
+    const data = doc.data();
+    const googleMessageId = data.googleMessageId;
+
+    if (docIndex > 0) {
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+    }
+    docIndex++;
+
+    const apiMsg = await fetchMessage(requestClient, bearerToken, googleMessageId);
+    if (!apiMsg) {
+      console.warn(`  スキップ (API 失敗): ${googleMessageId}`);
+      failed++;
+      continue;
+    }
+
+    // アノテーション
+    const annotations = (apiMsg.annotations ?? []).map(normalizeAnnotation);
+
+    // メンション（annotations から再抽出）
+    const mentionedUsers = annotations
+      .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
+      .map((a) => ({
+        userId: a.userMention?.user.name ?? "",
+        displayName: a.userMention?.user.displayName ?? "",
+      }));
+
+    // 添付ファイル
+    const attachments: ChatAttachment[] = (apiMsg.attachment ?? []).map((att) => {
+      const result: ChatAttachment = { name: att.name ?? "" };
+      if (att.contentName !== undefined) result.contentName = att.contentName;
+      if (att.contentType !== undefined) result.contentType = att.contentType;
+      if (att.downloadUri !== undefined) result.downloadUri = att.downloadUri;
+      if (att.source === "DRIVE_FILE" || att.source === "UPLOADED_CONTENT") {
+        result.source = att.source;
+      }
+      return result;
+    });
+
+    // update() で欠損フィールドのみ補完（processedAt / createdAt には触らない）
+    await doc.ref.update({
+      senderName: apiMsg.sender?.displayName ?? "",
+      senderUserId: apiMsg.sender?.name ?? data.senderUserId,
+      formattedContent: apiMsg.formattedText ?? data.formattedContent,
+      annotations,
+      mentionedUsers,
+      attachments,
+      parentMessageId: apiMsg.quotedMessageMetadata?.name ?? data.parentMessageId,
+      isEdited: !!(apiMsg.lastUpdateTime && apiMsg.lastUpdateTime !== apiMsg.createTime),
+      isDeleted: !!apiMsg.deleteTime,
+    });
+
+    repaired++;
+    if (repaired % 50 === 0 || repaired === snap.docs.length) {
+      console.log(`  進捗: ${repaired}/${snap.docs.length} 件完了`);
+    }
+  }
+
+  // [3/3] 結果サマリー
+  console.log("\n[3/3] 修復結果");
+  console.log(`  修復成功: ${repaired} 件`);
+  if (failed > 0) console.warn(`  修復失敗 (API 取得不可): ${failed} 件`);
+  console.log("=== 修復完了 ===\n");
+}
+
+// ============================================================
+// エントリーポイント
+// ============================================================
+
+// このファイルがエントリーポイントとして直接実行された場合のみ実行
 // import されただけの場合（seed/index.ts から呼ばれる場合など）はここを通らない
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  backfillChatMessages().catch((err) => {
-    console.error("バックフィル失敗:", err);
-    process.exit(1);
-  });
+  const isRepair = process.argv.includes("--repair");
+  if (isRepair) {
+    repairChatMessages().catch((err) => {
+      console.error("修復失敗:", err);
+      process.exit(1);
+    });
+  } else {
+    backfillChatMessages().catch((err) => {
+      console.error("バックフィル失敗:", err);
+      process.exit(1);
+    });
+  }
 }
