@@ -7,10 +7,15 @@ import type {
   ChatMessageDetail,
   ChatMessageSummary,
   ClassificationRule,
+  ConfidenceTimelinePoint,
+  ConfusionMatrixEntry,
   DraftDetail,
   DraftSummary,
   EmployeeSummary,
+  IntentStatsSummary,
   LlmClassificationRule,
+  OverridePattern,
+  OverrideRatePoint,
   SpaceStat,
   StatsSummary,
   SyncStatus,
@@ -324,4 +329,69 @@ export function triggerChatSync() {
 
 export function getChatSyncStatus() {
   return request<SyncStatus>("/api/chat-messages/sync/status");
+}
+
+// --- Intent Stats ---
+
+export function getIntentStatsSummary() {
+  return request<IntentStatsSummary>("/api/intent-stats/summary");
+}
+
+export interface ConfusionMatrixParams {
+  from?: string;
+  to?: string;
+}
+
+export function getConfusionMatrix(params?: ConfusionMatrixParams) {
+  const sp = new URLSearchParams();
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  const qs = sp.toString();
+  return request<{
+    entries: ConfusionMatrixEntry[];
+    categories: string[];
+    period: { from: string; to: string };
+  }>(`/api/intent-stats/confusion-matrix${qs ? `?${qs}` : ""}`);
+}
+
+export interface ConfidenceTimelineParams {
+  granularity?: "day" | "week" | "month";
+  method?: "all" | "ai" | "regex" | "manual";
+  from?: string;
+  to?: string;
+}
+
+export function getConfidenceTimeline(params?: ConfidenceTimelineParams) {
+  const sp = new URLSearchParams();
+  if (params?.granularity) sp.set("granularity", params.granularity);
+  if (params?.method) sp.set("method", params.method);
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  const qs = sp.toString();
+  return request<{ timeline: ConfidenceTimelinePoint[]; granularity: string; method: string }>(
+    `/api/intent-stats/confidence-timeline${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export interface OverrideRateParams {
+  granularity?: "day" | "week" | "month";
+  from?: string;
+  to?: string;
+}
+
+export function getOverrideRateTimeline(params?: OverrideRateParams) {
+  const sp = new URLSearchParams();
+  if (params?.granularity) sp.set("granularity", params.granularity);
+  if (params?.from) sp.set("from", params.from);
+  if (params?.to) sp.set("to", params.to);
+  const qs = sp.toString();
+  return request<{ timeline: OverrideRatePoint[]; granularity: string }>(
+    `/api/intent-stats/override-rate${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export function getOverridePatterns() {
+  return request<{ patterns: OverridePattern[]; totalOverrides: number }>(
+    "/api/intent-stats/override-patterns",
+  );
 }
