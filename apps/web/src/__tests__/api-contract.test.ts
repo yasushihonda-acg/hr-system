@@ -148,6 +148,7 @@ const sampleChatMessageDetail: ChatMessageDetail = {
       content: "確認しました",
       formattedContent: null,
       messageType: "THREAD_REPLY",
+      mentionedUsers: [],
       createdAt: "2026-02-18T01:00:00.000Z",
     },
   ],

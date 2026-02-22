@@ -283,6 +283,7 @@ export interface ChatMessageDetail extends ChatMessageSummary {
     content: string;
     formattedContent: string | null;
     messageType: "MESSAGE" | "THREAD_REPLY";
+    mentionedUsers: Array<{ userId: string; displayName: string }>;
     createdAt: string;
   }>;
 }

@@ -11,6 +11,7 @@ interface ThreadMessage {
   content: string;
   formattedContent: string | null;
   messageType: "MESSAGE" | "THREAD_REPLY";
+  mentionedUsers?: Array<{ userId: string; displayName: string }>;
   createdAt: string;
 }
 
@@ -69,6 +70,7 @@ function MessageBubble({ message, isReply }: { message: ThreadMessage; isReply: 
           <ContentWithMentions
             formattedContent={message.formattedContent}
             content={message.content}
+            mentionedUsers={message.mentionedUsers}
           />
         </div>
       </div>

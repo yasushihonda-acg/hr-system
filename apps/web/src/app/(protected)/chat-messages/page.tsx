@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ContentWithMentions, stripHtml } from "@/components/chat/rich-content";
+import { ContentWithMentions } from "@/components/chat/rich-content";
 import { ChatSyncButton } from "@/components/chat/sync-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -273,9 +273,6 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
               </TableRow>
             ) : (
               messages.map((msg) => {
-                const preview = msg.formattedContent
-                  ? stripHtml(msg.formattedContent)
-                  : msg.content;
                 return (
                   <TableRow
                     key={msg.id}
@@ -301,8 +298,9 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                             <span className="text-xs text-muted-foreground">[編集済] </span>
                           )}
                           <ContentWithMentions
-                            content={preview}
-                            formattedContent={null}
+                            content={msg.content}
+                            formattedContent={msg.formattedContent}
+                            mentionedUsers={msg.mentionedUsers}
                             className="line-clamp-2 text-sm"
                           />
                         </div>

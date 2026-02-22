@@ -122,7 +122,11 @@ export default async function ChatMessageDetailPage({ params }: Props) {
 
             {/* 本文（メンションインライン対応） */}
             <div className="rounded-md bg-muted p-4 text-base">
-              <ContentWithMentions formattedContent={msg.formattedContent} content={msg.content} />
+              <ContentWithMentions
+                formattedContent={msg.formattedContent}
+                content={msg.content}
+                mentionedUsers={msg.mentionedUsers}
+              />
             </div>
 
             {/* 添付ファイル */}
