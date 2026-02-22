@@ -92,7 +92,7 @@ export function resolveUserMentions(content: string, mentionedUsers: MentionedUs
   return content.replace(/<users\/([^>]+)>/g, (_, rawId) => {
     const userId = `users/${rawId}`;
     const user = mentionedUsers.find((u) => u.userId === userId);
-    return user?.displayName ?? rawId;
+    return user?.displayName ?? "不明ユーザー";
   });
 }
 
@@ -104,7 +104,7 @@ export function resolveHtmlMentions(html: string, mentionedUsers: MentionedUser[
   return html.replace(/<users\/([^>]+)>/g, (_, rawId) => {
     const userId = `users/${rawId}`;
     const user = mentionedUsers.find((u) => u.userId === userId);
-    return `@${user?.displayName || rawId}`;
+    return `@${user?.displayName || "不明ユーザー"}`;
   });
 }
 
@@ -159,7 +159,7 @@ export function ContentWithMentions({
         if (match?.[1] !== undefined) {
           const userId = `users/${match[1]}`;
           const user = mentionedUsers.find((u) => u.userId === userId);
-          return <MentionBadge key={key} displayName={user?.displayName || match[1] || ""} />;
+          return <MentionBadge key={key} displayName={user?.displayName || "不明ユーザー"} />;
         }
         return part;
       })}
