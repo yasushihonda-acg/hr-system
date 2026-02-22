@@ -17,6 +17,7 @@ interface Props {
     category?: string;
     messageType?: "MESSAGE" | "THREAD_REPLY";
     spaceId?: string;
+    lowConfidence?: string;
     page?: string;
   }>;
 }
@@ -123,12 +124,14 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
+  const isLowConfidence = params.lowConfidence === "1";
 
   const [{ data: messages, pagination }, spacesData] = await Promise.all([
     getChatMessages({
       category: params.category,
       messageType: params.messageType,
       spaceId: params.spaceId,
+      maxConfidence: isLowConfidence ? 0.7 : undefined,
       limit: PAGE_SIZE,
       offset,
     }),
@@ -139,16 +142,20 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
     category?: string;
     messageType?: string;
     spaceId?: string;
+    lowConfidence?: string;
     page?: string;
   }) {
     const sp = new URLSearchParams();
     const category = "category" in overrides ? overrides.category : params.category;
     const messageType = "messageType" in overrides ? overrides.messageType : params.messageType;
     const spaceId = "spaceId" in overrides ? overrides.spaceId : params.spaceId;
+    const lowConfidence =
+      "lowConfidence" in overrides ? overrides.lowConfidence : params.lowConfidence;
     const p = overrides.page;
     if (category) sp.set("category", category);
     if (messageType) sp.set("messageType", messageType);
     if (spaceId) sp.set("spaceId", spaceId);
+    if (lowConfidence) sp.set("lowConfidence", lowConfidence);
     if (p && p !== "1") sp.set("page", p);
     const qs = sp.toString();
     return `/chat-messages${qs ? `?${qs}` : ""}`;
@@ -226,6 +233,20 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
           href={buildUrl({ messageType: "THREAD_REPLY", page: "1" })}
           label="スレッド返信"
           active={params.messageType === "THREAD_REPLY"}
+        />
+      </div>
+
+      {/* 信頼度フィルタ */}
+      <div className="flex items-center gap-2">
+        <FilterLink
+          href={buildUrl({ lowConfidence: undefined, page: "1" })}
+          label="すべて"
+          active={!isLowConfidence}
+        />
+        <FilterLink
+          href={buildUrl({ lowConfidence: "1", page: "1" })}
+          label="⚠ 要確認（信頼度 < 70%）"
+          active={isLowConfidence}
         />
       </div>
 

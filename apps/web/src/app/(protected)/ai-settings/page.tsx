@@ -1,5 +1,6 @@
 import { Bot } from "lucide-react";
 import { ConfusionMatrixTable } from "@/components/confusion-matrix-table";
+import { CategoryBarChart, CategoryPieChart } from "@/components/dashboard-charts";
 import { ConfidenceTimelineChart, OverrideRateChart } from "@/components/intent-stats-charts";
 import { IntentStatsSummaryCards } from "@/components/intent-stats-summary";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import {
   getLlmRules,
   getOverridePatterns,
   getOverrideRateTimeline,
+  getStatsCategories,
 } from "@/lib/api";
 import { ClassificationTester } from "./classification-tester";
 import { CsvExportButton } from "./csv-export-button";
@@ -72,18 +74,38 @@ function TestTab() {
 }
 
 async function AccuracyTab() {
-  const [summary, confusionData, confidenceData, overrideRateData, patternsData] =
+  const [summary, confusionData, confidenceData, overrideRateData, patternsData, categoriesData] =
     await Promise.all([
       getIntentStatsSummary(),
       getConfusionMatrix(),
       getConfidenceTimeline({ granularity: "day" }),
       getOverrideRateTimeline({ granularity: "day" }),
       getOverridePatterns(),
+      getStatsCategories(),
     ]);
 
   return (
     <div className="space-y-6">
       <IntentStatsSummaryCards data={summary} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>カテゴリ別分布</CardTitle>
+          <CardDescription>
+            全メッセージのカテゴリ内訳（総数: {categoriesData.total}件）
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {categoriesData.categories.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              <CategoryPieChart data={categoriesData.categories} />
+              <CategoryBarChart data={categoriesData.categories} />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">データがありません</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
