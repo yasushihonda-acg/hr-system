@@ -1,7 +1,7 @@
 "use client";
 
 import { CornerDownRight, ExternalLink, Paperclip, Pencil } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { ContentWithMentions } from "@/components/chat/rich-content";
 import type { ChatMessageSummary } from "@/lib/types";
@@ -136,6 +136,7 @@ function ConfidenceMeter({ score }: { score: number }) {
 }
 
 export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
+  const router = useRouter();
   const catCfg = msg.intent
     ? (CATEGORY_CONFIG[msg.intent.category] ?? CATEGORY_CONFIG.other)
     : null;
@@ -148,7 +149,11 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
   const methCfg = msg.intent ? (METHOD_CONFIG[msg.intent.classificationMethod] ?? null) : null;
 
   return (
-    <Link href={`/chat-messages/${msg.id}`} className="group block">
+    <button
+      type="button"
+      onClick={() => router.push(`/chat-messages/${msg.id}`)}
+      className="group block w-full cursor-pointer text-left"
+    >
       <div
         className={`relative border-l-4 ${accent} rounded-r-xl bg-white px-5 py-4 shadow ring-1 ring-slate-200/80 transition-all duration-150 group-hover:shadow-lg group-hover:ring-slate-300 ${
           isReply ? "ml-8" : ""
@@ -258,6 +263,6 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
           </div>
         </div>
       </div>
-    </Link>
+    </button>
   );
 }
