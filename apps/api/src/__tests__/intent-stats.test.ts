@@ -48,6 +48,7 @@ vi.mock("../middleware/auth.js", () => ({
 
 vi.mock("../middleware/rbac.js", () => ({
   rbacMiddleware: vi.fn(async (_c: unknown, next: () => Promise<void>) => next()),
+  requireRole: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => next()),
 }));
 
 import { app } from "../app.js";
