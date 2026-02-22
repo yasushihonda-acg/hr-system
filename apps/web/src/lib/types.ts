@@ -220,6 +220,46 @@ export interface ChatMessageSummary {
   intent: IntentSummary | null;
 }
 
+// --- Intent Stats ---
+
+export interface IntentStatsSummary {
+  total: number;
+  byMethod: { ai: number; regex: number; manual: number };
+  overrideCount: number;
+  overrideRate: number;
+  avgConfidence: { ai: number | null; regex: number | null };
+}
+
+export interface ConfusionMatrixEntry {
+  from: string;
+  to: string;
+  count: number;
+}
+
+export interface ConfidenceTimelinePoint {
+  date: string;
+  avg: number;
+  min: number;
+  max: number;
+  count: number;
+}
+
+export interface OverrideRatePoint {
+  date: string;
+  total: number;
+  overrides: number;
+  overrideRate: number;
+}
+
+export interface OverridePattern {
+  fromCategory: string;
+  toCategory: string;
+  count: number;
+  percentage: number;
+  sampleMessages: Array<{ id: string; content: string }>;
+  suggestedKeywords: string[];
+}
+
 /** 同期ステータス */
 export interface SyncStatus {
   status: "idle" | "running" | "error";
