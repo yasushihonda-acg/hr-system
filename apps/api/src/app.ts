@@ -12,6 +12,7 @@ import { classificationRulesRoutes } from "./routes/classification-rules.js";
 import { employeeRoutes } from "./routes/employees.js";
 import { llmRulesRoutes } from "./routes/llm-rules.js";
 import { salaryDraftRoutes } from "./routes/salary-drafts.js";
+import { intentStatsRoutes } from "./routes/intent-stats.js";
 import { statsRoutes } from "./routes/stats.js";
 
 const app = new Hono();
@@ -39,6 +40,7 @@ app.route("/api/audit-logs", auditLogRoutes);
 app.route("/api/chat-messages/sync", chatSyncRoutes);
 app.route("/api/chat-messages", chatMessageRoutes);
 app.route("/api/stats", statsRoutes);
+app.route("/api/intent-stats", intentStatsRoutes);
 app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/classification-rules", classificationRulesRoutes);
 app.route("/api/llm-rules", llmRulesRoutes);
