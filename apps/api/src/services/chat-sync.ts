@@ -5,7 +5,7 @@
  * Firestore に未保存のメッセージのみ追加する。
  */
 
-import type { SyncMetadata } from "@hr-system/db";
+import type { ChatAnnotation, ChatAttachment, SyncMetadata } from "@hr-system/db";
 import { collections } from "@hr-system/db";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth } from "google-auth-library";
@@ -109,8 +109,8 @@ export async function syncChatMessages(): Promise<SyncResult> {
         continue;
       }
 
-      // メッセージ内容を取得
-      const content = (msg.text as string) || (msg.formattedText as string) || "";
+      // メッセージ内容を取得（formattedText はフォールバックしない — HTML が content に混入するのを防ぐ）
+      const content = (msg.text as string) || "";
       const formattedText = (msg.formattedText as string) || null;
 
       // スレッド情報
@@ -120,18 +120,43 @@ export async function syncChatMessages(): Promise<SyncResult> {
         (msg.threadReply as boolean) === true;
       const threadName = (thread?.name as string) || null;
 
+      // 引用元メッセージ（スレッド返信の親）
+      const quotedMessageMetadata = msg.quotedMessageMetadata as
+        | Record<string, unknown>
+        | undefined;
+      const parentMessageId = (quotedMessageMetadata?.name as string) ?? null;
+
+      // 添付ファイル
+      const rawAttachments = (msg.attachment as Array<Record<string, unknown>>) ?? [];
+      const attachments: ChatAttachment[] = rawAttachments.map((att) => {
+        const result: ChatAttachment = { name: (att.name as string) ?? "" };
+        if (att.contentName !== undefined) result.contentName = att.contentName as string;
+        if (att.contentType !== undefined) result.contentType = att.contentType as string;
+        if (att.downloadUri !== undefined) result.downloadUri = att.downloadUri as string;
+        if (att.source === "DRIVE_FILE" || att.source === "UPLOADED_CONTENT")
+          result.source = att.source;
+        return result;
+      });
+
       // メンション情報
-      const annotations = (msg.annotations as Array<Record<string, unknown>>) ?? [];
+      const annotations: ChatAnnotation[] = (
+        (msg.annotations as Array<Record<string, unknown>>) ?? []
+      ).map((a) => ({
+        type: (["USER_MENTION", "SLASH_COMMAND", "RICH_LINK"].includes(a.type as string)
+          ? a.type
+          : "UNKNOWN") as ChatAnnotation["type"],
+        ...(a.startIndex !== undefined && { startIndex: a.startIndex as number }),
+        ...(a.length !== undefined && { length: a.length as number }),
+        ...(a.userMention !== undefined && {
+          userMention: a.userMention as ChatAnnotation["userMention"],
+        }),
+      }));
       const mentionedUsers = annotations
-        .filter((a) => a.type === "USER_MENTION")
-        .map((a) => {
-          const userMention = a.userMention as Record<string, unknown> | undefined;
-          const user = userMention?.user as Record<string, unknown> | undefined;
-          return {
-            userId: (user?.name as string) ?? "",
-            displayName: (user?.displayName as string) ?? "",
-          };
-        });
+        .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
+        .map((a) => ({
+          userId: a.userMention?.user.name ?? "",
+          displayName: a.userMention?.user.displayName ?? "",
+        }));
 
       // 送信者情報
       const senderName = (sender?.displayName as string) || "不明";
@@ -155,10 +180,10 @@ export async function syncChatMessages(): Promise<SyncResult> {
         formattedContent: formattedText,
         messageType: isThreadReply ? "THREAD_REPLY" : "MESSAGE",
         threadName,
-        parentMessageId: null,
+        parentMessageId,
         mentionedUsers,
-        annotations: [],
-        attachments: [],
+        annotations,
+        attachments,
         isEdited: false,
         isDeleted: false,
         rawPayload: msg,

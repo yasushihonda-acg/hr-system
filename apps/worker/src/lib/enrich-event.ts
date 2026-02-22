@@ -55,6 +55,9 @@ export async function enrichChatEvent(event: ChatEvent, client: ChatApiClient): 
         : event.isEdited;
     const isDeleted = message.deleteTime !== undefined ? !!message.deleteTime : event.isDeleted;
 
+    // senderName: Pub/Sub ペイロードには displayName が含まれないため API の値で補完
+    const senderName = message.sender?.displayName ?? event.senderName;
+
     return {
       ...event,
       formattedText,
@@ -63,6 +66,7 @@ export async function enrichChatEvent(event: ChatEvent, client: ChatApiClient): 
       attachments,
       isEdited,
       isDeleted,
+      senderName,
     };
   } catch (e) {
     console.warn(`[Worker] Chat API enrichment failed for ${event.googleMessageId}: ${String(e)}`);

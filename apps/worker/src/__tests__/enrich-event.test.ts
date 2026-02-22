@@ -128,6 +128,26 @@ describe("enrichChatEvent", () => {
 
       expect(result.isDeleted).toBe(true);
     });
+
+    it("senderName が Chat API の sender.displayName で更新される", async () => {
+      const client = makeMockClient({
+        sender: { name: "users/12345", displayName: "鈴木 一郎", type: "HUMAN" },
+      });
+      const event = makeEvent({ senderName: "" }); // Pub/Sub からは空
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.senderName).toBe("鈴木 一郎");
+    });
+
+    it("sender.displayName がない場合は元の senderName を維持する", async () => {
+      const client = makeMockClient({ formattedText: "テスト" }); // sender なし
+      const event = makeEvent({ senderName: "田中 太郎" });
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.senderName).toBe("田中 太郎");
+    });
   });
 
   describe("API 失敗 / null — best-effort", () => {
