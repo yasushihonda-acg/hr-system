@@ -224,15 +224,15 @@ describe("intent-stats routes", () => {
       expect(body.timeline).toHaveLength(2);
 
       // Jan 10: avg 0.75, min 0.6, max 0.9
-      expect(body.timeline[0].date).toBe("2026-01-10");
-      expect(body.timeline[0].avg).toBeCloseTo(0.75, 2);
-      expect(body.timeline[0].min).toBeCloseTo(0.6, 2);
-      expect(body.timeline[0].max).toBeCloseTo(0.9, 2);
-      expect(body.timeline[0].count).toBe(2);
+      expect(body.timeline[0]!.date).toBe("2026-01-10");
+      expect(body.timeline[0]!.avg).toBeCloseTo(0.75, 2);
+      expect(body.timeline[0]!.min).toBeCloseTo(0.6, 2);
+      expect(body.timeline[0]!.max).toBeCloseTo(0.9, 2);
+      expect(body.timeline[0]!.count).toBe(2);
 
       // Jan 11: single entry
-      expect(body.timeline[1].date).toBe("2026-01-11");
-      expect(body.timeline[1].avg).toBeCloseTo(0.8, 2);
+      expect(body.timeline[1]!.date).toBe("2026-01-11");
+      expect(body.timeline[1]!.avg).toBeCloseTo(0.8, 2);
     });
 
     it("should filter by method", async () => {
