@@ -1,16 +1,16 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-22（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `352b47c` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `e065abe` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — チャット分析 UI 刷新 + バグ修正 完了 (PR #62/#65/#68 マージ済み)**
+**Phase 2 — チャット分析 UI 刷新 + バグ修正 完了 (PR #62/#65/#68/#69 マージ済み)**
 
-チャットパイプラインのメタデータ欠損バグ修正・カードフィードUI刷新・メンション表示修正が main にマージ済み。
-現在オープン Issue: #63（既存データ修復）, #67（カードUI品質改善）いずれも P2。
+チャットパイプラインのメタデータ欠損バグ修正・カードフィードUI刷新・メンション表示修正・backfillスクリプト --repair フラグが main にマージ済み。
+現在オープン Issue: #67（カードUI品質改善）, #70（メンション数字ID非表示）いずれも P2。
 
 ---
 
@@ -32,10 +32,15 @@
 | **#60/#61** | **チャットパイプラインのメタデータ欠損バグ修正** | **main (#62)** | **完了** |
 | **#64** | **チャット分析ページ カードフィードUI刷新** | **main (#65)** | **完了** |
 | **#66/#67（部分）** | **メンション表示バグ修正 & 空senderName対応** | **main (#68)** | **完了** |
+| **#63** | **backfill-chat.ts に --repair フラグ追加 — 欠損 senderName 補完** | **main (#69)** | **完了** |
 
 ---
 
-## 直近の変更（最新4件）
+## 直近の変更（最新5件）
+
+### feat(db): backfill-chat.ts に --repair フラグを追加 — 欠損 senderName の補完 (e065abe, PR #69) — Closes #63
+- `--repair` フラグで既存 Firestore ドキュメントの欠損 senderName を Chat REST API で補完
+- Issue #63 の既存データ修復要件を解決
 
 ### fix(web): メンション表示バグ修正 & 空senderName対応 (352b47c, PR #68) — Closes #66
 - `senderName` が空の場合のフォールバック対応（アバター・送信者名）
@@ -57,11 +62,10 @@
 
 ## 次のアクション候補
 
-1. **Issue #63（P2）**: 既存 Firestore データの修復（バックフィルスクリプトへの `--repair` フラグ追加）
-   - `senderName`, `annotations` 欠損ドキュメントを Chat REST API で補完
-   - 詳細は Issue #63 参照
+1. **Issue #70（P2、bug）**: メンション数字IDを非表示 — 名前不明時は「不明ユーザー」のみ表示
+   - `apps/web/src/components/chat/rich-content.tsx` の3箇所で `rawId` フォールバックを `"不明ユーザー"` に変更
+   - `resolveHtmlMentions` / `ContentWithMentions` / `resolveUserMentions` が対象
 2. **Issue #67（P2）**: チャット分析カードUIの視覚的クオリティ改善
-   - `senderName` 空時のアバターフォールバック（"不明"）強化
    - カードシャドウ・タイポグラフィ・背景色調整
 3. **Cloud Run 本番シークレット設定**（必要な場合）
    - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
@@ -102,8 +106,8 @@
 
 | # | タイトル | ラベル | 優先度 |
 |---|---------|--------|--------|
+| #70 | fix(web): メンションの数字IDを非表示 — 名前不明時は「不明ユーザー」のみ表示 | bug | P2 |
 | #67 | チャット分析カードUIの視覚的クオリティ改善 | enhancement | P2 |
-| #63 | 既存 Firestore データの修復（メタデータ補完） | enhancement | P2 |
 
 ---
 

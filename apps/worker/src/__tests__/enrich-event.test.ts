@@ -30,9 +30,13 @@ function makeEvent(overrides: Partial<ChatEvent> = {}): ChatEvent {
   };
 }
 
-function makeMockClient(messageData: Record<string, unknown> | null): ChatApiClient {
+function makeMockClient(
+  messageData: Record<string, unknown> | null,
+  memberData: Record<string, unknown> | null = null,
+): ChatApiClient {
   return {
     getMessage: vi.fn().mockResolvedValue(messageData),
+    getMember: vi.fn().mockResolvedValue(memberData),
   };
 }
 
@@ -129,6 +133,77 @@ describe("enrichChatEvent", () => {
       expect(result.isDeleted).toBe(true);
     });
 
+    it("mentionedUsers の displayName が空の場合 getMember で補完される", async () => {
+      const client = makeMockClient(
+        {
+          annotations: [
+            {
+              type: "USER_MENTION",
+              startIndex: 0,
+              length: 4,
+              userMention: {
+                user: { name: "users/99999", displayName: "", type: "HUMAN" },
+                type: "MENTION",
+              },
+            },
+          ],
+        },
+        { member: { name: "users/99999", displayName: "山田 花子", type: "HUMAN" } },
+      );
+      const event = makeEvent();
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.mentionedUsers).toEqual([{ userId: "users/99999", displayName: "山田 花子" }]);
+      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/users/99999");
+    });
+
+    it("displayName が既にある場合 getMember は呼ばれない", async () => {
+      const client = makeMockClient({
+        annotations: [
+          {
+            type: "USER_MENTION",
+            startIndex: 0,
+            length: 4,
+            userMention: {
+              user: { name: "users/99999", displayName: "山田 花子", type: "HUMAN" },
+              type: "MENTION",
+            },
+          },
+        ],
+      });
+      const event = makeEvent();
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.mentionedUsers).toEqual([{ userId: "users/99999", displayName: "山田 花子" }]);
+      expect(client.getMember).not.toHaveBeenCalled();
+    });
+
+    it("getMember が null を返す場合 displayName は空文字のまま", async () => {
+      const client = makeMockClient(
+        {
+          annotations: [
+            {
+              type: "USER_MENTION",
+              startIndex: 0,
+              length: 4,
+              userMention: {
+                user: { name: "users/99999", displayName: "", type: "HUMAN" },
+                type: "MENTION",
+              },
+            },
+          ],
+        },
+        null,
+      );
+      const event = makeEvent();
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.mentionedUsers).toEqual([{ userId: "users/99999", displayName: "" }]);
+    });
+
     it("senderName が Chat API の sender.displayName で更新される", async () => {
       const client = makeMockClient({
         sender: { name: "users/12345", displayName: "鈴木 一郎", type: "HUMAN" },
@@ -163,6 +238,7 @@ describe("enrichChatEvent", () => {
     it("getMessage が例外をスローする場合は元の event をそのまま返す（NACK しない）", async () => {
       const client: ChatApiClient = {
         getMessage: vi.fn().mockRejectedValue(new Error("Network error")),
+        getMember: vi.fn().mockResolvedValue(null),
       };
       const event = makeEvent();
 
