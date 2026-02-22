@@ -15,6 +15,11 @@ interface RichContentProps {
   content: string;
 }
 
+export interface MentionedUser {
+  userId: string;
+  displayName: string;
+}
+
 const ALLOWED_TAGS = new Set([
   "b",
   "i",
@@ -79,6 +84,18 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+/**
+ * プレーンテキスト内の <users/ID> をdisplayNameに変換するユーティリティ。
+ * テストやstripHtml後のプレーンテキスト生成に利用する。
+ */
+export function resolveUserMentions(content: string, mentionedUsers: MentionedUser[]): string {
+  return content.replace(/<users\/([^>]+)>/g, (_, rawId) => {
+    const userId = `users/${rawId}`;
+    const user = mentionedUsers.find((u) => u.userId === userId);
+    return user?.displayName ?? rawId;
+  });
+}
+
 export function RichContent({ formattedContent, content }: RichContentProps) {
   if (formattedContent) {
     const safeHtml = sanitizeHtml(formattedContent);
@@ -96,14 +113,15 @@ export function RichContent({ formattedContent, content }: RichContentProps) {
 
 /**
  * メンションをインラインバッジで表示するコンテンツコンポーネント。
- * プレーンテキスト内の @数字.名前 パターンを MentionBadge に変換する。
+ * プレーンテキスト内の <users/ID> パターン（Google Chat API形式）を MentionBadge に変換する。
  * formattedContent がある場合は RichContent と同じHTML表示にフォールバックする。
  */
 export function ContentWithMentions({
   content,
   formattedContent,
+  mentionedUsers = [],
   className,
-}: RichContentProps & { className?: string }) {
+}: RichContentProps & { mentionedUsers?: MentionedUser[]; className?: string }) {
   if (formattedContent) {
     const safeHtml = sanitizeHtml(formattedContent);
     return (
@@ -115,14 +133,19 @@ export function ContentWithMentions({
     );
   }
 
-  // @数字.名前 パターン（例: @159.有川智浩）をインラインバッジに変換
-  const parts = content.split(/(@\d+\.[^\s\n@,、。！？]+)/g);
+  // <users/ID> パターン（Google Chat API形式）をインラインバッジに変換
+  const parts = content.split(/(<users\/[^>]+>)/g);
+  let charOffset = 0;
   return (
     <div className={`whitespace-pre-wrap leading-relaxed ${className ?? ""}`}>
       {parts.map((part) => {
-        const match = part.match(/^@\d+\.(.+)$/);
-        if (match?.[1]) {
-          return <MentionBadge key={part} displayName={match[1]} />;
+        const key = `p${charOffset}`;
+        charOffset += part.length;
+        const match = part.match(/^<users\/([^>]+)>$/);
+        if (match?.[1] !== undefined) {
+          const userId = `users/${match[1]}`;
+          const user = mentionedUsers.find((u) => u.userId === userId);
+          return <MentionBadge key={key} displayName={user?.displayName ?? match[1]} />;
         }
         return part;
       })}
