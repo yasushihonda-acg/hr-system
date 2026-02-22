@@ -7,6 +7,7 @@ import { ThreadView } from "@/components/chat/thread-view";
 import { ReclassifyForm } from "@/components/reclassify-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getChatMessage } from "@/lib/api";
+import { buildMessageSearchUrl } from "@/lib/utils";
 import { ChatOpenButton } from "./chat-open-button";
 import { ResponseStatusControl } from "./response-status-control";
 
@@ -50,13 +51,6 @@ function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("ja-JP");
 }
 
-/** googleMessageId ("spaces/{spaceId}/messages/{messageId}") から Google Chat URL を生成 */
-function buildChatUrl(googleMessageId: string): string {
-  const match = googleMessageId.match(/^spaces\/([^/]+)\/messages\/([^/]+)$/);
-  if (!match) return "";
-  return `https://chat.google.com/room/${match[1]}/${match[2]}`;
-}
-
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
@@ -98,8 +92,8 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             </span>
           )}
         </div>
-        {buildChatUrl(msg.googleMessageId) && (
-          <ChatOpenButton url={buildChatUrl(msg.googleMessageId)} />
+        {buildMessageSearchUrl(msg.content) && (
+          <ChatOpenButton url={buildMessageSearchUrl(msg.content)} />
         )}
       </div>
 

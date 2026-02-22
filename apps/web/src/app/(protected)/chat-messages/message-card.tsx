@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { ContentWithMentions } from "@/components/chat/rich-content";
 import type { ChatMessageSummary } from "@/lib/types";
+import { buildMessageSearchUrl } from "@/lib/utils";
 
 export const CATEGORY_CONFIG: Record<string, { label: string; accent: string; pill: string }> = {
   salary: {
@@ -104,13 +105,6 @@ function getInitials(name: string): string {
   return name.slice(0, 2);
 }
 
-/** googleMessageId ("spaces/{spaceId}/messages/{messageId}") から Google Chat URL を生成 */
-function buildChatUrl(googleMessageId: string): string {
-  const match = googleMessageId.match(/^spaces\/([^/]+)\/messages\/([^/]+)$/);
-  if (!match) return "";
-  return `https://chat.google.com/room/${match[1]}/${match[2]}`;
-}
-
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("ja-JP", {
     timeZone: "Asia/Tokyo",
@@ -196,19 +190,19 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                 <time className="font-mono text-xs text-slate-400 tabular-nums">
                   {formatDateTime(msg.createdAt)}
                 </time>
-                {buildChatUrl(msg.googleMessageId) && (
+                {buildMessageSearchUrl(msg.content) && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       window.open(
-                        buildChatUrl(msg.googleMessageId),
+                        buildMessageSearchUrl(msg.content),
                         "_blank",
                         "noopener,noreferrer,width=1400,height=900",
                       );
                     }}
                     className="text-slate-400 transition-colors hover:text-slate-600"
-                    title="Google Chat で開く（新しいウィンドウ）"
+                    title="Google Chat でメッセージを検索して開く（新しいウィンドウ）"
                   >
                     <ExternalLink size={12} />
                   </button>
