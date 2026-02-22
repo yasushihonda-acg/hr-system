@@ -568,6 +568,43 @@ async function fetchMessage(
 }
 
 // ============================================================
+// 1件メンバー取得（repair 用 displayName 補完）
+// ============================================================
+
+/**
+ * spaces.members.get で単一メンバーの displayName を取得する。
+ * 取得失敗時は null を返す（best-effort）。
+ *
+ * @param memberName - `spaces/{spaceId}/members/users/{userId}` 形式
+ */
+async function fetchMember(
+  client: RequestClient | null,
+  bearerToken: string | undefined,
+  memberName: string,
+): Promise<{ displayName?: string } | null> {
+  const url = `https://chat.googleapis.com/v1/${memberName}`;
+  try {
+    if (bearerToken) {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${bearerToken}` },
+      });
+      if (!res.ok) {
+        console.warn(`  getMember API エラー ${res.status} for ${memberName}`);
+        return null;
+      }
+      const membership = (await res.json()) as { member?: { displayName?: string } };
+      return membership.member ?? null;
+    }
+    if (!client) throw new Error("client が null — 認証設定を確認してください");
+    const res = await client.request<{ member?: { displayName?: string } }>({ url });
+    return res.data.member ?? null;
+  } catch (e) {
+    console.warn(`  fetchMember 失敗 (${memberName}): ${String(e)}`);
+    return null;
+  }
+}
+
+// ============================================================
 // 欠損データ修復
 // ============================================================
 
@@ -576,6 +613,7 @@ async function fetchMessage(
  *
  * 対象: senderName が空のドキュメント（Worker (Pub/Sub) 経由で受信した旧データ）
  * 処理: Chat REST API spaces.messages.get で再取得し update() で更新。
+ *       mentionedUsers の displayName が空の場合は spaces.members.get で追加補完。
  * 非破壊: processedAt / createdAt / intentRecords には一切触らない。
  */
 export async function repairChatMessages(): Promise<void> {
@@ -644,12 +682,24 @@ export async function repairChatMessages(): Promise<void> {
     const annotations = (apiMsg.annotations ?? []).map(normalizeAnnotation);
 
     // メンション（annotations から再抽出）
-    const mentionedUsers = annotations
+    // displayName が空の場合は spaces.members.get で補完する
+    const rawMentionedUsers = annotations
       .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
       .map((a) => ({
         userId: a.userMention?.user.name ?? "",
         displayName: a.userMention?.user.displayName ?? "",
       }));
+    const mentionedUsers: Array<{ userId: string; displayName: string }> = [];
+    for (const u of rawMentionedUsers) {
+      if (u.displayName !== "" || !u.userId) {
+        mentionedUsers.push(u);
+        continue;
+      }
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+      const memberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${u.userId}`;
+      const member = await fetchMember(requestClient, bearerToken, memberName);
+      mentionedUsers.push({ ...u, displayName: member?.displayName ?? "" });
+    }
 
     // 添付ファイル
     const attachments: ChatAttachment[] = (apiMsg.attachment ?? []).map((att) => {
