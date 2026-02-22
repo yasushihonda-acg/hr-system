@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-22（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `789a285` — 全変更 push 済み、未プッシュなし）
+**最終更新**: 2026-02-23（セッション終了時点）
+**ブランチ**: `main`（最新コミット: `96e1a02` — 全変更 push 済み、未プッシュなし）
 
 ---
 
@@ -40,27 +40,34 @@
 | **#74** | **feat(web): チャットカードに Google Chat メッセージへの遷移リンクを追加** | **main (#79)** | **完了** |
 | **#67** | **style(web): カードUI品質改善 — shadow・アバター・フォント・レイアウト調整** | **main (#80)** | **完了** |
 | **—** | **fix(web): MessageCard を Client Component に分離 — Server Component で onClick 不可問題修正** | **main (#81)** | **完了** |
+| **—** | **fix(web): formatDateTime に timeZone: Asia/Tokyo を追加し Hydration mismatch を修正** | **main (#82)** | **完了** |
+| **—** | **fix(web): 添付ファイルのリンク先を Google Chat メッセージに変更** | **main (#83)** | **完了** |
+| **—** | **fix(web): 添付ファイルのリンクを Google Chat ファイル名検索 URL に変更** | **main (#84)** | **完了** |
+| **—** | **fix(web): 添付ファイルリンクのクリック伝播を停止 & テスト追加** | **main (#85)** | **完了** |
+| **—** | **fix(web): `<Link>` を `<button>+useRouter` に変更し添付ファイルリンクを修正** | **main (#86)** | **完了** |
+| **—** | **fix(web): 添付ファイルリンクを新しいウィンドウで開くよう変更** | **main (#87)** | **完了** |
+| **—** | **fix(web): Google Chat リンクを新しいウィンドウで開き Chrome タブインターセプトを回避** | **main (#88)** | **完了** |
+| **—** | **fix(web): Google Chat リンクを #search/ URL に変更しメッセージへ直接遷移** | **main (#89)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
-### fix(web): MessageCard を Client Component に分離 (789a285, PR #81)
-- Server Component で `onClick` が使えない問題を解消
-- `MessageCard` を `"use client"` 付き独立コンポーネントに分離
+### fix(web): Google Chat リンクを #search/ URL に変更しメッセージへ直接遷移 (96e1a02, PR #89)
+- `https://chat.google.com/room/{spaceId}/spaces/{spaceId}/messages/{messageId}` → `#search/` URL 方式に変更
+- Chrome タブインターセプト問題を解消し、メッセージに直接遷移できるようになった
 
-### style(web): カードUI品質改善 (f9dbdd9, PR #80) — Closes #67
-- カードシャドウ・アバター・フォント・レイアウトを視覚的に改善
+### fix(web): Google Chat リンクを新しいウィンドウで開き Chrome タブインターセプトを回避 (283b822, PR #88)
+- `window.open(url, '_blank')` に変更し Chrome の tabs.create インターセプトを回避
 
-### feat(web): チャットカードに Google Chat 遷移リンクを追加 (96c2caa, PR #79) — Closes #74
-- `message.messageLink` を利用した「Google Chat で開く」ボタンを追加
+### fix(web): 添付ファイルリンクを新しいウィンドウで開くよう変更 (7a9ec52, PR #87)
+- 添付ファイルのリンクも `target="_blank"` で別タブ表示に統一
 
-### feat(web): チャットカードに添付ファイルを展開表示 (c496de1, PR #78) — Closes #73
-- 添付ファイル名・ファイルアイコン・ダウンロードリンクをカード内に表示
+### fix(web): `<Link>` を `<button>+useRouter` に変更し添付ファイルリンクを修正 (7fd47b8, PR #86)
+- Next.js の `<Link>` が onClick を阻害する問題を解消
 
-### fix(web): メンションの数字IDを非表示 (ec59cc7, PR #77) — Closes #70
-- 名前不明時は rawId の代わりに「不明ユーザー」を表示
-- `resolveHtmlMentions` / `ContentWithMentions` / `resolveUserMentions` 3箇所を修正
+### fix(web): 添付ファイルリンクのクリック伝播を停止 & テスト追加 (07d396a, PR #85)
+- `e.stopPropagation()` を追加し、カード全体クリックと添付ファイルクリックの競合を解消
 
 ---
 
