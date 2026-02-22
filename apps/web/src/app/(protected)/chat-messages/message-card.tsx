@@ -197,16 +197,21 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                   {formatDateTime(msg.createdAt)}
                 </time>
                 {buildChatUrl(msg.googleMessageId) && (
-                  <a
-                    href={buildChatUrl(msg.googleMessageId)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(
+                        buildChatUrl(msg.googleMessageId),
+                        "_blank",
+                        "noopener,noreferrer,width=1400,height=900",
+                      );
+                    }}
                     className="text-slate-400 transition-colors hover:text-slate-600"
-                    title="Google Chat で開く"
+                    title="Google Chat で開く（新しいウィンドウ）"
                   >
                     <ExternalLink size={12} />
-                  </a>
+                  </button>
                 )}
               </div>
             </div>

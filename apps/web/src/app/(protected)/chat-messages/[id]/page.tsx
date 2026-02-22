@@ -98,15 +98,20 @@ export default async function ChatMessageDetailPage({ params }: Props) {
           )}
         </div>
         {buildChatUrl(msg.googleMessageId) && (
-          <a
-            href={buildChatUrl(msg.googleMessageId)}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() =>
+              window.open(
+                buildChatUrl(msg.googleMessageId),
+                "_blank",
+                "noopener,noreferrer,width=1400,height=900",
+              )
+            }
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
           >
             <ExternalLink className="h-4 w-4" />
             Google Chat で開く
-          </a>
+          </button>
         )}
       </div>
 
