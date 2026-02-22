@@ -20,6 +20,7 @@ FROM base AS builder
 # package.json ファイルのみを先にコピーして pnpm install を実行する
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json turbo.json ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/ai/package.json ./packages/ai/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 
@@ -30,6 +31,9 @@ RUN pnpm install --frozen-lockfile
 COPY apps/api/src ./apps/api/src
 COPY apps/api/tsconfig.json ./apps/api/
 COPY apps/api/tsconfig.build.json ./apps/api/
+COPY packages/ai/src ./packages/ai/src
+COPY packages/ai/tsconfig.json ./packages/ai/
+COPY packages/ai/tsconfig.build.json ./packages/ai/
 COPY packages/db/src ./packages/db/src
 COPY packages/db/tsconfig.json ./packages/db/
 COPY packages/db/tsconfig.build.json ./packages/db/
@@ -49,6 +53,7 @@ ENV NODE_ENV=production
 # 本番依存のみインストール（devDeps 除外）
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
+COPY packages/ai/package.json ./packages/ai/
 COPY packages/db/package.json ./packages/db/
 COPY packages/shared/package.json ./packages/shared/
 
@@ -56,6 +61,7 @@ RUN pnpm install --frozen-lockfile --prod
 
 # ビルド済み JS ファイルのみコピー（src は不要）
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
+COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/db/dist ./packages/db/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
