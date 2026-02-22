@@ -10,9 +10,9 @@ import { chatMessageRoutes } from "./routes/chat-messages.js";
 import { chatSyncRoutes } from "./routes/chat-sync.js";
 import { classificationRulesRoutes } from "./routes/classification-rules.js";
 import { employeeRoutes } from "./routes/employees.js";
+import { intentStatsRoutes } from "./routes/intent-stats.js";
 import { llmRulesRoutes } from "./routes/llm-rules.js";
 import { salaryDraftRoutes } from "./routes/salary-drafts.js";
-import { intentStatsRoutes } from "./routes/intent-stats.js";
 import { statsRoutes } from "./routes/stats.js";
 
 const app = new Hono();

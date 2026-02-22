@@ -7,6 +7,7 @@ const TABS = [
   { key: "regex", label: "正規表現ルール" },
   { key: "llm", label: "LLMルール" },
   { key: "test", label: "テスト" },
+  { key: "accuracy", label: "分類精度" },
 ] as const;
 
 export function TabNav({ activeTab }: { activeTab: string }) {
