@@ -3,6 +3,12 @@ name: Deploy to Cloud Run
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy_all:
+        description: "全サービスを強制デプロイ (true = 変更検知をスキップ)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,7 +59,7 @@ jobs:
   deploy-api:
     name: Deploy API
     needs: detect-changes
-    if: needs.detect-changes.outputs.api == 'true'
+    if: needs.detect-changes.outputs.api == 'true' || inputs.force_deploy_all == true
     uses: ./.github/workflows/deploy-service.yml
     with:
       service_name: hr-api
@@ -67,7 +73,7 @@ jobs:
   deploy-web:
     name: Deploy Web
     needs: detect-changes
-    if: needs.detect-changes.outputs.web == 'true'
+    if: needs.detect-changes.outputs.web == 'true' || inputs.force_deploy_all == true
     uses: ./.github/workflows/deploy-service.yml
     with:
       service_name: hr-web
@@ -81,7 +87,7 @@ jobs:
   deploy-worker:
     name: Deploy Worker
     needs: detect-changes
-    if: needs.detect-changes.outputs.worker == 'true'
+    if: needs.detect-changes.outputs.worker == 'true' || inputs.force_deploy_all == true
     uses: ./.github/workflows/deploy-service.yml
     with:
       service_name: hr-worker
