@@ -75,9 +75,9 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       }
       if (
         maxConfidence !== undefined &&
-        (intent == null || intent.confidenceScore > maxConfidence)
+        (intent == null || intent.confidenceScore >= maxConfidence)
       ) {
-        return null; // 信頼度フィルタ外
+        return null; // 信頼度フィルタ外（maxConfidence 未満のみ通過）
       }
 
       return {

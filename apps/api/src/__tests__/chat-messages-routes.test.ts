@@ -117,14 +117,15 @@ describe("chat-messages routes", () => {
       expect(body.data).toHaveLength(2);
     });
 
-    it("maxConfidence=0.7 で信頼度 > 0.7 のメッセージを除外する", async () => {
+    it("maxConfidence=0.7 で信頼度 >= 0.7 のメッセージを除外する", async () => {
       mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2"), makeChatDoc("msg-3")],
       });
-      // msg-1: confidence=0.5（通過）, msg-2: confidence=0.9（除外）
+      // msg-1: confidence=0.5（通過）, msg-2: confidence=0.7（除外: ちょうど境界）, msg-3: confidence=0.9（除外）
       mockIntentRecordsGet
         .mockResolvedValueOnce(makeIntentSnap("msg-1", 0.5))
-        .mockResolvedValueOnce(makeIntentSnap("msg-2", 0.9));
+        .mockResolvedValueOnce(makeIntentSnap("msg-2", 0.7))
+        .mockResolvedValueOnce(makeIntentSnap("msg-3", 0.9));
 
       const res = await app.request("/api/chat-messages?maxConfidence=0.7");
       expect(res.status).toBe(200);
