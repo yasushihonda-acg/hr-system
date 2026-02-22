@@ -13,9 +13,11 @@ interface Attachment {
 
 interface AttachmentListProps {
   attachments: Attachment[];
+  /** 添付ファイルクリック時の遷移先 Google Chat メッセージ URL。downloadUri が認証を要求する場合のフォールバック。 */
+  chatUrl?: string;
 }
 
-export function AttachmentList({ attachments }: AttachmentListProps) {
+export function AttachmentList({ attachments, chatUrl }: AttachmentListProps) {
   if (attachments.length === 0) return null;
 
   return (
@@ -30,7 +32,17 @@ export function AttachmentList({ attachments }: AttachmentListProps) {
           ) : (
             <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
           )}
-          {att.downloadUri ? (
+          {chatUrl ? (
+            <a
+              href={chatUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 truncate text-primary hover:underline"
+              title="Google Chat でファイルを開く"
+            >
+              {att.contentName ?? att.name}
+            </a>
+          ) : att.downloadUri ? (
             <a
               href={att.downloadUri}
               target="_blank"
