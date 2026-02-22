@@ -1,16 +1,16 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-22（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `7f0de5a` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `352b47c` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — 分類フィードバック学習ループ + ダッシュボード強化 実装完了（PR #54/#55 マージ済み）**
+**Phase 2 — チャット分析 UI 刷新 + バグ修正 完了 (PR #62/#65/#68 マージ済み)**
 
-Issue #17「分類フィードバック学習ループ」および Issue #19「ダッシュボード強化」が完了し main にマージ済み。
-Deploy to Cloud Run CI が進行中（#55 マージトリガー）。
+チャットパイプラインのメタデータ欠損バグ修正・カードフィードUI刷新・メンション表示修正が main にマージ済み。
+現在オープン Issue: #63（既存データ修復）, #67（カードUI品質改善）いずれも P2。
 
 ---
 
@@ -26,45 +26,48 @@ Deploy to Cloud Run CI が進行中（#55 マージトリガー）。
 | Task N | GCP インフラ（Cloud Run Worker + Pub/Sub + Artifact Registry） | main (#20) | 完了 |
 | Wave 1〜5 | チャット分析ダッシュボード（統計・ルール管理・対応状況） | main (#35) | 完了 |
 | CI/CD | GitHub Actions（CI + Deploy to Cloud Run）WIF認証済み | main (#46〜#53) | 完了 |
-| **#17** | **分類フィードバック学習ループ（精度可視化・手動修正分析・CSVエクスポート）** | **main (#54)** | **完了** |
-| **#19** | **ダッシュボード強化（要確認フィルタ・カテゴリ分布グラフ）** | **main (#55)** | **完了** |
-| **#56/#57/#58** | **チャットメンション表示修正（`<users/ID>` 形式対応）** | **main (#59)** | **完了** |
+| #17 | 分類フィードバック学習ループ（精度可視化・手動修正分析・CSVエクスポート） | main (#54) | 完了 |
+| #19 | ダッシュボード強化（要確認フィルタ・カテゴリ分布グラフ） | main (#55) | 完了 |
+| #56/#57/#58 | チャットメンション表示修正（`<users/ID>` 形式対応） | main (#59) | 完了 |
+| **#60/#61** | **チャットパイプラインのメタデータ欠損バグ修正** | **main (#62)** | **完了** |
+| **#64** | **チャット分析ページ カードフィードUI刷新** | **main (#65)** | **完了** |
+| **#66/#67（部分）** | **メンション表示バグ修正 & 空senderName対応** | **main (#68)** | **完了** |
 
 ---
 
 ## 直近の変更（最新4件）
 
+### fix(web): メンション表示バグ修正 & 空senderName対応 (352b47c, PR #68) — Closes #66
+- `senderName` が空の場合のフォールバック対応（アバター・送信者名）
+- `<users/ID>` 形式メンション表示の追加修正
+
+### feat(web): チャット分析ページをカードフィードUIに刷新 (d602c00, PR #65) — Closes #64
+- チャットメッセージ一覧をカードフィードデザインに刷新
+- アバター・送信者名・日時・カテゴリバッジを含むカードUI
+
+### fix: チャットパイプラインのメタデータ欠損バグ修正 (ab4b2ff, PR #62) — Closes #60 #61
+- 定期同期 (`chat-sync.ts`) と Worker (`enrich-event.ts`) のメタデータ欠損を修正
+- `senderName`, `annotations`, `attachments`, `parentMessageId` の欠損を解消（新規メッセージ以降有効）
+
 ### fix(chat): `<users/ID>` 形式メンション修正 (7f0de5a, PR #59) — Closes #56 #57 #58
 - Google Chat API の `<users/12345>` 形式を `ContentWithMentions` で正しく `MentionBadge` に変換
-- `mentionedUsers` prop を追加し、一覧・詳細・ThreadView へ伝搬
-- API: `threadMessages` レスポンスに `mentionedUsers` フィールド追加
 - `resolveUserMentions` ユニットテスト 6件追加
-
-### feat: Issue #19 ダッシュボード強化 (1e0d147, PR #55) — Closes #19
-- 要確認フィルタ（ステータスフィルタ UI 強化）
-- カテゴリ分布グラフ追加（チャット分析ダッシュボード）
-
-### feat: 分類フィードバック学習ループ (e1e6893, PR #54) — Closes #17
-- `/api/intent-stats` エンドポイント群（概要・混同行列・上位エラーパターン・CSV）
-- Web ダッシュボード「Classification Accuracy」タブ（精度チャート・混同行列・オーバーライドパターン）
-- `apps/api/src/__tests__/intent-stats.test.ts` — ユニットテスト追加（11テスト）
-
-### fix(ci): API Dockerfile に packages/ai を追加 (6349333, PR #53)
-- ビルド失敗（`@hr-system/ai` not found）を修正
 
 ---
 
 ## 次のアクション候補
 
-1. **CI完了確認**: Deploy to Cloud Run (#55 トリガー) が進行中 → 完了後に本番 URL で動作確認
-2. **Cloud Run 本番シークレット設定**（API/Web 未デプロイの場合）
-   - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL` を Cloud Run シークレットへ設定
-   - `gcloud run deploy hr-api` / `hr-web` 実行
-3. **Google OAuth 本番 Redirect URI 設定**
-   - GCP Console > APIs & Services > Credentials で `https://[hr-web URL]/api/auth/callback/google` を追加
-4. **Issue #19**: 分類分析ダッシュボード強化 — カテゴリ傾向分析・精度可視化追加（P3）
-5. **Phase 2 スキーマ最適化**
-   - SmartHR / Google Sheets / Gmail 連携実装
+1. **Issue #63（P2）**: 既存 Firestore データの修復（バックフィルスクリプトへの `--repair` フラグ追加）
+   - `senderName`, `annotations` 欠損ドキュメントを Chat REST API で補完
+   - 詳細は Issue #63 参照
+2. **Issue #67（P2）**: チャット分析カードUIの視覚的クオリティ改善
+   - `senderName` 空時のアバターフォールバック（"不明"）強化
+   - カードシャドウ・タイポグラフィ・背景色調整
+3. **Cloud Run 本番シークレット設定**（必要な場合）
+   - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
+4. **Google OAuth 本番 Redirect URI 設定**
+   - GCP Console > APIs & Services > Credentials
+5. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
 
 ---
 
@@ -73,12 +76,12 @@ Deploy to Cloud Run CI が進行中（#55 マージトリガー）。
 | サービス | 状態 | URL/識別子 |
 |---------|------|-----------|
 | Cloud Run (Worker) | デプロイ済み | `hr-worker` (asia-northeast1) |
-| Cloud Run (API) | デプロイ中（#59 CI進行中） | `hr-api` (asia-northeast1) |
-| Cloud Run (Web) | デプロイ中（#59 CI進行中） | `hr-web` (asia-northeast1) |
+| Cloud Run (API) | デプロイ済み | `hr-api` (asia-northeast1) |
+| Cloud Run (Web) | デプロイ済み | `hr-web` (asia-northeast1) |
 | Artifact Registry | 作成済み | `asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system` |
 | Firestore | 本番稼働中 | Native モード (asia-northeast1) |
 | Pub/Sub | 稼働中 | `hr-chat-events` + `hr-chat-events-dlq` |
-| GitHub Actions | CI完了・Deploy進行中 | `.github/workflows/deploy.yml` |
+| GitHub Actions | CI完了・Deploy完了 | `.github/workflows/deploy.yml` |
 
 ---
 
@@ -97,9 +100,10 @@ Deploy to Cloud Run CI が進行中（#55 マージトリガー）。
 
 ## オープン GitHub Issues
 
-| # | タイトル | ラベル |
-|---|---------|--------|
-（#17, #19 は PR #54/#55 でクローズ済み。現在オープン Issue なし）
+| # | タイトル | ラベル | 優先度 |
+|---|---------|--------|--------|
+| #67 | チャット分析カードUIの視覚的クオリティ改善 | enhancement | P2 |
+| #63 | 既存 Firestore データの修復（メタデータ補完） | enhancement | P2 |
 
 ---
 
