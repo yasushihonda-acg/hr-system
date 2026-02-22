@@ -40,16 +40,17 @@ export function AttachmentList({ attachments }: AttachmentListProps) {
             ) : (
               <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
             )}
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 truncate text-primary hover:underline"
-              title="Google Chat でファイルを検索して開く"
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(href, "_blank", "noopener,noreferrer,width=1400,height=900");
+              }}
+              className="flex-1 truncate text-left text-primary hover:underline"
+              title="Google Chat でファイルを検索して開く（新しいウィンドウ）"
             >
               {displayName}
-            </a>
+            </button>
             {att.contentType && (
               <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                 {att.contentType.split("/").pop()}
