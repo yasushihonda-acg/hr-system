@@ -24,6 +24,7 @@
     "build": "tsc -p tsconfig.build.json",
     "db:seed": "tsx src/seed/index.ts",
     "db:backfill": "tsx src/seed/backfill-chat.ts",
+    "db:repair": "tsx src/seed/backfill-chat.ts --repair",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
