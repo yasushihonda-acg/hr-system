@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * 添付ファイルリストコンポーネント
  */
@@ -16,7 +18,7 @@ interface AttachmentListProps {
 }
 
 /** ファイル名で Google Chat 検索するURL。クリックするとファイルが含まれるメッセージが表示される。 */
-function buildSearchUrl(filename: string): string {
+export function buildSearchUrl(filename: string): string {
   return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(filename)}/cmembership=1`;
 }
 
@@ -42,6 +44,7 @@ export function AttachmentList({ attachments }: AttachmentListProps) {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="flex-1 truncate text-primary hover:underline"
               title="Google Chat でファイルを検索して開く"
             >
