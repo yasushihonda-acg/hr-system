@@ -259,8 +259,8 @@ describe("intent-stats routes", () => {
 
       const res = await app.request("/api/intent-stats/confidence-timeline?granularity=day");
       const body = (await res.json()) as { timeline: Array<{ min: number; max: number }> };
-      expect(body.timeline[0].min).toBe(0);
-      expect(body.timeline[0].max).toBe(1);
+      expect(body.timeline[0]!.min).toBe(0);
+      expect(body.timeline[0]!.max).toBe(1);
     });
   });
 
@@ -293,10 +293,10 @@ describe("intent-stats routes", () => {
         timeline: Array<{ date: string; total: number; overrides: number; overrideRate: number }>;
       };
       expect(body.timeline).toHaveLength(2);
-      expect(body.timeline[0].total).toBe(2);
-      expect(body.timeline[0].overrides).toBe(1);
-      expect(body.timeline[0].overrideRate).toBe(50);
-      expect(body.timeline[1].overrideRate).toBe(0);
+      expect(body.timeline[0]!.total).toBe(2);
+      expect(body.timeline[0]!.overrides).toBe(1);
+      expect(body.timeline[0]!.overrideRate).toBe(50);
+      expect(body.timeline[1]!.overrideRate).toBe(0);
     });
   });
 
@@ -358,11 +358,11 @@ describe("intent-stats routes", () => {
       expect(body.totalOverrides).toBe(3);
       expect(body.patterns).toHaveLength(2);
       // Sorted by count desc
-      expect(body.patterns[0].fromCategory).toBe("other");
-      expect(body.patterns[0].toCategory).toBe("salary");
-      expect(body.patterns[0].count).toBe(2);
-      expect(body.patterns[0].sampleMessages).toHaveLength(2);
-      expect(body.patterns[0].sampleMessages[0].content).toContain("基本給");
+      expect(body.patterns[0]!.fromCategory).toBe("other");
+      expect(body.patterns[0]!.toCategory).toBe("salary");
+      expect(body.patterns[0]!.count).toBe(2);
+      expect(body.patterns[0]!.sampleMessages).toHaveLength(2);
+      expect(body.patterns[0]!.sampleMessages[0]!.content).toContain("基本給");
     });
 
     it("should return empty patterns for no overrides", async () => {
