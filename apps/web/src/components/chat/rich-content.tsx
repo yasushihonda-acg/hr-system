@@ -96,6 +96,18 @@ export function resolveUserMentions(content: string, mentionedUsers: MentionedUs
   });
 }
 
+/**
+ * HTML 文字列内の <users/ID> を @displayName に変換する。
+ * sanitizeHtml は未知タグを除去するため、サニタイズ前に呼び出す必要がある。
+ */
+export function resolveHtmlMentions(html: string, mentionedUsers: MentionedUser[]): string {
+  return html.replace(/<users\/([^>]+)>/g, (_, rawId) => {
+    const userId = `users/${rawId}`;
+    const user = mentionedUsers.find((u) => u.userId === userId);
+    return `@${user?.displayName ?? rawId}`;
+  });
+}
+
 export function RichContent({ formattedContent, content }: RichContentProps) {
   if (formattedContent) {
     const safeHtml = sanitizeHtml(formattedContent);
@@ -123,7 +135,9 @@ export function ContentWithMentions({
   className,
 }: RichContentProps & { mentionedUsers?: MentionedUser[]; className?: string }) {
   if (formattedContent) {
-    const safeHtml = sanitizeHtml(formattedContent);
+    // <users/ID> を @displayName に変換してからサニタイズする。
+    // sanitizeHtml は未知タグを除去するため、先に解決しないとメンションが消える。
+    const safeHtml = sanitizeHtml(resolveHtmlMentions(formattedContent, mentionedUsers));
     return (
       <div
         className={`leading-relaxed [&_a]:text-primary [&_a]:underline [&_b]:font-bold [&_i]:italic [&_pre]:rounded [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:font-mono [&_pre]:text-xs [&_s]:line-through [&_strike]:line-through [&_ul]:list-inside [&_ul]:list-disc ${className ?? ""}`}

@@ -185,5 +185,172 @@ describe("chat-sync service", () => {
 
       await expect(syncChatMessages()).rejects.toThrow("Chat API エラー: 500");
     });
+
+    it("annotations を Chat API レスポンスから保存する（空配列にハードコードしない）", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-ann1",
+                sender: { displayName: "花子", name: "users/456", type: "HUMAN" },
+                text: "メンション付きメッセージ",
+                createTime: "2026-02-20T10:00:00Z",
+                annotations: [
+                  {
+                    type: "USER_MENTION",
+                    startIndex: 0,
+                    length: 4,
+                    userMention: {
+                      user: { name: "users/789", displayName: "次郎", type: "HUMAN" },
+                    },
+                  },
+                ],
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      // .set() に渡された引数を検証
+      const setArg = mockSet.mock.calls.find(
+        (call) => !call[1]?.merge, // merge: true でない呼び出し（chatMessages への保存）
+      )?.[0] as Record<string, unknown>;
+
+      expect(setArg).toBeDefined();
+      const annotations = setArg.annotations as Array<Record<string, unknown>>;
+      expect(annotations).toHaveLength(1);
+      expect(annotations.at(0)?.type).toBe("USER_MENTION");
+    });
+
+    it("attachments を Chat API レスポンスから保存する（空配列にハードコードしない）", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-att1",
+                sender: { displayName: "太郎", name: "users/123", type: "HUMAN" },
+                text: "添付ファイル付きメッセージ",
+                createTime: "2026-02-20T10:00:00Z",
+                attachment: [
+                  {
+                    name: "spaces/AAAA/messages/msg-att1/attachments/att1",
+                    contentName: "report.pdf",
+                    contentType: "application/pdf",
+                    downloadUri: "https://example.com/report.pdf",
+                    source: "UPLOADED_CONTENT",
+                  },
+                ],
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+
+      expect(setArg).toBeDefined();
+      const attachments = setArg.attachments as Array<Record<string, unknown>>;
+      expect(attachments).toHaveLength(1);
+      expect(attachments.at(0)?.contentName).toBe("report.pdf");
+      expect(attachments.at(0)?.source).toBe("UPLOADED_CONTENT");
+    });
+
+    it("parentMessageId を quotedMessageMetadata.name から保存する", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-reply1",
+                sender: { displayName: "太郎", name: "users/123", type: "HUMAN" },
+                text: "返信メッセージ",
+                createTime: "2026-02-20T10:00:00Z",
+                quotedMessageMetadata: {
+                  name: "spaces/AAAA/messages/msg-original",
+                },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+
+      expect(setArg).toBeDefined();
+      expect(setArg.parentMessageId).toBe("spaces/AAAA/messages/msg-original");
+    });
+
+    it("text が空で formattedText がある場合、content は空文字列になる（HTML を混入させない）", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-html1",
+                sender: { displayName: "太郎", name: "users/123", type: "HUMAN" },
+                text: "",
+                formattedText: "<b>太字テキスト</b>",
+                createTime: "2026-02-20T10:00:00Z",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+
+      expect(setArg).toBeDefined();
+      // content はプレーンテキストのみ — HTML タグを含む formattedText をフォールバックしない
+      expect(setArg.content).toBe("");
+      // formattedContent には formattedText が保存される
+      expect(setArg.formattedContent).toBe("<b>太字テキスト</b>");
+    });
   });
 });
