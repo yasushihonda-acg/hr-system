@@ -1,16 +1,16 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-22（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `c156dc0` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `789a285` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — チャット分析 UI 刷新 + メンション displayName 補完バグ修正 完了 (PR #62/#65/#68/#69/#72/#76 マージ済み)**
+**Phase 2 — チャット分析 UI 刷新 完了 (PR #62/#65/#68/#69/#72/#76/#77/#78/#79/#80/#81 マージ済み)**
 
-チャットパイプラインのメタデータ欠損バグ修正・カードフィードUI刷新・メンション表示修正・backfillスクリプト --repair フラグ・Worker/DB のメンション displayName 補完が main にマージ済み。
-現在オープン Issue: #67（カードUI品質改善）, #70（メンション数字ID非表示）, #73（添付ファイル表示）, #74（Google Chat 遷移リンク）いずれも P2。
+チャットパイプライン修正・カードフィードUI刷新・メンション表示修正・添付ファイル展開表示・Google Chat 遷移リンク・カードUI品質改善・MessageCard Client Component 分離がすべて main にマージ済み。
+現在オープン Issue: なし（P2 Issue #67/#70/#73/#74 はすべてクローズ済み）。
 
 ---
 
@@ -35,55 +35,43 @@
 | **#63** | **backfill-chat.ts に --repair フラグ追加 — 欠損 senderName 補完** | **main (#69)** | **完了** |
 | **#71** | **Worker: メンション displayName が空の場合 spaces.members.get で補完** | **main (#72)** | **完了** |
 | **#75** | **DB: repairChatMessages で mentionedUsers の displayName を spaces.members.get で補完** | **main (#76)** | **完了** |
+| **#70** | **fix(web): メンションの数字IDを非表示 — 名前不明時は「不明ユーザー」を表示** | **main (#77)** | **完了** |
+| **#73** | **feat(web): チャットカードに添付ファイルを展開表示** | **main (#78)** | **完了** |
+| **#74** | **feat(web): チャットカードに Google Chat メッセージへの遷移リンクを追加** | **main (#79)** | **完了** |
+| **#67** | **style(web): カードUI品質改善 — shadow・アバター・フォント・レイアウト調整** | **main (#80)** | **完了** |
+| **—** | **fix(web): MessageCard を Client Component に分離 — Server Component で onClick 不可問題修正** | **main (#81)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
-### fix(db): repairChatMessages で mentionedUsers の displayName を spaces.members.get で補完 (c156dc0, PR #76) — Closes #75
-- `repairChatMessages` スクリプトで mentionedUsers の displayName が空の場合に `spaces.members.get` で補完
-- backfill-chat.ts の --repair フローで既存データのメンション displayName を一括修復
+### fix(web): MessageCard を Client Component に分離 (789a285, PR #81)
+- Server Component で `onClick` が使えない問題を解消
+- `MessageCard` を `"use client"` 付き独立コンポーネントに分離
 
-### fix(worker): メンション displayName が空の場合 spaces.members.get で補完 (59f4f7b, PR #72) — Closes #71
-- Worker の enrich-event.ts で mentionedUsers の displayName が空の場合に Google Chat Members API を呼び出して補完
-- 新規受信メッセージ以降のメンション名解決が確実に動作
+### style(web): カードUI品質改善 (f9dbdd9, PR #80) — Closes #67
+- カードシャドウ・アバター・フォント・レイアウトを視覚的に改善
 
-### feat(db): backfill-chat.ts に --repair フラグを追加 — 欠損 senderName の補完 (e065abe, PR #69) — Closes #63
-- `--repair` フラグで既存 Firestore ドキュメントの欠損 senderName を Chat REST API で補完
-- Issue #63 の既存データ修復要件を解決
+### feat(web): チャットカードに Google Chat 遷移リンクを追加 (96c2caa, PR #79) — Closes #74
+- `message.messageLink` を利用した「Google Chat で開く」ボタンを追加
 
-### fix(web): メンション表示バグ修正 & 空senderName対応 (352b47c, PR #68) — Closes #66
-- `senderName` が空の場合のフォールバック対応（アバター・送信者名）
-- `<users/ID>` 形式メンション表示の追加修正
+### feat(web): チャットカードに添付ファイルを展開表示 (c496de1, PR #78) — Closes #73
+- 添付ファイル名・ファイルアイコン・ダウンロードリンクをカード内に表示
 
-### feat(web): チャット分析ページをカードフィードUIに刷新 (d602c00, PR #65) — Closes #64
-- チャットメッセージ一覧をカードフィードデザインに刷新
-- アバター・送信者名・日時・カテゴリバッジを含むカードUI
-
-### fix: チャットパイプラインのメタデータ欠損バグ修正 (ab4b2ff, PR #62) — Closes #60 #61
-- 定期同期 (`chat-sync.ts`) と Worker (`enrich-event.ts`) のメタデータ欠損を修正
-- `senderName`, `annotations`, `attachments`, `parentMessageId` の欠損を解消（新規メッセージ以降有効）
-
-### fix(chat): `<users/ID>` 形式メンション修正 (7f0de5a, PR #59) — Closes #56 #57 #58
-- Google Chat API の `<users/12345>` 形式を `ContentWithMentions` で正しく `MentionBadge` に変換
-- `resolveUserMentions` ユニットテスト 6件追加
+### fix(web): メンションの数字IDを非表示 (ec59cc7, PR #77) — Closes #70
+- 名前不明時は rawId の代わりに「不明ユーザー」を表示
+- `resolveHtmlMentions` / `ContentWithMentions` / `resolveUserMentions` 3箇所を修正
 
 ---
 
 ## 次のアクション候補
 
-1. **Issue #70（P2、bug）**: メンション数字IDを非表示 — 名前不明時は「不明ユーザー」のみ表示
-   - `apps/web/src/components/chat/rich-content.tsx` の3箇所で `rawId` フォールバックを `"不明ユーザー"` に変更
-   - `resolveHtmlMentions` / `ContentWithMentions` / `resolveUserMentions` が対象
-2. **Issue #67（P2）**: チャット分析カードUIの視覚的クオリティ改善
-   - カードシャドウ・タイポグラフィ・背景色調整
-3. **Issue #73（P2）**: チャットカードに添付ファイルを表示・ダウンロードリンク追加
-4. **Issue #74（P2）**: チャットカードに Google Chat メッセージへの遷移リンクを追加
-3. **Cloud Run 本番シークレット設定**（必要な場合）
+1. **Cloud Run 本番シークレット設定**（必要な場合）
    - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
-4. **Google OAuth 本番 Redirect URI 設定**
+2. **Google OAuth 本番 Redirect URI 設定**
    - GCP Console > APIs & Services > Credentials
-5. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+3. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+4. **新規 Issue 検討**: チャット UI 刷新が完了したため、次フェーズ（給与ドラフト自動生成・承認フロー強化等）のタスク整理
 
 ---
 
@@ -118,10 +106,7 @@
 
 | # | タイトル | ラベル | 優先度 |
 |---|---------|--------|--------|
-| #70 | fix(web): メンションの数字IDを非表示 — 名前不明時は「不明ユーザー」のみ表示 | bug | P2 |
-| #67 | enhancement(web): チャット分析カードUIの視覚的クオリティ改善 | enhancement | P2 |
-| #73 | feat(web): チャットカードに添付ファイルを表示・ダウンロードリンク追加 | enhancement | P2 |
-| #74 | feat(web): チャットカードに Google Chat メッセージへの遷移リンクを追加 | enhancement | P2 |
+| — | なし（P2 Issue #67/#70/#73/#74 はすべて PR #77〜#80 でクローズ済み） | — | — |
 
 ---
 
