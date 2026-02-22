@@ -198,7 +198,7 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
   return (
     <Link href={`/chat-messages/${msg.id}`} className="block group">
       <div
-        className={`relative border-l-4 ${accent} rounded-r-xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200/80 transition-all duration-150 group-hover:shadow-md group-hover:ring-slate-300 ${
+        className={`relative border-l-4 ${accent} rounded-r-xl bg-white px-5 py-4 shadow ring-1 ring-slate-200/80 transition-all duration-150 group-hover:shadow-lg group-hover:ring-slate-300 ${
           isReply ? "ml-8" : ""
         }`}
       >
@@ -211,7 +211,7 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
         <div className="flex gap-3">
           {/* Avatar */}
           <div
-            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarBg} ${
+            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarBg} ${
               senderDisplay === "不明" ? "opacity-50" : ""
             }`}
           >
@@ -224,7 +224,7 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span
-                  className={`truncate text-sm font-semibold ${senderDisplay === "不明" ? "italic text-slate-400" : "text-slate-800"}`}
+                  className={`truncate text-sm font-bold ${senderDisplay === "不明" ? "italic text-slate-400" : "text-slate-800"}`}
                 >
                   {senderDisplay}
                 </span>
@@ -354,127 +354,129 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const totalCount = offset + messages.length;
 
   return (
-    <div className="space-y-5">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">チャット分析</h1>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
-          </p>
+    <div className="-mx-4 -mt-4 min-h-screen bg-slate-50/80 px-4 pt-4">
+      <div className="mx-auto max-w-4xl space-y-5">
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">チャット分析</h1>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
+            </p>
+          </div>
+          <ChatSyncButton />
         </div>
-        <ChatSyncButton />
-      </div>
 
-      {/* Filter panel */}
-      <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <div className="space-y-2.5">
-          {spacesData.spaces.length > 0 && (
-            <FilterRow label="スペース">
-              <FilterPill
-                href={buildUrl({ spaceId: undefined, page: "1" })}
-                label="すべて"
-                active={!params.spaceId}
-              />
-              {spacesData.spaces.map(({ spaceId, count }) => (
+        {/* Filter panel */}
+        <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <div className="space-y-2.5">
+            {spacesData.spaces.length > 0 && (
+              <FilterRow label="スペース">
                 <FilterPill
-                  key={spaceId}
-                  href={buildUrl({ spaceId, page: "1" })}
-                  label={`${SPACE_NAMES[spaceId] ?? spaceId} (${count})`}
-                  active={params.spaceId === spaceId}
+                  href={buildUrl({ spaceId: undefined, page: "1" })}
+                  label="すべて"
+                  active={!params.spaceId}
+                />
+                {spacesData.spaces.map(({ spaceId, count }) => (
+                  <FilterPill
+                    key={spaceId}
+                    href={buildUrl({ spaceId, page: "1" })}
+                    label={`${SPACE_NAMES[spaceId] ?? spaceId} (${count})`}
+                    active={params.spaceId === spaceId}
+                  />
+                ))}
+              </FilterRow>
+            )}
+            <FilterRow label="カテゴリ">
+              <FilterPill
+                href={buildUrl({ category: undefined, page: "1" })}
+                label="すべて"
+                active={!params.category}
+              />
+              {Object.entries(CATEGORY_CONFIG).map(([value, cfg]) => (
+                <FilterPill
+                  key={value}
+                  href={buildUrl({ category: value, page: "1" })}
+                  label={cfg.label}
+                  active={params.category === value}
                 />
               ))}
             </FilterRow>
-          )}
-          <FilterRow label="カテゴリ">
-            <FilterPill
-              href={buildUrl({ category: undefined, page: "1" })}
-              label="すべて"
-              active={!params.category}
-            />
-            {Object.entries(CATEGORY_CONFIG).map(([value, cfg]) => (
+            <FilterRow label="種別">
               <FilterPill
-                key={value}
-                href={buildUrl({ category: value, page: "1" })}
-                label={cfg.label}
-                active={params.category === value}
+                href={buildUrl({ messageType: undefined, page: "1" })}
+                label="全投稿"
+                active={!params.messageType}
               />
+              <FilterPill
+                href={buildUrl({ messageType: "MESSAGE", page: "1" })}
+                label="通常投稿"
+                active={params.messageType === "MESSAGE"}
+              />
+              <FilterPill
+                href={buildUrl({ messageType: "THREAD_REPLY", page: "1" })}
+                label="スレッド返信"
+                active={params.messageType === "THREAD_REPLY"}
+              />
+            </FilterRow>
+            <FilterRow label="信頼度">
+              <FilterPill
+                href={buildUrl({ lowConfidence: undefined, page: "1" })}
+                label="すべて"
+                active={!isLowConfidence}
+              />
+              <FilterPill
+                href={buildUrl({ lowConfidence: "1", page: "1" })}
+                label="⚠ 要確認 (< 70%)"
+                active={isLowConfidence}
+              />
+            </FilterRow>
+          </div>
+        </div>
+
+        {/* Message feed */}
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
+            <MessageSquare className="mb-3 text-slate-300" size={36} />
+            <p className="text-sm font-medium text-slate-500">メッセージがありません</p>
+            <p className="mt-1 text-xs text-slate-400">フィルタ条件を変えてお試しください</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {messages.map((msg) => (
+              <MessageCard key={msg.id} msg={msg} />
             ))}
-          </FilterRow>
-          <FilterRow label="種別">
-            <FilterPill
-              href={buildUrl({ messageType: undefined, page: "1" })}
-              label="全投稿"
-              active={!params.messageType}
-            />
-            <FilterPill
-              href={buildUrl({ messageType: "MESSAGE", page: "1" })}
-              label="通常投稿"
-              active={params.messageType === "MESSAGE"}
-            />
-            <FilterPill
-              href={buildUrl({ messageType: "THREAD_REPLY", page: "1" })}
-              label="スレッド返信"
-              active={params.messageType === "THREAD_REPLY"}
-            />
-          </FilterRow>
-          <FilterRow label="信頼度">
-            <FilterPill
-              href={buildUrl({ lowConfidence: undefined, page: "1" })}
-              label="すべて"
-              active={!isLowConfidence}
-            />
-            <FilterPill
-              href={buildUrl({ lowConfidence: "1", page: "1" })}
-              label="⚠ 要確認 (< 70%)"
-              active={isLowConfidence}
-            />
-          </FilterRow>
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Message feed */}
-      {messages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-          <MessageSquare className="mb-3 text-slate-300" size={36} />
-          <p className="text-sm font-medium text-slate-500">メッセージがありません</p>
-          <p className="mt-1 text-xs text-slate-400">フィルタ条件を変えてお試しください</p>
+        {/* Pagination */}
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Link
+            href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
+            aria-disabled={page <= 1}
+            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              page <= 1 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            <ChevronLeft size={16} />
+            前へ
+          </Link>
+          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-700">
+            ページ {page}
+          </span>
+          <Link
+            href={pagination.hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
+            aria-disabled={!pagination.hasMore}
+            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              !pagination.hasMore
+                ? "pointer-events-none text-slate-300"
+                : "text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            次へ
+            <ChevronRight size={16} />
+          </Link>
         </div>
-      ) : (
-        <div className="space-y-3">
-          {messages.map((msg) => (
-            <MessageCard key={msg.id} msg={msg} />
-          ))}
-        </div>
-      )}
-
-      {/* Pagination */}
-      <div className="flex items-center justify-center gap-2 pt-2">
-        <Link
-          href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
-          aria-disabled={page <= 1}
-          className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            page <= 1 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          <ChevronLeft size={16} />
-          前へ
-        </Link>
-        <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-700">
-          ページ {page}
-        </span>
-        <Link
-          href={pagination.hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
-          aria-disabled={!pagination.hasMore}
-          className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-            !pagination.hasMore
-              ? "pointer-events-none text-slate-300"
-              : "text-slate-600 hover:bg-slate-100"
-          }`}
-        >
-          次へ
-          <ChevronRight size={16} />
-        </Link>
       </div>
     </div>
   );
