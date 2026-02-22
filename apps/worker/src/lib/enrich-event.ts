@@ -27,12 +27,21 @@ export async function enrichChatEvent(event: ChatEvent, client: ChatApiClient): 
       : event.annotations;
 
     // mentionedUsers: 補完後の annotations から再抽出
-    const mentionedUsers = annotations
+    // displayName が空の場合は spaces.members.get で補完する
+    const rawMentionedUsers = annotations
       .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
       .map((a) => ({
         userId: a.userMention?.user.name ?? "",
         displayName: a.userMention?.user.displayName ?? "",
       }));
+    const mentionedUsers = await Promise.all(
+      rawMentionedUsers.map(async (u) => {
+        if (u.displayName !== "" || !u.userId) return u;
+        const memberName = `${event.spaceName}/members/${u.userId}`;
+        const membership = await client.getMember(memberName);
+        return { ...u, displayName: membership?.member?.displayName ?? "" };
+      }),
+    );
 
     // attachments: API の値があれば再正規化
     const attachments: ChatAttachment[] = message.attachment

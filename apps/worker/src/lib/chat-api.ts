@@ -6,6 +6,7 @@ import { GoogleAuth } from "google-auth-library";
  */
 export interface ChatApiClient {
   getMessage(messageName: string): Promise<chat_v1.Schema$Message | null>;
+  getMember(memberName: string): Promise<chat_v1.Schema$Membership | null>;
 }
 
 /**
@@ -24,6 +25,16 @@ export function createChatApiClient(): ChatApiClient {
         return response.data ?? null;
       } catch (e) {
         console.warn(`[ChatApi] getMessage failed for ${messageName}: ${String(e)}`);
+        return null;
+      }
+    },
+
+    async getMember(memberName: string): Promise<chat_v1.Schema$Membership | null> {
+      try {
+        const response = await client.spaces.members.get({ name: memberName });
+        return response.data ?? null;
+      } catch (e) {
+        console.warn(`[ChatApi] getMember failed for ${memberName}: ${String(e)}`);
         return null;
       }
     },
