@@ -252,7 +252,10 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                   <Paperclip size={11} />
                   添付ファイル ({msg.attachments.length}件)
                 </p>
-                <AttachmentList attachments={msg.attachments} />
+                <AttachmentList
+                  attachments={msg.attachments}
+                  chatUrl={buildChatUrl(msg.googleMessageId) || undefined}
+                />
               </div>
             )}
           </div>
