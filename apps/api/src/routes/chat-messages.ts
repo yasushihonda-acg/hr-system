@@ -13,6 +13,7 @@ const listQuerySchema = z.object({
   messageType: z.enum(["MESSAGE", "THREAD_REPLY"]).optional(),
   threadName: z.string().optional(),
   category: z.enum(CHAT_CATEGORIES).optional(),
+  maxConfidence: z.coerce.number().min(0).max(1).optional(),
   limit: z.string().optional(),
   offset: z.string().optional(),
 });
@@ -28,7 +29,8 @@ export const chatMessageRoutes = new Hono();
 // GET /api/chat-messages — メッセージ一覧（フィルタリング・スレッド構造付き）
 // ---------------------------------------------------------------------------
 chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
-  const { spaceId, messageType, threadName, category, limit, offset } = c.req.valid("query");
+  const { spaceId, messageType, threadName, category, maxConfidence, limit, offset } =
+    c.req.valid("query");
   const { limit: lim, offset: off } = parsePagination({ limit, offset });
   const actorRole = c.get("actorRole");
 
@@ -70,6 +72,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
 
       if (category && intent?.category !== category) {
         return null; // フィルタ外
+      }
+      if (
+        maxConfidence !== undefined &&
+        (intent == null || intent.confidenceScore >= maxConfidence)
+      ) {
+        return null; // 信頼度フィルタ外（maxConfidence 未満のみ通過）
       }
 
       return {
