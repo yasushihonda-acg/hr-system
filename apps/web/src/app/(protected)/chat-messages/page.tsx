@@ -179,8 +179,9 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
     ? (CATEGORY_CONFIG[msg.intent.category] ?? CATEGORY_CONFIG.other)
     : null;
   const accent = catCfg?.accent ?? "border-l-slate-200";
-  const avatarBg = getAvatarColor(msg.senderName);
-  const ini = getInitials(msg.senderName);
+  const senderDisplay = msg.senderName || "不明";
+  const avatarBg = getAvatarColor(senderDisplay);
+  const ini = getInitials(senderDisplay);
   const isReply = msg.messageType === "THREAD_REPLY";
   const statCfg = msg.intent ? (STATUS_CONFIG[msg.intent.responseStatus] ?? null) : null;
   const methCfg = msg.intent ? (METHOD_CONFIG[msg.intent.classificationMethod] ?? null) : null;
@@ -188,7 +189,7 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
   return (
     <Link href={`/chat-messages/${msg.id}`} className="block group">
       <div
-        className={`relative border-l-4 ${accent} rounded-r-xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200/80 transition-shadow group-hover:shadow-md group-hover:ring-slate-300 ${
+        className={`relative border-l-4 ${accent} rounded-r-xl bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200/80 transition-all duration-150 group-hover:shadow-md group-hover:ring-slate-300 ${
           isReply ? "ml-8" : ""
         }`}
       >
@@ -201,7 +202,9 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
         <div className="flex gap-3">
           {/* Avatar */}
           <div
-            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarBg}`}
+            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${avatarBg} ${
+              senderDisplay === "不明" ? "opacity-50" : ""
+            }`}
           >
             {ini}
           </div>
@@ -211,8 +214,10 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
             {/* Header row */}
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-semibold text-slate-800">
-                  {msg.senderName}
+                <span
+                  className={`truncate text-sm font-semibold ${senderDisplay === "不明" ? "italic text-slate-400" : "text-slate-800"}`}
+                >
+                  {senderDisplay}
                 </span>
                 {msg.isEdited && (
                   <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-slate-400">
