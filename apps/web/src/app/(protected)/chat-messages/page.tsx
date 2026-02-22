@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AttachmentList } from "@/components/chat/attachment-list";
 import { ContentWithMentions } from "@/components/chat/rich-content";
 import { ChatSyncButton } from "@/components/chat/sync-button";
 import { getChatMessages, getStatsSpaces } from "@/lib/api";
@@ -268,13 +269,18 @@ function MessageCard({ msg }: { msg: ChatMessageSummary }) {
               {msg.intent?.isManualOverride && (
                 <span className="text-xs font-medium text-amber-500">修正済</span>
               )}
-              {msg.attachments.length > 0 && (
-                <span className="flex items-center gap-1 text-xs text-slate-400">
-                  <Paperclip size={11} />
-                  {msg.attachments.length}件の添付
-                </span>
-              )}
             </div>
+
+            {/* Attachments */}
+            {msg.attachments.length > 0 && (
+              <div className="mt-2">
+                <p className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-400">
+                  <Paperclip size={11} />
+                  添付ファイル ({msg.attachments.length}件)
+                </p>
+                <AttachmentList attachments={msg.attachments} />
+              </div>
+            )}
           </div>
         </div>
       </div>
