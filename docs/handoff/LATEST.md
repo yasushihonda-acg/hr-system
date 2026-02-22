@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-22（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `1e0d147` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `7f0de5a` — 全変更 push 済み、未プッシュなし）
 
 ---
 
@@ -28,10 +28,17 @@ Deploy to Cloud Run CI が進行中（#55 マージトリガー）。
 | CI/CD | GitHub Actions（CI + Deploy to Cloud Run）WIF認証済み | main (#46〜#53) | 完了 |
 | **#17** | **分類フィードバック学習ループ（精度可視化・手動修正分析・CSVエクスポート）** | **main (#54)** | **完了** |
 | **#19** | **ダッシュボード強化（要確認フィルタ・カテゴリ分布グラフ）** | **main (#55)** | **完了** |
+| **#56/#57/#58** | **チャットメンション表示修正（`<users/ID>` 形式対応）** | **main (#59)** | **完了** |
 
 ---
 
-## 直近の変更（最新3件）
+## 直近の変更（最新4件）
+
+### fix(chat): `<users/ID>` 形式メンション修正 (7f0de5a, PR #59) — Closes #56 #57 #58
+- Google Chat API の `<users/12345>` 形式を `ContentWithMentions` で正しく `MentionBadge` に変換
+- `mentionedUsers` prop を追加し、一覧・詳細・ThreadView へ伝搬
+- API: `threadMessages` レスポンスに `mentionedUsers` フィールド追加
+- `resolveUserMentions` ユニットテスト 6件追加
 
 ### feat: Issue #19 ダッシュボード強化 (1e0d147, PR #55) — Closes #19
 - 要確認フィルタ（ステータスフィルタ UI 強化）
@@ -66,8 +73,8 @@ Deploy to Cloud Run CI が進行中（#55 マージトリガー）。
 | サービス | 状態 | URL/識別子 |
 |---------|------|-----------|
 | Cloud Run (Worker) | デプロイ済み | `hr-worker` (asia-northeast1) |
-| Cloud Run (API) | デプロイ中（CI進行中） | `hr-api` (asia-northeast1) |
-| Cloud Run (Web) | デプロイ中（CI進行中） | `hr-web` (asia-northeast1) |
+| Cloud Run (API) | デプロイ中（#59 CI進行中） | `hr-api` (asia-northeast1) |
+| Cloud Run (Web) | デプロイ中（#59 CI進行中） | `hr-web` (asia-northeast1) |
 | Artifact Registry | 作成済み | `asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system` |
 | Firestore | 本番稼働中 | Native モード (asia-northeast1) |
 | Pub/Sub | 稼働中 | `hr-chat-events` + `hr-chat-events-dlq` |
