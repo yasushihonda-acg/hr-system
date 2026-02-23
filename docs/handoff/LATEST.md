@@ -1,16 +1,17 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-23（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `9407f91` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `95fb58f` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — チャット分析 UI 刷新・グラフ改善 完了 (PR #92/#93/#94 マージ済み)**
+**Phase 2 — チャート分析UI強化完了 (PR #96〜#100 マージ済み)**
 
-カテゴリ分布グラフ: Legend表示・ツールチップ改善・ドーナツ＋横棒グラフ切替タブに変更がすべて main にマージ済み。
-現在オープン Issue: なし。CI (Deploy to Cloud Run) は #94 マージ後に in_progress 中。
+カテゴリ分布グラフのUI改善（2カラムレイアウト刷新・チャートクリック連動・モバイルナビ修正）を実施。
+CI (Deploy to Cloud Run) は #100 マージ後に成功・デプロイ完了。
+オープン Issue: #96（P1: senderName根本解決・管理者スコープ承認待ち）、#97（P2: 不要IAMバインディング削除）。
 
 ---
 
@@ -53,41 +54,51 @@
 | **—** | **fix(web): パイチャートのラベル重なりを Legend 表示に変更** | **main (#92)** | **完了** |
 | **—** | **fix(web): パイチャートのツールチップにカテゴリ名と割合を表示** | **main (#93)** | **完了** |
 | **—** | **feat(web): カテゴリ別分布をドーナツ＋横棒グラフ切替タブに変更** | **main (#94)** | **完了** |
+| **—** | **fix(api): Chat同期 403エラーを修正（ADC 開発者 OAuth クレデンシャル利用）** | **main (#95)** | **完了** |
+| **—** | **feat(web): カテゴリ別分布を2カラムレイアウトに刷新（空間効率改善）** | **main (#98)** | **完了** |
+| **—** | **fix(web): モバイルナビ overflow 修正＋カテゴリチャートクリック連動** | **main (#99)** | **完了** |
+| **—** | **fix(web): チャート外クリック解除・グレーアウト緩和** | **main (#100)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
+### fix(web): チャート外クリック解除・グレーアウト緩和 (95fb58f, PR #100)
+- カテゴリ分布グラフでチャート外をクリックすると選択が解除されるよう修正
+- 未選択カテゴリのグレーアウト色を緩和し視認性を改善
+
+### fix(web): モバイルナビ overflow 修正＋カテゴリチャートクリック連動 (6b893c2, PR #99)
+- モバイルナビゲーションの overflow スタイルを修正
+- カテゴリ棒グラフのクリックがフィルタリングに連動するよう対応
+
+### feat(web): カテゴリ別分布を2カラムレイアウトに刷新（空間効率改善） (c1d6640, PR #98)
+- カテゴリ分布エリアを2カラムグリッドレイアウトに変更
+- ドーナツチャートと棒グラフを並列表示し空間効率を向上
+
+### fix(api): Chat同期 403エラーを修正（ADC 開発者 OAuth クレデンシャル利用）(c2569f4, PR #95)
+- hr-api SA が Google Chat スペースのメンバーでないため Chat API が 403 を返していた問題を修正
+- Impersonated SA アプローチは機能せず、Secret Manager に保存した開発者 OAuth クレデンシャル（ADC）を利用する方式に切替
+- 副産物: 不要 IAM バインディング（hr-api → hr-worker serviceAccountTokenCreator）が残存 → Issue #97 で追跡
+
 ### feat(web): カテゴリ別分布をドーナツ＋横棒グラフ切替タブに変更 (9407f91, PR #94)
 - カテゴリ分布グラフにドーナツチャートと横棒グラフの切替タブを追加
 - ユーザーが好みのビジュアライゼーションを選択できるよう UI を改善
-
-### fix(web): パイチャートのツールチップにカテゴリ名と割合を表示 (15422b4, PR #93)
-- ホバー時のツールチップにカテゴリ名と割合（%）を明示的に表示
-- 数値だけでなく文脈情報を伴う形で可読性を改善
-
-### fix(web): パイチャートのラベル重なりを Legend 表示に変更 (c3ff21a, PR #92)
-- パイチャート内のラベルが重なる問題を解消するため、ラベルを Legend（凡例）方式に変更
-- チャートの視認性・可読性が向上
-
-### fix(web): audit-logs ページの 403 エラーでクラッシュする問題を修正 (13e7da8, PR #91)
-- audit-logs ページで API が 403 を返した際に未処理例外でクラッシュしていた問題を修正
-- エラーハンドリングを追加し、権限不足時にも安全にフォールバック表示するよう対応
-
-### fix(worker): senderName/@メンション表示名が空になる問題を修正 (710763b, PR #90)
-- Worker 側で `senderName` および `@メンション` の displayName が空になるケースを修正
-- `spaces.members.get` API 呼び出しのフォールバックロジックを改善
 
 ---
 
 ## 次のアクション候補
 
-1. **Cloud Run 本番シークレット設定**（必要な場合）
+1. **[P1] Issue #96 対応**: `chat.memberships.readonly` スコープの管理者承認待ち
+   - 承認後 `gcloud auth login --scopes=...` で再認証し senderName 根本解決を実施
+   - 対象: 既存メッセージ全5,573件 + 新規メッセージの displayName 補完
+2. **[P2] Issue #97 対応**: 不要 IAM バインディング（hr-api → hr-worker serviceAccountTokenCreator）を削除
+   - `gcloud iam service-accounts remove-iam-policy-binding ...` を実行
+3. **Cloud Run 本番シークレット設定**（必要な場合）
    - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
-2. **Google OAuth 本番 Redirect URI 設定**
+4. **Google OAuth 本番 Redirect URI 設定**
    - GCP Console > APIs & Services > Credentials
-3. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-4. **新規 Issue 検討**: チャット UI 刷新が完了したため、次フェーズ（給与ドラフト自動生成・承認フロー強化等）のタスク整理
+5. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+6. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
 
 ---
 
@@ -122,7 +133,8 @@
 
 | # | タイトル | ラベル | 優先度 |
 |---|---------|--------|--------|
-| — | なし（P2 Issue #67/#70/#73/#74 はすべて PR #77〜#80 でクローズ済み） | — | — |
+| #96 | fix: senderName・メンション表示名が空になる問題を根本解決（chat.memberships.readonly スコープ取得） | enhancement | P1 |
+| #97 | chore: 不要になった IAM バインディングの削除（hr-api → hr-worker serviceAccountTokenCreator） | — | P2 |
 
 ---
 
