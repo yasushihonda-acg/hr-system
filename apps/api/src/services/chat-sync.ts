@@ -5,7 +5,7 @@
  * Firestore に未保存のメッセージのみ追加する。
  */
 
-import type { ChatAnnotation, ChatAttachment, SyncMetadata } from "@hr-system/db";
+import type { ChatAnnotation, ChatAttachment, ChatSyncConfig, SyncMetadata } from "@hr-system/db";
 import { collections } from "@hr-system/db";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth } from "google-auth-library";
@@ -74,6 +74,22 @@ export async function updateSyncMetadata(data: Partial<SyncMetadata>): Promise<v
   await collections.syncMetadata
     .doc("chat_messages")
     .set({ ...data, updatedAt: Timestamp.now() } as SyncMetadata, { merge: true });
+}
+
+/** chat_sync_config/default ドキュメントを取得 */
+export async function getChatSyncConfig(): Promise<ChatSyncConfig | null> {
+  const doc = await collections.chatSyncConfig.doc("default").get();
+  return doc.exists ? (doc.data() as ChatSyncConfig) : null;
+}
+
+/** chat_sync_config/default ドキュメントを更新（merge） */
+export async function updateChatSyncConfig(
+  data: Partial<Omit<ChatSyncConfig, "updatedAt">>,
+  updatedBy: string,
+): Promise<void> {
+  await collections.chatSyncConfig
+    .doc("default")
+    .set({ ...data, updatedAt: Timestamp.now(), updatedBy } as ChatSyncConfig, { merge: true });
 }
 
 /** Chat API からメッセージを差分取得して Firestore に保存 */

@@ -58,6 +58,19 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     const payload = ticket.getPayload();
     if (!payload?.email) throw new Error("No email in token");
 
+    // サービスアカウント（Cloud Scheduler 等）は allowed_users チェックをスキップ
+    if (payload.email.endsWith(".iam.gserviceaccount.com")) {
+      logger.info("Service account authenticated", { email: payload.email });
+      c.set("user", {
+        email: payload.email,
+        name: "system",
+        sub: payload.sub ?? "",
+        dashboardRole: null,
+      });
+      await next();
+      return;
+    }
+
     const dashboardRole = await resolveAllowedRole(payload.email);
     logger.info("Authenticated", { email: payload.email });
 

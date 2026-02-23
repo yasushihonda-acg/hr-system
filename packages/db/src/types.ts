@@ -232,6 +232,14 @@ export interface SyncMetadata {
   updatedAt: Timestamp;
 }
 
+/** Chat定期同期設定 */
+export interface ChatSyncConfig {
+  intervalMinutes: number;
+  isEnabled: boolean;
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
 /** AI分類ルール */
 export interface ClassificationRule {
   category: ChatCategory;

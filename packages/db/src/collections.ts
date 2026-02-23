@@ -11,6 +11,7 @@ import type {
   ApprovalLog,
   AuditLog,
   ChatMessage,
+  ChatSyncConfig,
   ClassificationRule,
   Employee,
   IntentRecord,
@@ -49,4 +50,5 @@ export const collections = {
   classificationRules: typedCollection<ClassificationRule>("classification_rules"),
   llmClassificationRules: typedCollection<LlmClassificationRule>("llm_classification_rules"),
   syncMetadata: typedCollection<SyncMetadata>("sync_metadata"),
+  chatSyncConfig: typedCollection<ChatSyncConfig>("chat_sync_config"),
 };

@@ -260,6 +260,14 @@ export interface OverridePattern {
   suggestedKeywords: string[];
 }
 
+/** 同期設定 */
+export interface SyncConfig {
+  intervalMinutes: number;
+  isEnabled: boolean;
+  updatedAt: string | null;
+  updatedBy: string | null;
+}
+
 /** 同期ステータス */
 export interface SyncStatus {
   status: "idle" | "running" | "error";

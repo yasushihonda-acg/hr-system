@@ -299,7 +299,10 @@ async function fetchMessages(
     if (bearerToken) {
       // --- REST API / CLI トークン直接渡し ---
       const res = await fetch(url.toString(), {
-        headers: { Authorization: `Bearer ${bearerToken}` },
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          "X-Goog-User-Project": "hr-system-487809",
+        },
       });
       if (!res.ok) {
         const body = await res.text();
@@ -583,7 +586,10 @@ async function fetchMessage(
   try {
     if (bearerToken) {
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${bearerToken}` },
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          "X-Goog-User-Project": "hr-system-487809",
+        },
       });
       if (!res.ok) {
         console.warn(`  API エラー ${res.status} for ${messageName}`);
@@ -619,7 +625,10 @@ async function fetchMember(
   try {
     if (bearerToken) {
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${bearerToken}` },
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          "X-Goog-User-Project": "hr-system-487809",
+        },
       });
       if (!res.ok) {
         console.warn(`  getMember API エラー ${res.status} for ${memberName}`);
@@ -658,7 +667,10 @@ async function fetchDisplayNameFromPeopleApi(
   try {
     if (bearerToken) {
       const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${bearerToken}` },
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          "X-Goog-User-Project": "hr-system-487809",
+        },
       });
       if (!res.ok) return "";
       const data = (await res.json()) as { names?: Array<{ displayName?: string }> };
@@ -685,8 +697,9 @@ async function fetchDisplayNameFromPeopleApi(
  *       mentionedUsers の displayName が空の場合は spaces.members.get で追加補完。
  * 非破壊: processedAt / createdAt / intentRecords には一切触らない。
  */
-export async function repairChatMessages(limit?: number): Promise<void> {
+export async function repairChatMessages(limit?: number, allMessages = false): Promise<void> {
   console.log("\n=== Chat メッセージ修復開始 ===");
+  if (allMessages) console.log("  対象: 全件（senderName 条件なし）");
   if (limit) console.log(`  件数制限: ${limit} 件`);
 
   // 認証（backfillChatMessages と同一ロジック）
@@ -728,10 +741,13 @@ export async function repairChatMessages(limit?: number): Promise<void> {
 
   // [1/3] 修復対象ドキュメントを Firestore から取得
   console.log("\n[1/3] 修復対象ドキュメントを検索中...");
-  const baseQuery = collections.chatMessages.where("senderName", "==", "");
+  const baseQuery = allMessages
+    ? collections.chatMessages
+    : collections.chatMessages.where("senderName", "==", "");
   const snap = await (limit ? baseQuery.limit(limit) : baseQuery).get();
+  const targetDesc = allMessages ? "全件" : "senderName が空";
   console.log(
-    `  修復対象: ${snap.docs.length} 件 (senderName が空${limit ? ` / 上限 ${limit} 件` : ""})`,
+    `  修復対象: ${snap.docs.length} 件 (${targetDesc}${limit ? ` / 上限 ${limit} 件` : ""})`,
   );
 
   if (snap.docs.length === 0) {
@@ -845,11 +861,12 @@ export async function repairChatMessages(limit?: number): Promise<void> {
 // import されただけの場合（seed/index.ts から呼ばれる場合など）はここを通らない
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const isRepair = process.argv.includes("--repair");
+  const allMessages = process.argv.includes("--all");
   const limitArg = process.argv.find((a) => a.startsWith("--limit="));
   const limit = limitArg ? parseInt(limitArg.slice("--limit=".length), 10) : undefined;
 
   if (isRepair) {
-    repairChatMessages(limit).catch((err) => {
+    repairChatMessages(limit, allMessages).catch((err) => {
       console.error("修復失敗:", err);
       process.exit(1);
     });

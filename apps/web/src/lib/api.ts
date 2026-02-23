@@ -18,6 +18,7 @@ import type {
   OverrideRatePoint,
   SpaceStat,
   StatsSummary,
+  SyncConfig,
   SyncStatus,
   TestClassificationResult,
   TimelinePoint,
@@ -331,6 +332,17 @@ export function triggerChatSync() {
 
 export function getChatSyncStatus() {
   return request<SyncStatus>("/api/chat-messages/sync/status");
+}
+
+export function getChatSyncConfig() {
+  return request<SyncConfig>("/api/chat-messages/sync/config");
+}
+
+export function updateChatSyncConfig(data: { intervalMinutes?: number; isEnabled?: boolean }) {
+  return request<SyncConfig>("/api/chat-messages/sync/config", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 // --- Intent Stats ---
