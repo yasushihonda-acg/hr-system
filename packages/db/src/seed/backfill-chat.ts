@@ -199,6 +199,30 @@ const CATEGORY_KEYWORDS: Record<ChatCategory, string[]> = {
   other: [],
 };
 
+/**
+ * Firestore 書き込みの transient エラー（DEADLINE_EXCEEDED / UNAVAILABLE）をリトライする。
+ * 最大 maxAttempts 回試行し、指数バックオフ（1s → 2s → 4s）で待機する。
+ */
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 4, label = ""): Promise<T> {
+  const TRANSIENT_CODES = new Set([4, 14]); // DEADLINE_EXCEEDED, UNAVAILABLE
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      const code = (e as { code?: number }).code;
+      if (!TRANSIENT_CODES.has(code ?? -1) || attempt === maxAttempts) throw e;
+      const waitMs = 1000 * 2 ** (attempt - 1);
+      console.warn(
+        `  [retry ${attempt}/${maxAttempts - 1}] Firestore transient error (code ${code})${label ? ` — ${label}` : ""}, ${waitMs}ms 待機...`,
+      );
+      await new Promise((r) => setTimeout(r, waitMs));
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
 function classifyMessage(content: string): {
   category: ChatCategory;
   matchedKeyword: string | null;
@@ -828,17 +852,22 @@ export async function repairChatMessages(limit?: number, allMessages = false): P
     }
 
     // update() で欠損フィールドのみ補完（processedAt / createdAt には触らない）
-    await doc.ref.update({
-      senderName: repairedSenderName,
-      senderUserId: apiMsg.sender?.name ?? data.senderUserId,
-      formattedContent: apiMsg.formattedText ?? data.formattedContent,
-      annotations,
-      mentionedUsers,
-      attachments,
-      parentMessageId: apiMsg.quotedMessageMetadata?.name ?? data.parentMessageId,
-      isEdited: !!(apiMsg.lastUpdateTime && apiMsg.lastUpdateTime !== apiMsg.createTime),
-      isDeleted: !!apiMsg.deleteTime,
-    });
+    await withRetry(
+      () =>
+        doc.ref.update({
+          senderName: repairedSenderName,
+          senderUserId: apiMsg.sender?.name ?? data.senderUserId,
+          formattedContent: apiMsg.formattedText ?? data.formattedContent,
+          annotations,
+          mentionedUsers,
+          attachments,
+          parentMessageId: apiMsg.quotedMessageMetadata?.name ?? data.parentMessageId,
+          isEdited: !!(apiMsg.lastUpdateTime && apiMsg.lastUpdateTime !== apiMsg.createTime),
+          isDeleted: !!apiMsg.deleteTime,
+        }),
+      4,
+      doc.id,
+    );
 
     repaired++;
     if (repaired % 50 === 0 || repaired === snap.docs.length) {
