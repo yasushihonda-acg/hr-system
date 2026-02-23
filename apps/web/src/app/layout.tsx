@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={notoSansJP.variable} suppressHydrationWarning>
-      <body>
+      <body suppressHydrationWarning>
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
       </body>
