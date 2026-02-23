@@ -443,7 +443,7 @@ describe("chat-sync service", () => {
         displayName: string;
       }>;
       expect(mentionedUsers).toHaveLength(1);
-      expect(mentionedUsers[0].displayName).toBe("補完次郎");
+      expect(mentionedUsers.at(0)?.displayName).toBe("補完次郎");
     });
 
     it("People API が失敗した場合、senderName は「不明」になる", async () => {
