@@ -1,20 +1,16 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clearCache } from "../lib/cache.js";
 
-// --- Mock variables ---
-const mockIntentGet = vi.fn();
-const mockIntentWhere = vi.fn();
-const mockIntentOrderBy = vi.fn();
-const mockChatDocGet = vi.fn();
-
-function chainableQuery(getFn: () => unknown) {
-  const q: Record<string, unknown> = {
-    where: vi.fn(() => q),
-    orderBy: vi.fn(() => q),
-    get: vi.fn(getFn),
-  };
-  return q;
-}
+// --- Mock variables (vi.hoisted で vi.mock より前に初期化される) ---
+const { mockIntentGet, mockIntentWhere, mockIntentOrderBy, mockChatDocGet, mockDbGetAll } =
+  vi.hoisted(() => ({
+    mockIntentGet: vi.fn(),
+    mockIntentWhere: vi.fn(),
+    mockIntentOrderBy: vi.fn(),
+    mockChatDocGet: vi.fn(),
+    mockDbGetAll: vi.fn(),
+  }));
 
 vi.mock("@hr-system/db", () => {
   const intentQuery = {
@@ -30,11 +26,12 @@ vi.mock("@hr-system/db", () => {
   };
 
   return {
-    db: {},
+    db: { getAll: mockDbGetAll },
     collections: {
       intentRecords: intentQuery,
       chatMessages: {
         doc: vi.fn((id: string) => ({
+          id,
           get: () => mockChatDocGet(id),
         })),
       },
@@ -86,6 +83,20 @@ function makeIntentDoc(
 describe("intent-stats routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearCache();
+    // db.getAll mock: DocumentReference の id を使い mockChatDocGet を呼び出す
+    mockDbGetAll.mockImplementation(async (...refs: Array<{ id: string }>) => {
+      return refs.map((ref) => {
+        const result = mockChatDocGet(ref.id) as
+          | { exists: boolean; data: () => unknown }
+          | undefined;
+        return {
+          id: ref.id,
+          exists: result?.exists ?? false,
+          data: () => result?.data?.() ?? null,
+        };
+      });
+    });
   });
 
   // =========================================================================

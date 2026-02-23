@@ -4,6 +4,7 @@ import { CHAT_CATEGORIES, type ChatCategory, RESPONSE_STATUSES } from "@hr-syste
 import { FieldValue } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
+import { clearCache } from "../lib/cache.js";
 import { notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
 import { toISO, toISOOrNull } from "../lib/serialize.js";
@@ -58,63 +59,79 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
   const hasMore = snapshot.docs.length > lim;
   const docs = snapshot.docs.slice(0, lim);
 
-  // 各メッセージに対して IntentRecord を JOIN（N+1 だが Firestore では一般的）
-  const items = await Promise.all(
-    docs.map(async (doc) => {
-      const msg = doc.data();
+  // IntentRecord を一括取得（N+1 → バッチクエリ）
+  // Firestore の "in" は最大30件。ページサイズが30超の場合はチャンク処理
+  const intentByMsgId = new Map<
+    string,
+    { id: string; data: ReturnType<(typeof docs)[0]["data"]> }
+  >();
+  if (docs.length > 0) {
+    const docIds = docs.map((d) => d.id);
+    const chunks: string[][] = [];
+    for (let i = 0; i < docIds.length; i += 30) {
+      chunks.push(docIds.slice(i, i + 30));
+    }
+    await Promise.all(
+      chunks.map(async (chunk) => {
+        const intentSnap = await collections.intentRecords
+          .where("chatMessageId", "in", chunk)
+          .get();
+        for (const d of intentSnap.docs) {
+          intentByMsgId.set(d.data().chatMessageId, { id: d.id, data: d.data() });
+        }
+      }),
+    );
+  }
 
-      // category フィルタが指定されている場合は IntentRecord 経由でフィルタリング
-      const intentSnap = await collections.intentRecords
-        .where("chatMessageId", "==", doc.id)
-        .limit(1)
-        .get();
-      const intent = intentSnap.docs[0]?.data() ?? null;
+  const items = docs.map((doc) => {
+    const msg = doc.data();
+    const intentEntry = intentByMsgId.get(doc.id);
+    const intent = intentEntry?.data ?? null;
 
-      if (category && intent?.category !== category) {
-        return null; // フィルタ外
-      }
-      if (
-        maxConfidence !== undefined &&
-        (intent == null || intent.confidenceScore >= maxConfidence)
-      ) {
-        return null; // 信頼度フィルタ外（maxConfidence 未満のみ通過）
-      }
+    if (category && intent?.category !== category) {
+      return null; // フィルタ外
+    }
+    if (
+      maxConfidence !== undefined &&
+      (intent == null || intent.confidenceScore >= maxConfidence)
+    ) {
+      return null; // 信頼度フィルタ外（maxConfidence 未満のみ通過）
+    }
 
-      return {
-        id: doc.id,
-        spaceId: msg.spaceId,
-        googleMessageId: msg.googleMessageId,
-        senderUserId: msg.senderUserId,
-        senderName: msg.senderName,
-        senderType: msg.senderType,
-        content: msg.content,
-        formattedContent: msg.formattedContent ?? null,
-        messageType: msg.messageType,
-        threadName: msg.threadName ?? null,
-        parentMessageId: msg.parentMessageId ?? null,
-        mentionedUsers: msg.mentionedUsers ?? [],
-        annotations: msg.annotations ?? [],
-        attachments: msg.attachments ?? [],
-        isEdited: msg.isEdited ?? false,
-        isDeleted: msg.isDeleted ?? false,
-        processedAt: toISOOrNull(msg.processedAt),
-        createdAt: toISO(msg.createdAt),
-        intent: intent
-          ? {
-              id: intentSnap.docs[0]?.id ?? "",
-              category: intent.category as ChatCategory,
-              confidenceScore: intent.confidenceScore,
-              classificationMethod: intent.classificationMethod ?? "ai",
-              regexPattern: intent.regexPattern ?? null,
-              isManualOverride: intent.isManualOverride ?? false,
-              originalCategory: intent.originalCategory ?? null,
-              responseStatus: intent.responseStatus ?? "unresponded",
-              createdAt: toISO(intent.createdAt),
-            }
-          : null,
-      };
-    }),
-  );
+    return {
+      id: doc.id,
+      spaceId: msg.spaceId,
+      googleMessageId: msg.googleMessageId,
+      senderUserId: msg.senderUserId,
+      senderName: msg.senderName,
+      senderType: msg.senderType,
+      content: msg.content,
+      formattedContent: msg.formattedContent ?? null,
+      messageType: msg.messageType,
+      threadName: msg.threadName ?? null,
+      parentMessageId: msg.parentMessageId ?? null,
+      mentionedUsers: msg.mentionedUsers ?? [],
+      annotations: msg.annotations ?? [],
+      attachments: msg.attachments ?? [],
+      isEdited: msg.isEdited ?? false,
+      isDeleted: msg.isDeleted ?? false,
+      processedAt: toISOOrNull(msg.processedAt),
+      createdAt: toISO(msg.createdAt),
+      intent: intent
+        ? {
+            id: intentEntry?.id ?? "",
+            category: intent.category as ChatCategory,
+            confidenceScore: intent.confidenceScore,
+            classificationMethod: intent.classificationMethod ?? "ai",
+            regexPattern: intent.regexPattern ?? null,
+            isManualOverride: intent.isManualOverride ?? false,
+            originalCategory: intent.originalCategory ?? null,
+            responseStatus: intent.responseStatus ?? "unresponded",
+            createdAt: toISO(intent.createdAt),
+          }
+        : null,
+    };
+  });
 
   const filtered = items.filter(Boolean);
 
@@ -297,6 +314,10 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
       createdAt: FieldValue.serverTimestamp() as never,
     });
   });
+
+  // 手動再分類後は統計キャッシュを無効化
+  clearCache("intent-stats:");
+  clearCache("stats:categories");
 
   return c.json({ success: true, chatMessageId, category });
 });

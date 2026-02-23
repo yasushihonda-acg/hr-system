@@ -1,10 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
-import { collections } from "@hr-system/db";
+import { collections, db } from "@hr-system/db";
 import { CHAT_CATEGORIES, type ChatCategory } from "@hr-system/shared";
 import { Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
+import { TTL, getCached, setCache } from "../lib/cache.js";
 import { requireRole } from "../middleware/rbac.js";
 
 export const intentStatsRoutes = new Hono();
@@ -61,7 +62,11 @@ function bucketKey(date: Date, granularity: string): string {
 // ---------------------------------------------------------------------------
 
 intentStatsRoutes.get("/summary", async (c) => {
+  const CACHE_KEY = "intent-stats:summary";
   try {
+    const cached = getCached<object>(CACHE_KEY);
+    if (cached) return c.json(cached);
+
     const snapshot = await collections.intentRecords.get();
     const docs = snapshot.docs.map((d) => d.data());
 
@@ -101,7 +106,7 @@ intentStatsRoutes.get("/summary", async (c) => {
       }
     }
 
-    return c.json({
+    const result = {
       total,
       byMethod: { ai: aiCount, regex: regexCount, manual: manualCount },
       overrideCount,
@@ -113,7 +118,9 @@ intentStatsRoutes.get("/summary", async (c) => {
             ? Math.round((regexConfidenceSum / regexConfidenceN) * 1000) / 1000
             : null,
       },
-    });
+    };
+    setCache(CACHE_KEY, result, TTL.STATS);
+    return c.json(result);
   } catch (e) {
     console.error("[intent-stats/summary]", e);
     throw new HTTPException(503, { message: "Failed to fetch intent stats" });
@@ -125,9 +132,12 @@ intentStatsRoutes.get("/summary", async (c) => {
 // ---------------------------------------------------------------------------
 
 intentStatsRoutes.get("/confusion-matrix", zValidator("query", periodQuerySchema), async (c) => {
+  const { from: fromStr, to: toStr } = c.req.valid("query");
+  const { from, to } = defaultRange(fromStr, toStr);
+  const CACHE_KEY = `intent-stats:confusion-matrix:${from.toISOString()}:${to.toISOString()}`;
   try {
-    const { from: fromStr, to: toStr } = c.req.valid("query");
-    const { from, to } = defaultRange(fromStr, toStr);
+    const cached = getCached<object>(CACHE_KEY);
+    if (cached) return c.json(cached);
 
     const snapshot = await collections.intentRecords
       .where("isManualOverride", "==", true)
@@ -153,11 +163,13 @@ intentStatsRoutes.get("/confusion-matrix", zValidator("query", periodQuerySchema
     }
     entries.sort((a, b) => b.count - a.count);
 
-    return c.json({
+    const result = {
       entries,
       categories: [...CHAT_CATEGORIES],
       period: { from: from.toISOString(), to: to.toISOString() },
-    });
+    };
+    setCache(CACHE_KEY, result, TTL.STATS);
+    return c.json(result);
   } catch (e) {
     console.error("[intent-stats/confusion-matrix]", e);
     throw new HTTPException(503, { message: "Failed to fetch confusion matrix" });
@@ -175,6 +187,9 @@ intentStatsRoutes.get(
     try {
       const { from: fromStr, to: toStr, granularity, method } = c.req.valid("query");
       const { from, to } = defaultRange(fromStr, toStr);
+      const CACHE_KEY = `intent-stats:confidence-timeline:${granularity}:${method}:${from.toISOString()}:${to.toISOString()}`;
+      const cached = getCached<object>(CACHE_KEY);
+      if (cached) return c.json(cached);
 
       const baseQuery = collections.intentRecords
         .where("createdAt", ">=", Timestamp.fromDate(from))
@@ -210,7 +225,9 @@ intentStatsRoutes.get(
           count: b.count,
         }));
 
-      return c.json({ timeline, granularity, method });
+      const result = { timeline, granularity, method };
+      setCache(CACHE_KEY, result, TTL.STATS);
+      return c.json(result);
     } catch (e) {
       console.error("[intent-stats/confidence-timeline]", e);
       throw new HTTPException(503, { message: "Failed to fetch confidence timeline" });
@@ -223,9 +240,12 @@ intentStatsRoutes.get(
 // ---------------------------------------------------------------------------
 
 intentStatsRoutes.get("/override-rate", zValidator("query", overrideRateQuerySchema), async (c) => {
+  const { from: fromStr, to: toStr, granularity } = c.req.valid("query");
+  const { from, to } = defaultRange(fromStr, toStr);
+  const CACHE_KEY = `intent-stats:override-rate:${granularity}:${from.toISOString()}:${to.toISOString()}`;
   try {
-    const { from: fromStr, to: toStr, granularity } = c.req.valid("query");
-    const { from, to } = defaultRange(fromStr, toStr);
+    const cached = getCached<object>(CACHE_KEY);
+    if (cached) return c.json(cached);
 
     const snapshot = await collections.intentRecords
       .where("createdAt", ">=", Timestamp.fromDate(from))
@@ -254,7 +274,9 @@ intentStatsRoutes.get("/override-rate", zValidator("query", overrideRateQuerySch
         overrideRate: b.total > 0 ? Math.round((b.overrides / b.total) * 1000) / 10 : 0,
       }));
 
-    return c.json({ timeline, granularity });
+    const result = { timeline, granularity };
+    setCache(CACHE_KEY, result, TTL.STATS);
+    return c.json(result);
   } catch (e) {
     console.error("[intent-stats/override-rate]", e);
     throw new HTTPException(503, { message: "Failed to fetch override rate" });
@@ -266,7 +288,11 @@ intentStatsRoutes.get("/override-rate", zValidator("query", overrideRateQuerySch
 // ---------------------------------------------------------------------------
 
 intentStatsRoutes.get("/override-patterns", async (c) => {
+  const CACHE_KEY = "intent-stats:override-patterns";
   try {
+    const cached = getCached<object>(CACHE_KEY);
+    if (cached) return c.json(cached);
+
     const overrideSnap = await collections.intentRecords
       .where("isManualOverride", "==", true)
       .get();
@@ -291,7 +317,7 @@ intentStatsRoutes.get("/override-patterns", async (c) => {
       (a, b) => (patternsMap[b]?.count ?? 0) - (patternsMap[a]?.count ?? 0),
     );
 
-    // Fetch sample messages (best-effort: 1件失敗しても全体を止めない)
+    // Fetch sample messages via db.getAll() batch (個別getより効率的)
     const allMsgIds = new Set<string>();
     for (const key of sortedKeys) {
       for (const id of patternsMap[key]?.chatMessageIds ?? []) {
@@ -300,18 +326,15 @@ intentStatsRoutes.get("/override-patterns", async (c) => {
     }
 
     const messageMap: Record<string, string> = {};
-    await Promise.allSettled(
-      [...allMsgIds].map(async (id) => {
-        try {
-          const docSnap = await collections.chatMessages.doc(id).get();
-          if (docSnap.exists) {
-            messageMap[id] = docSnap.data()?.content ?? "";
-          }
-        } catch {
-          // 個別フェッチ失敗はスキップ（全体を止めない）
+    if (allMsgIds.size > 0) {
+      const refs = [...allMsgIds].map((id) => collections.chatMessages.doc(id));
+      const docSnaps = await db.getAll(...refs);
+      for (const snap of docSnaps) {
+        if (snap.exists) {
+          messageMap[snap.id] = (snap.data() as { content?: string })?.content ?? "";
         }
-      }),
-    );
+      }
+    }
 
     const totalOverrides = overrideSnap.docs.length;
 
@@ -346,7 +369,9 @@ intentStatsRoutes.get("/override-patterns", async (c) => {
       };
     });
 
-    return c.json({ patterns, totalOverrides });
+    const result = { patterns, totalOverrides };
+    setCache(CACHE_KEY, result, TTL.STATS);
+    return c.json(result);
   } catch (e) {
     console.error("[intent-stats/override-patterns]", e);
     throw new HTTPException(503, { message: "Failed to fetch override patterns" });

@@ -2,6 +2,7 @@ import { collections } from "@hr-system/db";
 import { CHAT_CATEGORIES, type ChatCategory } from "@hr-system/shared";
 import { Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
+import { TTL, getCached, setCache } from "../lib/cache.js";
 
 export const statsRoutes = new Hono();
 
@@ -45,6 +46,10 @@ statsRoutes.get("/summary", async (c) => {
 
 // GET /api/stats/categories — カテゴリ別集計
 statsRoutes.get("/categories", async (c) => {
+  const CACHE_KEY = "stats:categories";
+  const cached = getCached<{ categories: unknown[]; total: number }>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
   const intentSnap = await collections.intentRecords.get();
 
   const counts: Record<string, number> = {};
@@ -67,7 +72,9 @@ statsRoutes.get("/categories", async (c) => {
     percentage: total > 0 ? Math.round(((counts[cat] ?? 0) / total) * 1000) / 10 : 0,
   }));
 
-  return c.json({ categories, total });
+  const result = { categories, total };
+  setCache(CACHE_KEY, result, TTL.STATS);
+  return c.json(result);
 });
 
 // GET /api/stats/timeline — 期間別推移
@@ -114,6 +121,10 @@ statsRoutes.get("/timeline", async (c) => {
 
 // GET /api/stats/spaces — スペース別集計
 statsRoutes.get("/spaces", async (c) => {
+  const CACHE_KEY = "stats:spaces";
+  const cached = getCached<{ spaces: unknown[]; total: number }>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
   const snapshot = await collections.chatMessages.get();
 
   const spaceCounts: Record<string, number> = {};
@@ -126,5 +137,7 @@ statsRoutes.get("/spaces", async (c) => {
     .sort(([, a], [, b]) => b - a)
     .map(([spaceId, count]) => ({ spaceId, count }));
 
-  return c.json({ spaces, total: snapshot.docs.length });
+  const result = { spaces, total: snapshot.docs.length };
+  setCache(CACHE_KEY, result, TTL.STATS);
+  return c.json(result);
 });

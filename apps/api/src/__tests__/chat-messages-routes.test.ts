@@ -22,11 +22,15 @@ vi.mock("@hr-system/db", () => {
         orderBy: vi.fn(() => chatMessagesQuery),
       },
       intentRecords: {
-        where: vi.fn(() => ({
-          limit: vi.fn(() => ({
+        where: vi.fn(() => {
+          const q: Record<string, unknown> = {
             get: vi.fn(() => mockIntentRecordsGet()),
-          })),
-        })),
+          };
+          q.where = vi.fn(() => q);
+          q.limit = vi.fn(() => q);
+          q.orderBy = vi.fn(() => q);
+          return q;
+        }),
       },
     },
   };
@@ -107,9 +111,10 @@ describe("chat-messages routes", () => {
       mockChatMessagesGet.mockResolvedValueOnce({
         docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
       });
-      mockIntentRecordsGet
-        .mockResolvedValueOnce(makeIntentSnap("msg-1", 0.5))
-        .mockResolvedValueOnce(makeIntentSnap("msg-2", 0.9));
+      // バッチクエリ (in) で一括取得: 1回のget()で全件返す
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [...makeIntentSnap("msg-1", 0.5).docs, ...makeIntentSnap("msg-2", 0.9).docs],
+      });
 
       const res = await app.request("/api/chat-messages");
       expect(res.status).toBe(200);
@@ -122,10 +127,14 @@ describe("chat-messages routes", () => {
         docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2"), makeChatDoc("msg-3")],
       });
       // msg-1: confidence=0.5（通過）, msg-2: confidence=0.7（除外: ちょうど境界）, msg-3: confidence=0.9（除外）
-      mockIntentRecordsGet
-        .mockResolvedValueOnce(makeIntentSnap("msg-1", 0.5))
-        .mockResolvedValueOnce(makeIntentSnap("msg-2", 0.7))
-        .mockResolvedValueOnce(makeIntentSnap("msg-3", 0.9));
+      // バッチクエリ (in) で一括取得
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [
+          ...makeIntentSnap("msg-1", 0.5).docs,
+          ...makeIntentSnap("msg-2", 0.7).docs,
+          ...makeIntentSnap("msg-3", 0.9).docs,
+        ],
+      });
 
       const res = await app.request("/api/chat-messages?maxConfidence=0.7");
       expect(res.status).toBe(200);
@@ -139,9 +148,10 @@ describe("chat-messages routes", () => {
         docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
       });
       // msg-1: intent なし（除外）, msg-2: confidence=0.5（通過）
-      mockIntentRecordsGet
-        .mockResolvedValueOnce({ docs: [] })
-        .mockResolvedValueOnce(makeIntentSnap("msg-2", 0.5));
+      // バッチクエリ (in) でmsg-1のintentは存在しないためdocsに含まれない
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [...makeIntentSnap("msg-2", 0.5).docs],
+      });
 
       const res = await app.request("/api/chat-messages?maxConfidence=0.7");
       expect(res.status).toBe(200);
