@@ -9,17 +9,13 @@ const { mockGetAccessToken, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
   mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
 }));
 
-// GoogleAuth / Impersonated をクラスベースでモック（vi.clearAllMocks() 耐性）
+// GoogleAuth をクラスベースでモック（vi.clearAllMocks() 耐性）
 vi.mock("google-auth-library", () => ({
   GoogleAuth: class MockGoogleAuth {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    constructor(_opts?: unknown) {}
     async getClient() {
-      return {};
-    }
-  },
-  Impersonated: class MockImpersonated {
-    constructor(_opts: unknown) {}
-    async getAccessToken() {
-      return mockGetAccessToken();
+      return { getAccessToken: mockGetAccessToken };
     }
   },
 }));
