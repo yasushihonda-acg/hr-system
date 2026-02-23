@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-23（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `95fb58f` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `6caf10e` — 全変更 push 済み、未プッシュなし）
 
 ---
 
@@ -62,6 +62,16 @@ CI (Deploy to Cloud Run) は #100 マージ後に成功・デプロイ完了。
 ---
 
 ## 直近の変更（最新5件）
+
+### fix(lint): import順序・noNonNullAssertion・noUselessConstructorを修正 (6caf10e)
+- Biome lint エラー（import 順序、non-null assertion、useless constructor）を一括修正
+
+### perf(api): N+1クエリ削減・APIレスポンスキャッシュ追加 (e6727f9)
+- Firestore N+1 クエリを削減しパフォーマンス改善
+- API レスポンスにキャッシュ制御ヘッダーを追加
+
+### fix(api): Chat同期でsenderName/@メンションをPeople APIで補完 (e390ce8)
+- Chat 同期時に People API を使って displayName 欠損を補完する処理を追加
 
 ### fix(web): チャート外クリック解除・グレーアウト緩和 (95fb58f, PR #100)
 - カテゴリ分布グラフでチャート外をクリックすると選択が解除されるよう修正
