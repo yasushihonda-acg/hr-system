@@ -54,6 +54,13 @@ Google Chat の人事指示を AI が解釈し、給与変更ドラフトを自�
 
 - **監視スペース**: 人事関連（全社共通）、有川チーム
 - **スペースID**: AAAA-qf5jX0
+- **制約**: このスペースは外部ユーザー・ボットを招待不可（内部ドメインのみ）。hr-worker SA を Chat App としてインストールできないため、`chat.bot` スコープの REST API はスペースメンバーでないエラーになる
+- **Chat API 制約**: `spaces.messages.get` / `spaces.members.get` は `displayName` を返さない（ユーザー認証スコープ問題）。displayName が必要な場合は People API（`directory.readonly` スコープ）を使用すること
+- **開発者認証**: スペース操作はすべて開発者アカウントの ADC で実施。再認証コマンド:
+  ```
+  gcloud auth application-default login \
+    --scopes="https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/chat.messages.readonly,https://www.googleapis.com/auth/chat.memberships.readonly,https://www.googleapis.com/auth/directory.readonly"
+  ```
 - **10カテゴリ分類**: 給与・社保 / 退職・休職 / 入社・採用 / その他 / 契約変更 / 施設・異動 / 外国人・ビザ / 研修・監査 / 健康診断 / 勤怠・休暇
 - Phase 1 では給与変更のみ処理、他はログ記録
 
