@@ -34,8 +34,9 @@ export function Nav() {
           <Link
             key={href}
             href={href}
+            title={label}
             className={cn(
-              "relative flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-all duration-150",
+              "relative flex items-center gap-1.5 rounded-md px-1.5 py-1.5 md:px-2.5 text-sm font-medium transition-all duration-150",
               active
                 ? "text-primary nav-active-indicator"
                 : "text-muted-foreground hover:text-foreground hover:bg-accent",
@@ -47,7 +48,7 @@ export function Nav() {
                 active ? "text-[oklch(0.73_0.18_55)]" : "",
               )}
             />
-            {label}
+            <span className="hidden md:inline">{label}</span>
           </Link>
         );
       })}
