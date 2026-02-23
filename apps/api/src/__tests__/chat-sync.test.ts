@@ -12,8 +12,6 @@ const { mockGetRequestHeaders, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
 // GoogleAuth をクラスベースでモック（vi.clearAllMocks() 耐性）
 vi.mock("google-auth-library", () => ({
   GoogleAuth: class MockGoogleAuth {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    constructor(_opts?: unknown) {}
     async getClient() {
       return { getRequestHeaders: mockGetRequestHeaders };
     }

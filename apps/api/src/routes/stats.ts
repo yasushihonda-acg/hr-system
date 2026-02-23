@@ -2,7 +2,7 @@ import { collections } from "@hr-system/db";
 import { CHAT_CATEGORIES, type ChatCategory } from "@hr-system/shared";
 import { Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
-import { TTL, getCached, setCache } from "../lib/cache.js";
+import { getCached, setCache, TTL } from "../lib/cache.js";
 
 export const statsRoutes = new Hono();
 
