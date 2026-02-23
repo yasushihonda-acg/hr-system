@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getAuditLogs } from "@/lib/api";
+import { ApiError, getAuditLogs } from "@/lib/api";
 
 interface Props {
   searchParams: Promise<{ page?: string }>;
@@ -36,7 +36,23 @@ export default async function AuditLogsPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  const { logs, total } = await getAuditLogs({ limit: PAGE_SIZE, offset });
+  let logs: Awaited<ReturnType<typeof getAuditLogs>>["logs"];
+  let total: number;
+  try {
+    ({ logs, total } = await getAuditLogs({ limit: PAGE_SIZE, offset }));
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 403) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <h1 className="text-2xl font-bold">アクセス権限がありません</h1>
+          <p className="mt-2 text-muted-foreground">
+            監査ログの閲覧は管理者以上に限定されています。
+          </p>
+        </div>
+      );
+    }
+    throw err;
+  }
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
