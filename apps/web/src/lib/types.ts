@@ -1,4 +1,10 @@
-import type { ActorRole, ChangeType, DraftStatus } from "@hr-system/shared";
+import type {
+  ActorRole,
+  ChangeType,
+  DraftStatus,
+  WorkflowStepStatus,
+  WorkflowSteps,
+} from "@hr-system/shared";
 
 /** GET /api/salary-drafts レスポンスの1件 */
 export interface DraftSummary {
@@ -168,6 +174,12 @@ export interface IntentSummary {
   isManualOverride: boolean;
   originalCategory: string | null;
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
+  taskSummary: string | null;
+  assignees: string | null;
+  notes: string | null;
+  workflowSteps: WorkflowSteps | null;
+  workflowUpdatedBy: string | null;
+  workflowUpdatedAt: string | null;
   createdAt: string;
 }
 
@@ -179,6 +191,16 @@ export interface IntentDetail extends IntentSummary {
   responseStatusUpdatedBy: string | null;
   responseStatusUpdatedAt: string | null;
 }
+
+/** PATCH /api/chat-messages/:id/workflow リクエスト */
+export interface WorkflowUpdateRequest {
+  taskSummary?: string | null;
+  assignees?: string | null;
+  notes?: string | null;
+  workflowSteps?: WorkflowSteps;
+}
+
+export type { WorkflowStepStatus, WorkflowSteps };
 
 export interface ChatAnnotation {
   type: "USER_MENTION" | "SLASH_COMMAND" | "RICH_LINK" | "UNKNOWN";

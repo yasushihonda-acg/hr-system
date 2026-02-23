@@ -108,3 +108,19 @@ export const RESPONSE_STATUSES = [
   "not_required",
 ] as const;
 export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
+
+/** ワークフローステップの進捗状況 */
+export const WORKFLOW_STEP_STATUSES = ["undetermined", "completed", "not_required"] as const;
+export type WorkflowStepStatus = (typeof WORKFLOW_STEP_STATUSES)[number];
+
+/** 「作成案」ワークフロー管理（スプレッドシート互換） */
+export interface WorkflowSteps {
+  /** ❶条件通知書（変更）の職員給与一覧SSへの反映 */
+  salaryListReflection: WorkflowStepStatus;
+  /** ❷条件通知書（変更）の通知、締結 */
+  noticeExecution: WorkflowStepStatus;
+  /** ❸条件通知書（変更）の社労士共有 */
+  laborLawyerShare: WorkflowStepStatus;
+  /** ❹SmartHRへの反映 */
+  smartHRReflection: WorkflowStepStatus;
+}

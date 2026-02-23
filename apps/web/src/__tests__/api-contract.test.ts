@@ -103,6 +103,12 @@ const sampleIntentSummary: IntentSummary = {
   isManualOverride: false,
   originalCategory: null,
   responseStatus: "unresponded",
+  taskSummary: null,
+  assignees: null,
+  notes: null,
+  workflowSteps: null,
+  workflowUpdatedBy: null,
+  workflowUpdatedAt: null,
   createdAt: "2026-02-18T00:00:00.000Z",
 };
 

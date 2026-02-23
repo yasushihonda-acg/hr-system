@@ -504,6 +504,12 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
         responseStatus: "unresponded" as const,
         responseStatusUpdatedBy: null,
         responseStatusUpdatedAt: null,
+        taskSummary: null,
+        assignees: null,
+        notes: null,
+        workflowSteps: null,
+        workflowUpdatedBy: null,
+        workflowUpdatedAt: null,
         createdAt,
       });
 

@@ -10,6 +10,7 @@ import type {
   ResponseStatus,
   SalaryItemType,
   UserRole,
+  WorkflowSteps,
 } from "@hr-system/shared";
 import type { Timestamp } from "firebase-admin/firestore";
 
@@ -161,6 +162,13 @@ export interface IntentRecord {
   /** 対応状況を更新した人の email */
   responseStatusUpdatedBy: string | null;
   responseStatusUpdatedAt: Timestamp | null;
+  /** 「作成案」タスク管理フィールド */
+  taskSummary: string | null;
+  assignees: string | null;
+  notes: string | null;
+  workflowSteps: WorkflowSteps | null;
+  workflowUpdatedBy: string | null;
+  workflowUpdatedAt: Timestamp | null;
   createdAt: Timestamp;
 }
 
