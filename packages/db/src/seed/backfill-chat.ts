@@ -38,8 +38,12 @@
  *   (4) ADC（Application Default Credentials）
  *       gcloud auth application-default login \
  *         --scopes="https://www.googleapis.com/auth/cloud-platform,\
- *                   https://www.googleapis.com/auth/chat.messages.readonly"
+ *                   https://www.googleapis.com/auth/chat.messages.readonly,\
+ *                   https://www.googleapis.com/auth/chat.memberships.readonly,\
+ *                   https://www.googleapis.com/auth/directory.readonly"
  *       ※ Workspace管理者ポリシーでgcloudクライアントがブロックされている場合は失敗する。
+ *       ※ displayName 取得は People API（directory.readonly）が必要。
+ *         Chat API の spaces.members.get は displayName を返さない仕様のため。
  *
  * 実行:
  *   pnpm --filter @hr-system/db db:backfill
@@ -634,6 +638,42 @@ async function fetchMember(
 }
 
 // ============================================================
+// People API で displayName 取得（repair 用）
+// ============================================================
+
+/**
+ * People API で Workspace ユーザーの displayName を取得する。
+ * Chat API の spaces.members.get は displayName を返さないため、こちらを使用。
+ * directory.readonly スコープが必要。
+ *
+ * @param senderUserId - "users/116189466267679439841" 形式
+ */
+async function fetchDisplayNameFromPeopleApi(
+  client: RequestClient | null,
+  bearerToken: string | undefined,
+  senderUserId: string,
+): Promise<string> {
+  const numericId = senderUserId.replace(/^users\//, "");
+  const url = `https://people.googleapis.com/v1/people/${numericId}?personFields=names`;
+  try {
+    if (bearerToken) {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${bearerToken}` },
+      });
+      if (!res.ok) return "";
+      const data = (await res.json()) as { names?: Array<{ displayName?: string }> };
+      return data.names?.[0]?.displayName ?? "";
+    }
+    if (!client) return "";
+    const res = await client.request<{ names?: Array<{ displayName?: string }> }>({ url });
+    return res.data.names?.[0]?.displayName ?? "";
+  } catch (e) {
+    console.warn(`  fetchPeople 失敗 (${senderUserId}): ${String(e)}`);
+    return "";
+  }
+}
+
+// ============================================================
 // 欠損データ修復
 // ============================================================
 
@@ -680,6 +720,7 @@ export async function repairChatMessages(limit?: number): Promise<void> {
       scopes: [
         "https://www.googleapis.com/auth/chat.messages.readonly",
         "https://www.googleapis.com/auth/chat.memberships.readonly",
+        "https://www.googleapis.com/auth/directory.readonly",
       ],
     });
     requestClient = await auth.getClient();
@@ -742,9 +783,9 @@ export async function repairChatMessages(limit?: number): Promise<void> {
         continue;
       }
       await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
-      const memberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${u.userId.replace(/^users\//, "")}`;
-      const member = await fetchMember(requestClient, bearerToken, memberName);
-      mentionedUsers.push({ ...u, displayName: member?.displayName ?? "" });
+      // Chat API の spaces.members.get は displayName を返さないため People API を使用
+      const displayName = await fetchDisplayNameFromPeopleApi(requestClient, bearerToken, u.userId);
+      mentionedUsers.push({ ...u, displayName });
     }
 
     // 添付ファイル
@@ -759,13 +800,15 @@ export async function repairChatMessages(limit?: number): Promise<void> {
       return result;
     });
 
-    // senderName: Chat API は sender.displayName を返さないため getMember で補完
+    // senderName: Chat API は sender.displayName を返さないため People API で補完
     let repairedSenderName = apiMsg.sender?.displayName || "";
     if (!repairedSenderName && apiMsg.sender?.name) {
       await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
-      const senderMemberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${apiMsg.sender.name.replace(/^users\//, "")}`;
-      const senderMember = await fetchMember(requestClient, bearerToken, senderMemberName);
-      repairedSenderName = senderMember?.displayName ?? "";
+      repairedSenderName = await fetchDisplayNameFromPeopleApi(
+        requestClient,
+        bearerToken,
+        apiMsg.sender.name,
+      );
     }
 
     // update() で欠損フィールドのみ補完（processedAt / createdAt には触らない）

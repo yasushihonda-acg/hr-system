@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className={notoSansJP.variable}>
+    <html lang="ja" className={notoSansJP.variable} suppressHydrationWarning>
       <body>
         <Header />
         <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
