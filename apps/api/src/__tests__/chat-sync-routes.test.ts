@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted で vi.mock と同時にホイスト） ---
-const { mockGetAccessToken, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
-  mockGetAccessToken: vi.fn().mockResolvedValue({ token: "test-token" }),
+const { mockGetRequestHeaders, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
+  mockGetRequestHeaders: vi.fn().mockResolvedValue({ Authorization: "Bearer test-token" }),
   mockGet: vi.fn(),
   mockSet: vi.fn().mockResolvedValue(undefined),
   mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
@@ -11,7 +11,7 @@ const { mockGetAccessToken, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
 vi.mock("google-auth-library", () => ({
   GoogleAuth: class MockGoogleAuth {
     async getClient() {
-      return { getAccessToken: mockGetAccessToken };
+      return { getRequestHeaders: mockGetRequestHeaders };
     }
   },
 }));

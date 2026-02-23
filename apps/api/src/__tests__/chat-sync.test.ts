@@ -2,8 +2,8 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted で vi.mock と同時にホイスト） ---
-const { mockGetAccessToken, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
-  mockGetAccessToken: vi.fn().mockResolvedValue({ token: "test-token" }),
+const { mockGetRequestHeaders, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
+  mockGetRequestHeaders: vi.fn().mockResolvedValue({ Authorization: "Bearer test-token" }),
   mockGet: vi.fn(),
   mockSet: vi.fn().mockResolvedValue(undefined),
   mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
@@ -15,7 +15,7 @@ vi.mock("google-auth-library", () => ({
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     constructor(_opts?: unknown) {}
     async getClient() {
-      return { getAccessToken: mockGetAccessToken };
+      return { getRequestHeaders: mockGetRequestHeaders };
     }
   },
 }));
@@ -37,7 +37,7 @@ vi.mock("@hr-system/db", () => ({
 }));
 
 import {
-  getAccessToken,
+  getAuthHeaders,
   getSyncMetadata,
   syncChatMessages,
   updateSyncMetadata,
@@ -51,10 +51,10 @@ describe("chat-sync service", () => {
     );
   });
 
-  describe("getAccessToken", () => {
-    it("ADC でトークンを取得する", async () => {
-      const token = await getAccessToken();
-      expect(token).toBe("test-token");
+  describe("getAuthHeaders", () => {
+    it("ADC で認証ヘッダー（x-goog-user-project 含む）を取得する", async () => {
+      const headers = await getAuthHeaders();
+      expect(headers).toEqual({ Authorization: "Bearer test-token" });
     });
   });
 

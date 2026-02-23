@@ -25,18 +25,17 @@ function sanitizeDocId(googleMessageId: string): string {
   return googleMessageId.replace(/\//g, "_").replace(/\./g, "_");
 }
 
-/** ADC（開発者 OAuth クレデンシャル）で Chat API 用のアクセストークンを取得 */
-export async function getAccessToken(): Promise<string> {
+/** ADC（開発者 OAuth クレデンシャル）で Chat API 用の認証ヘッダーを取得
+ *
+ * getAccessToken() ではなく getRequestHeaders() を使用することで
+ * authorized_user 認証時に必要な x-goog-user-project ヘッダーが自動付与される
+ */
+export async function getAuthHeaders(): Promise<{ [key: string]: string }> {
   const auth = new GoogleAuth({
     scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
   });
   const client = await auth.getClient();
-  const tokenResponse = await client.getAccessToken();
-  const token = typeof tokenResponse === "string" ? tokenResponse : tokenResponse?.token;
-  if (!token) {
-    throw new Error("アクセストークンの取得に失敗しました");
-  }
-  return token;
+  return (await client.getRequestHeaders()) as unknown as { [key: string]: string };
 }
 
 /** sync_metadata ドキュメントを取得 */
@@ -62,7 +61,7 @@ export async function syncChatMessages(): Promise<SyncResult> {
     ? meta.lastSyncedAt.toDate()
     : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-  const token = await getAccessToken();
+  const authHeaders = await getAuthHeaders();
   const filter = `createTime > "${since.toISOString()}"`;
 
   let newMessages = 0;
@@ -78,7 +77,7 @@ export async function syncChatMessages(): Promise<SyncResult> {
     }
 
     const resp = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: authHeaders,
     });
 
     if (!resp.ok) {
