@@ -12,14 +12,30 @@
  *           Desktop OAuth クライアントで取得したトークンなら有効。
  *       例: GOOGLE_ACCESS_TOKEN=ya29.xxx pnpm --filter @hr-system/db db:backfill
  *
- *   (2) DWD（Domain-Wide Delegation）
+ *   (2) SA_KEY_FILE（ボット認証）★推奨
+ *       hr-worker SA の一時鍵ファイルを使って chat.bot スコープでアクセス。
+ *       hr-worker はスペースのボットメンバーなので spaces.messages.get / spaces.members.get 両方可能。
+ *       手順:
+ *         # 一時鍵を作成
+ *         gcloud iam service-accounts keys create /tmp/hr-worker-key.json \
+ *           --iam-account=hr-worker@hr-system-487809.iam.gserviceaccount.com
+ *         # 実行
+ *         SA_KEY_FILE=/tmp/hr-worker-key.json pnpm --filter @hr-system/db db:repair -- --repair --limit=100
+ *         # 完了後に鍵を削除
+ *         KEY_ID=$(gcloud iam service-accounts keys list \
+ *           --iam-account=hr-worker@hr-system-487809.iam.gserviceaccount.com \
+ *           --filter="keyType=USER_MANAGED" --format="value(name)" | head -1)
+ *         gcloud iam service-accounts keys delete $KEY_ID \
+ *           --iam-account=hr-worker@hr-system-487809.iam.gserviceaccount.com
+ *
+ *   (3) DWD（Domain-Wide Delegation）
  *       SA + DWD でユーザーを代理してアクセス。
  *       DWD_SA_KEY_FILE と DWD_SUBJECT の両方が必要。
  *       前提: Cloud Console でSAのDWD有効化 + admin.google.com でスコープ承認済み。
  *       例: DWD_SA_KEY_FILE=/path/to/key.json DWD_SUBJECT=user@domain.com \
  *             pnpm --filter @hr-system/db db:backfill
  *
- *   (3) ADC（Application Default Credentials）
+ *   (4) ADC（Application Default Credentials）
  *       gcloud auth application-default login \
  *         --scopes="https://www.googleapis.com/auth/cloud-platform,\
  *                   https://www.googleapis.com/auth/chat.messages.readonly"
@@ -480,16 +496,19 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
 // メインエントリポイント
 // ============================================================
 
-export async function backfillChatMessages(): Promise<void> {
+export async function backfillChatMessages(limit?: number): Promise<void> {
   console.log(`\n=== Chat API バックフィル開始 ===`);
   console.log(`対象スペース: ${SPACE_NAME}`);
   console.log(`取得期間: ${ONE_YEAR_AGO.toLocaleDateString("ja-JP")} 〜 現在`);
+  if (limit) console.log(`  件数制限: 最新 ${limit} 件`);
 
   // 認証方法の選択（優先順位順）:
   //   (1) GOOGLE_ACCESS_TOKEN 環境変数 → Bearer トークン直接渡し
-  //   (2) DWD_SA_KEY_FILE + DWD_SUBJECT → JWT (Domain-Wide Delegation)
-  //   (3) 未設定 → ADC (Application Default Credentials)
+  //   (2) SA_KEY_FILE → SA鍵ファイル (chat.bot スコープ、ボット認証)
+  //   (3) DWD_SA_KEY_FILE + DWD_SUBJECT → JWT (Domain-Wide Delegation)
+  //   (4) 未設定 → ADC (Application Default Credentials)
   const bearerToken = process.env.GOOGLE_ACCESS_TOKEN;
+  const saKeyFile = process.env.SA_KEY_FILE;
   const dwdKeyFile = process.env.DWD_SA_KEY_FILE;
   const dwdSubject = process.env.DWD_SUBJECT;
 
@@ -497,6 +516,12 @@ export async function backfillChatMessages(): Promise<void> {
 
   if (bearerToken) {
     console.log("  認証: GOOGLE_ACCESS_TOKEN 環境変数を使用");
+  } else if (saKeyFile) {
+    console.log(`  認証: SA Key (chat.bot) — ${saKeyFile}`);
+    requestClient = new JWT({
+      keyFile: saKeyFile,
+      scopes: ["https://www.googleapis.com/auth/chat.bot"],
+    });
   } else if (dwdKeyFile && dwdSubject) {
     console.log(`  認証: DWD (Domain-Wide Delegation) — subject: ${dwdSubject}`);
     requestClient = new JWT({
@@ -514,8 +539,12 @@ export async function backfillChatMessages(): Promise<void> {
 
   // 1. Chat API からメッセージ取得
   console.log("\n[1/3] Chat REST API からメッセージ取得中...");
-  const messages = await fetchMessages(requestClient, bearerToken);
-  console.log(`  合計 ${messages.length} 件取得`);
+  const allMessages = await fetchMessages(requestClient, bearerToken);
+  // --limit 指定時は最新 N 件に絞る（createTime asc で取得済みなので末尾が最新）
+  const messages = limit ? allMessages.slice(-limit) : allMessages;
+  console.log(
+    `  合計 ${messages.length} 件取得${limit ? ` (全 ${allMessages.length} 件中 最新 ${limit} 件)` : ""}`,
+  );
 
   if (messages.length === 0) {
     console.warn("  警告: メッセージが0件です。ADC認証とスペースIDを確認してください。");
@@ -616,36 +645,53 @@ async function fetchMember(
  *       mentionedUsers の displayName が空の場合は spaces.members.get で追加補完。
  * 非破壊: processedAt / createdAt / intentRecords には一切触らない。
  */
-export async function repairChatMessages(): Promise<void> {
+export async function repairChatMessages(limit?: number): Promise<void> {
   console.log("\n=== Chat メッセージ修復開始 ===");
+  if (limit) console.log(`  件数制限: ${limit} 件`);
 
   // 認証（backfillChatMessages と同一ロジック）
   const bearerToken = process.env.GOOGLE_ACCESS_TOKEN;
+  const saKeyFile = process.env.SA_KEY_FILE;
   const dwdKeyFile = process.env.DWD_SA_KEY_FILE;
   const dwdSubject = process.env.DWD_SUBJECT;
   let requestClient: RequestClient | null = null;
 
   if (bearerToken) {
     console.log("  認証: GOOGLE_ACCESS_TOKEN 環境変数を使用");
+  } else if (saKeyFile) {
+    console.log(`  認証: SA Key (chat.bot) — ${saKeyFile}`);
+    requestClient = new JWT({
+      keyFile: saKeyFile,
+      scopes: ["https://www.googleapis.com/auth/chat.bot"],
+    });
   } else if (dwdKeyFile && dwdSubject) {
     console.log(`  認証: DWD (Domain-Wide Delegation) — subject: ${dwdSubject}`);
     requestClient = new JWT({
       keyFile: dwdKeyFile,
-      scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+      scopes: [
+        "https://www.googleapis.com/auth/chat.messages.readonly",
+        "https://www.googleapis.com/auth/chat.memberships.readonly",
+      ],
       subject: dwdSubject,
     });
   } else {
     console.log("  認証: ADC (Application Default Credentials) を使用");
     const auth = new GoogleAuth({
-      scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+      scopes: [
+        "https://www.googleapis.com/auth/chat.messages.readonly",
+        "https://www.googleapis.com/auth/chat.memberships.readonly",
+      ],
     });
     requestClient = await auth.getClient();
   }
 
   // [1/3] 修復対象ドキュメントを Firestore から取得
   console.log("\n[1/3] 修復対象ドキュメントを検索中...");
-  const snap = await collections.chatMessages.where("senderName", "==", "").get();
-  console.log(`  修復対象: ${snap.docs.length} 件 (senderName が空)`);
+  const baseQuery = collections.chatMessages.where("senderName", "==", "");
+  const snap = await (limit ? baseQuery.limit(limit) : baseQuery).get();
+  console.log(
+    `  修復対象: ${snap.docs.length} 件 (senderName が空${limit ? ` / 上限 ${limit} 件` : ""})`,
+  );
 
   if (snap.docs.length === 0) {
     console.log("  修復対象なし。処理を終了します。");
@@ -713,9 +759,18 @@ export async function repairChatMessages(): Promise<void> {
       return result;
     });
 
+    // senderName: Chat API は sender.displayName を返さないため getMember で補完
+    let repairedSenderName = apiMsg.sender?.displayName || "";
+    if (!repairedSenderName && apiMsg.sender?.name) {
+      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
+      const senderMemberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${apiMsg.sender.name}`;
+      const senderMember = await fetchMember(requestClient, bearerToken, senderMemberName);
+      repairedSenderName = senderMember?.displayName ?? "";
+    }
+
     // update() で欠損フィールドのみ補完（processedAt / createdAt には触らない）
     await doc.ref.update({
-      senderName: apiMsg.sender?.displayName ?? "",
+      senderName: repairedSenderName,
       senderUserId: apiMsg.sender?.name ?? data.senderUserId,
       formattedContent: apiMsg.formattedText ?? data.formattedContent,
       annotations,
@@ -747,13 +802,16 @@ export async function repairChatMessages(): Promise<void> {
 // import されただけの場合（seed/index.ts から呼ばれる場合など）はここを通らない
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const isRepair = process.argv.includes("--repair");
+  const limitArg = process.argv.find((a) => a.startsWith("--limit="));
+  const limit = limitArg ? parseInt(limitArg.slice("--limit=".length), 10) : undefined;
+
   if (isRepair) {
-    repairChatMessages().catch((err) => {
+    repairChatMessages(limit).catch((err) => {
       console.error("修復失敗:", err);
       process.exit(1);
     });
   } else {
-    backfillChatMessages().catch((err) => {
+    backfillChatMessages(limit).catch((err) => {
       console.error("バックフィル失敗:", err);
       process.exit(1);
     });

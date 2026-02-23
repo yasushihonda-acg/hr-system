@@ -64,8 +64,16 @@ export async function enrichChatEvent(event: ChatEvent, client: ChatApiClient): 
         : event.isEdited;
     const isDeleted = message.deleteTime !== undefined ? !!message.deleteTime : event.isDeleted;
 
-    // senderName: Pub/Sub ペイロードには displayName が含まれないため API の値で補完
-    const senderName = message.sender?.displayName ?? event.senderName;
+    // senderName: Chat API は sender.displayName を返さないため getMember で補完し、
+    // それも取得できなければ元の event 値を維持する
+    let senderName = message.sender?.displayName || "";
+    if (!senderName && message.sender?.name) {
+      const senderMembership = await client.getMember(
+        `${event.spaceName}/members/${message.sender.name}`,
+      );
+      senderName = senderMembership?.member?.displayName || "";
+    }
+    if (!senderName) senderName = event.senderName;
 
     return {
       ...event,

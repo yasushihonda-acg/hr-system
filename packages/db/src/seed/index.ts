@@ -105,7 +105,7 @@ async function main(): Promise<void> {
   await seedClassificationRules();
   await seedLlmRules();
   console.log("Seeding chat messages + intent records from Chat REST API...");
-  await backfillChatMessages();
+  await backfillChatMessages(100);
   console.log("Seed completed successfully");
 }
 
