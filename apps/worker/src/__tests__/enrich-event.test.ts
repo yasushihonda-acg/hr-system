@@ -223,6 +223,32 @@ describe("enrichChatEvent", () => {
 
       expect(result.senderName).toBe("田中 太郎");
     });
+
+    it("sender.displayName が空の場合、getMember で senderName が補完される", async () => {
+      const client = makeMockClient(
+        { sender: { name: "users/12345", displayName: "", type: "HUMAN" } },
+        { member: { name: "users/12345", displayName: "田中 太郎", type: "HUMAN" } },
+      );
+      const event = makeEvent({ senderName: "" });
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.senderName).toBe("田中 太郎");
+      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/users/12345");
+    });
+
+    it("sender.displayName が空で getMember が null の場合は event.senderName を維持する", async () => {
+      const client = makeMockClient(
+        { sender: { name: "users/12345", displayName: "", type: "HUMAN" } },
+        null,
+      );
+      const event = makeEvent({ senderName: "田中 太郎" });
+
+      const result = await enrichChatEvent(event, client);
+
+      expect(result.senderName).toBe("田中 太郎");
+      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/users/12345");
+    });
   });
 
   describe("API 失敗 / null — best-effort", () => {
