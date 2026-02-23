@@ -8,7 +8,7 @@ export function Header() {
       <div className="h-[3px] w-full bg-gradient-to-r from-[oklch(0.3_0.1_252)] via-[oklch(0.73_0.18_55)] to-[oklch(0.3_0.1_252)]" />
       <div className="mx-auto flex h-13 max-w-7xl items-center justify-between px-4">
         {/* ロゴ */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-2 md:gap-5">
           <a href="/" className="flex items-center gap-2 group">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground shadow-sm group-hover:shadow-md transition-shadow">
               HR
