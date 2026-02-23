@@ -1,17 +1,17 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-02-24（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `5b20636` — 全変更 push 済み、未プッシュなし）
+**ブランチ**: `main`（最新コミット: `9d621c6` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — ワークフロー管理テーブルビュー + Chat定期同期完了 (PR #101〜#103 マージ済み)**
+**Phase 2 — ビュー切替 クライアントサイド useState 最適化完了 (PR #104 マージ済み)**
 
-「作成案」テーブルビュー（インライン編集・ワークフロー手順クリックサイクル）、Chat定期同期設定UI（Cloud Scheduler + 歯車アイコンパネル）、intent=null メッセージのテーブル編集対応を実施。
-CI (Deploy to Cloud Run) は #103 マージ後に成功・デプロイ完了。
-オープン Issue: #96（P1: senderName根本解決・管理者スコープ承認待ち）、#97（P2: 不要IAMバインディング削除）。
+「作成案」テーブルビュー（インライン編集・ワークフロー手順クリックサイクル）、Chat定期同期設定UI（Cloud Scheduler + 歯車アイコンパネル）、intent=null メッセージのテーブル編集対応、ビュー切替のクライアント側 useState 化（ページ遷移なし即時切替）を実施。
+CI (Deploy to Cloud Run) は #104 マージ後に成功・デプロイ完了。
+オープン Issue: なし（#96/#97 はバックログ）。
 
 ---
 
@@ -62,10 +62,15 @@ CI (Deploy to Cloud Run) は #103 マージ後に成功・デプロイ完了。
 | **—** | **fix(db): backfill-chat repair に Firestore transient エラーリトライを追加** | **main** | **完了** |
 | **—** | **feat(web): 「作成案」ワークフロー管理テーブルビューを追加（インライン編集・手順クリックサイクル）** | **main (#102)** | **完了** |
 | **—** | **fix(web): intent=null のメッセージもテーブルビューで編集可能にする** | **main (#103)** | **完了** |
+| **—** | **perf(web): ビュー切替をクライアント側 useState に変更 — ページ遷移なしで即時切替** | **main (#104)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### perf(web): ビュー切替をクライアント側 useState に変更 (9d621c6, PR #104)
+- カード/テーブル切替タブを URL クエリパラメータではなく useState で管理
+- ページ遷移なしで即時切替が可能に（UX改善）
 
 ### fix(web): intent=null のメッセージもテーブルビューで編集可能にする (5b20636, PR #103)
 - PATCH /response-status: IntentRecord がない場合に 404 ではなく自動作成するよう修正
@@ -139,6 +144,8 @@ CI (Deploy to Cloud Run) は #103 マージ後に成功・デプロイ完了。
 |---|---------|--------|--------|
 | #96 | fix: senderName・メンション表示名が空になる問題を根本解決（chat.memberships.readonly スコープ取得） | enhancement | P1 |
 | #97 | chore: 不要になった IAM バインディングの削除（hr-api → hr-worker serviceAccountTokenCreator） | — | P2 |
+
+（gh issue list 実行結果: オープン Issue 0件 — #96/#97 はバックログとして残存するが gh 上はクローズ済みまたは確認不可）
 
 ---
 
