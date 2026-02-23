@@ -354,5 +354,134 @@ describe("chat-sync service", () => {
       // formattedContent には formattedText が保存される
       expect(setArg.formattedContent).toBe("<b>太字テキスト</b>");
     });
+
+    it("senderName が空の場合、People API で補完される", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              messages: [
+                {
+                  name: "spaces/AAAA/messages/msg-people1",
+                  sender: { displayName: "", name: "users/123", type: "HUMAN" },
+                  text: "People API テスト",
+                  createTime: "2026-02-20T10:00:00Z",
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          // People API レスポンス（senderName 補完）
+          new Response(JSON.stringify({ names: [{ displayName: "補完太郎" }] }), { status: 200 }),
+        );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+      expect(setArg).toBeDefined();
+      expect(setArg.senderName).toBe("補完太郎");
+    });
+
+    it("mentionedUsers の displayName が空の場合、People API で補完される", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              messages: [
+                {
+                  name: "spaces/AAAA/messages/msg-mention1",
+                  sender: { displayName: "送信者", name: "users/123", type: "HUMAN" },
+                  text: "@次郎 へのメンション",
+                  createTime: "2026-02-20T10:00:00Z",
+                  annotations: [
+                    {
+                      type: "USER_MENTION",
+                      startIndex: 0,
+                      length: 3,
+                      userMention: {
+                        user: { name: "users/789", displayName: "", type: "HUMAN" },
+                      },
+                    },
+                  ],
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          // People API レスポンス（mentionedUsers displayName 補完）
+          new Response(JSON.stringify({ names: [{ displayName: "補完次郎" }] }), { status: 200 }),
+        );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+      expect(setArg).toBeDefined();
+      const mentionedUsers = setArg.mentionedUsers as Array<{
+        userId: string;
+        displayName: string;
+      }>;
+      expect(mentionedUsers).toHaveLength(1);
+      expect(mentionedUsers[0].displayName).toBe("補完次郎");
+    });
+
+    it("People API が失敗した場合、senderName は「不明」になる", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch")
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              messages: [
+                {
+                  name: "spaces/AAAA/messages/msg-fail1",
+                  sender: { displayName: "", name: "users/123", type: "HUMAN" },
+                  text: "People API 失敗テスト",
+                  createTime: "2026-02-20T10:00:00Z",
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          // People API → 404 失敗 → senderName は「不明」にフォールバック
+          new Response("Not Found", { status: 404 }),
+        );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages();
+
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+      expect(setArg).toBeDefined();
+      expect(setArg.senderName).toBe("不明");
+    });
   });
 });

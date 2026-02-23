@@ -13,6 +13,8 @@ import { GoogleAuth } from "google-auth-library";
 const SPACE_ID = process.env.CHAT_SPACE_ID ?? "AAAA-qf5jX0";
 const SPACE_NAME = `spaces/${SPACE_ID}`;
 const CHAT_API_BASE = "https://chat.googleapis.com/v1";
+const PEOPLE_API_BASE = "https://people.googleapis.com/v1";
+const REQUEST_DELAY_MS = 100;
 
 export interface SyncResult {
   newMessages: number;
@@ -32,10 +34,33 @@ function sanitizeDocId(googleMessageId: string): string {
  */
 export async function getAuthHeaders(): Promise<{ [key: string]: string }> {
   const auth = new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+    scopes: [
+      "https://www.googleapis.com/auth/chat.messages.readonly",
+      "https://www.googleapis.com/auth/directory.readonly",
+    ],
   });
   const client = await auth.getClient();
   return (await client.getRequestHeaders()) as unknown as { [key: string]: string };
+}
+
+/** People API で Workspace ユーザーの displayName を取得
+ *  Chat API は sender.displayName / userMention.user.displayName を返さないため使用
+ */
+async function fetchDisplayName(
+  authHeaders: { [key: string]: string },
+  userId: string, // "users/116189466267679439841"
+): Promise<string> {
+  const numericId = userId.replace(/^users\//, "");
+  try {
+    const res = await fetch(`${PEOPLE_API_BASE}/people/${numericId}?personFields=names`, {
+      headers: authHeaders,
+    });
+    if (!res.ok) return "";
+    const data = (await res.json()) as { names?: Array<{ displayName?: string }> };
+    return data.names?.[0]?.displayName ?? "";
+  } catch {
+    return "";
+  }
 }
 
 /** sync_metadata ドキュメントを取得 */
@@ -150,16 +175,26 @@ export async function syncChatMessages(): Promise<SyncResult> {
           userMention: a.userMention as ChatAnnotation["userMention"],
         }),
       }));
-      const mentionedUsers = annotations
-        .filter((a) => a.type === "USER_MENTION" && a.userMention?.user)
-        .map((a) => ({
-          userId: a.userMention?.user.name ?? "",
-          displayName: a.userMention?.user.displayName ?? "",
-        }));
+      // メンション: Chat API は displayName を返さないため People API で補完
+      const mentionedUsers: { userId: string; displayName: string }[] = [];
+      for (const a of annotations.filter((a) => a.type === "USER_MENTION" && a.userMention?.user)) {
+        const userId = a.userMention?.user.name ?? "";
+        let displayName = a.userMention?.user.displayName ?? "";
+        if (!displayName && userId) {
+          await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
+          displayName = await fetchDisplayName(authHeaders, userId);
+        }
+        mentionedUsers.push({ userId, displayName });
+      }
 
-      // 送信者情報
-      const senderName = (sender?.displayName as string) || "不明";
+      // 送信者: Chat API は sender.displayName を返さないため People API で補完
       const senderUserId = (sender?.name as string) || "";
+      let senderName = (sender?.displayName as string) || "";
+      if (!senderName && senderUserId) {
+        await new Promise((r) => setTimeout(r, REQUEST_DELAY_MS));
+        senderName = await fetchDisplayName(authHeaders, senderUserId);
+      }
+      if (!senderName) senderName = "不明";
 
       // 作成日時
       const createTimeStr = msg.createTime as string | undefined;
