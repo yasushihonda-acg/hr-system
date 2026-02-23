@@ -1,16 +1,16 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-23（セッション終了時点）
-**ブランチ**: `main`（最新コミット: `6caf10e` — 全変更 push 済み、未プッシュなし）
+**最終更新**: 2026-02-24（セッション終了時点）
+**ブランチ**: `main`（最新コミット: `5b20636` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — チャート分析UI強化完了 (PR #96〜#100 マージ済み)**
+**Phase 2 — ワークフロー管理テーブルビュー + Chat定期同期完了 (PR #101〜#103 マージ済み)**
 
-カテゴリ分布グラフのUI改善（2カラムレイアウト刷新・チャートクリック連動・モバイルナビ修正）を実施。
-CI (Deploy to Cloud Run) は #100 マージ後に成功・デプロイ完了。
+「作成案」テーブルビュー（インライン編集・ワークフロー手順クリックサイクル）、Chat定期同期設定UI（Cloud Scheduler + 歯車アイコンパネル）、intent=null メッセージのテーブル編集対応を実施。
+CI (Deploy to Cloud Run) は #103 マージ後に成功・デプロイ完了。
 オープン Issue: #96（P1: senderName根本解決・管理者スコープ承認待ち）、#97（P2: 不要IAMバインディング削除）。
 
 ---
@@ -58,41 +58,35 @@ CI (Deploy to Cloud Run) は #100 マージ後に成功・デプロイ完了。
 | **—** | **feat(web): カテゴリ別分布を2カラムレイアウトに刷新（空間効率改善）** | **main (#98)** | **完了** |
 | **—** | **fix(web): モバイルナビ overflow 修正＋カテゴリチャートクリック連動** | **main (#99)** | **完了** |
 | **—** | **fix(web): チャート外クリック解除・グレーアウト緩和** | **main (#100)** | **完了** |
+| **—** | **feat(chat-sync): 定期同期 + 設定変更 UI を追加（Cloud Scheduler + 歯車アイコンパネル）** | **main (#101)** | **完了** |
+| **—** | **fix(db): backfill-chat repair に Firestore transient エラーリトライを追加** | **main** | **完了** |
+| **—** | **feat(web): 「作成案」ワークフロー管理テーブルビューを追加（インライン編集・手順クリックサイクル）** | **main (#102)** | **完了** |
+| **—** | **fix(web): intent=null のメッセージもテーブルビューで編集可能にする** | **main (#103)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
+### fix(web): intent=null のメッセージもテーブルビューで編集可能にする (5b20636, PR #103)
+- PATCH /response-status: IntentRecord がない場合に 404 ではなく自動作成するよう修正
+- table-view.tsx: !intent ガードをすべて削除（disabled/早期return/三項演算子）
+
+### feat(web): 「作成案」ワークフロー管理テーブルビューを追加 (764e9fb, PR #102)
+- packages/shared: WorkflowStepStatus / WorkflowSteps 型を追加
+- packages/db: IntentRecord に taskSummary / assignees / notes / workflowSteps フィールドを追加
+- apps/api: PATCH /chat-messages/:id/workflow エンドポイントを新規追加
+- apps/web: スプレッドシート風インライン編集テーブルビューを追加（カード/テーブル切替タブ）
+
+### fix(db): backfill-chat repair に Firestore transient エラーリトライを追加 (8417cf8)
+- DEADLINE_EXCEEDED / UNAVAILABLE 発生時に指数バックオフ（1s→2s→4s）で最大3回リトライ
+
+### feat(chat-sync): 定期同期 + 設定変更 UI を追加 (07f9ee8, PR #101)
+- Cloud Scheduler API 有効化、chat-sync-job ジョブ作成（*/5 * * * * Asia/Tokyo）
+- API: GET/PATCH /api/chat-messages/sync/config エンドポイント追加
+- Web: 歯車アイコンから同期間隔・有効/無効を設定するパネルを追加
+
 ### fix(lint): import順序・noNonNullAssertion・noUselessConstructorを修正 (6caf10e)
 - Biome lint エラー（import 順序、non-null assertion、useless constructor）を一括修正
-
-### perf(api): N+1クエリ削減・APIレスポンスキャッシュ追加 (e6727f9)
-- Firestore N+1 クエリを削減しパフォーマンス改善
-- API レスポンスにキャッシュ制御ヘッダーを追加
-
-### fix(api): Chat同期でsenderName/@メンションをPeople APIで補完 (e390ce8)
-- Chat 同期時に People API を使って displayName 欠損を補完する処理を追加
-
-### fix(web): チャート外クリック解除・グレーアウト緩和 (95fb58f, PR #100)
-- カテゴリ分布グラフでチャート外をクリックすると選択が解除されるよう修正
-- 未選択カテゴリのグレーアウト色を緩和し視認性を改善
-
-### fix(web): モバイルナビ overflow 修正＋カテゴリチャートクリック連動 (6b893c2, PR #99)
-- モバイルナビゲーションの overflow スタイルを修正
-- カテゴリ棒グラフのクリックがフィルタリングに連動するよう対応
-
-### feat(web): カテゴリ別分布を2カラムレイアウトに刷新（空間効率改善） (c1d6640, PR #98)
-- カテゴリ分布エリアを2カラムグリッドレイアウトに変更
-- ドーナツチャートと棒グラフを並列表示し空間効率を向上
-
-### fix(api): Chat同期 403エラーを修正（ADC 開発者 OAuth クレデンシャル利用）(c2569f4, PR #95)
-- hr-api SA が Google Chat スペースのメンバーでないため Chat API が 403 を返していた問題を修正
-- Impersonated SA アプローチは機能せず、Secret Manager に保存した開発者 OAuth クレデンシャル（ADC）を利用する方式に切替
-- 副産物: 不要 IAM バインディング（hr-api → hr-worker serviceAccountTokenCreator）が残存 → Issue #97 で追跡
-
-### feat(web): カテゴリ別分布をドーナツ＋横棒グラフ切替タブに変更 (9407f91, PR #94)
-- カテゴリ分布グラフにドーナツチャートと横棒グラフの切替タブを追加
-- ユーザーが好みのビジュアライゼーションを選択できるよう UI を改善
 
 ---
 
