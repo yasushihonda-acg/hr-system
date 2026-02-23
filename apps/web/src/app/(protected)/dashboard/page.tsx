@@ -1,5 +1,5 @@
 import { MessageSquare, TrendingUp } from "lucide-react";
-import { CategoryBarChart, CategoryPieChart, TimelineChart } from "@/components/dashboard-charts";
+import { CategoryDistributionChart, TimelineChart } from "@/components/dashboard-charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStatsCategories, getStatsSpaces, getStatsSummary, getStatsTimeline } from "@/lib/api";
 
@@ -40,27 +40,18 @@ export default async function DashboardPage() {
       </div>
 
       {/* カテゴリ別集計 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>カテゴリ別分布</CardTitle>
-            <CardDescription>全{categoriesData.total}件の分類内訳</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CategoryPieChart data={categoriesData.categories} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>カテゴリ別件数</CardTitle>
-            <CardDescription>件数順の棒グラフ</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CategoryBarChart data={categoriesData.categories} />
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>カテゴリ別分布</CardTitle>
+          <CardDescription>全{categoriesData.total}件の分類内訳</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CategoryDistributionChart
+            data={categoriesData.categories}
+            total={categoriesData.total}
+          />
+        </CardContent>
+      </Card>
 
       {/* タイムライン */}
       <Card>
