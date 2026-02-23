@@ -77,7 +77,6 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
   });
 
   const handleResponseStatus = () => {
-    if (!intent) return;
     const next = nextInCycle(RS_CYCLE, state.responseStatus);
     setState((s) => ({ ...s, responseStatus: next }));
     startTransition(async () => {
@@ -86,7 +85,6 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
   };
 
   const handleStep = (key: keyof WorkflowSteps) => {
-    if (!intent) return;
     const next = nextInCycle(STEP_CYCLE, state.workflowSteps[key]);
     const newSteps = { ...state.workflowSteps, [key]: next };
     setState((s) => ({ ...s, workflowSteps: newSteps }));
@@ -147,9 +145,8 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
           value={state.taskSummary}
           onChange={(e) => setState((s) => ({ ...s, taskSummary: e.target.value }))}
           onBlur={() => handleTextBlur("taskSummary")}
-          disabled={!intent}
-          placeholder={intent ? "タスク" : "ー"}
-          className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-slate-700 placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:outline-none disabled:cursor-default"
+          placeholder="タスク"
+          className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-slate-700 placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:outline-none"
         />
       </td>
 
@@ -160,26 +157,21 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
           value={state.assignees}
           onChange={(e) => setState((s) => ({ ...s, assignees: e.target.value }))}
           onBlur={() => handleTextBlur("assignees")}
-          disabled={!intent}
-          placeholder={intent ? "担当者" : "ー"}
-          className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-slate-700 placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:outline-none disabled:cursor-default"
+          placeholder="担当者"
+          className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-slate-700 placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:outline-none"
         />
       </td>
 
       {/* 対応状況 */}
       <td className="w-16 px-2 py-2 text-center">
-        {intent ? (
-          <button
-            type="button"
-            onClick={handleResponseStatus}
-            disabled={isPending}
-            className={`cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${RS_CONFIG[state.responseStatus].cls}`}
-          >
-            {RS_CONFIG[state.responseStatus].label}
-          </button>
-        ) : (
-          <span className="text-xs text-slate-300">ー</span>
-        )}
+        <button
+          type="button"
+          onClick={handleResponseStatus}
+          disabled={isPending}
+          className={`cursor-pointer rounded px-1.5 py-0.5 text-xs font-medium transition-opacity hover:opacity-80 ${RS_CONFIG[state.responseStatus].cls}`}
+        >
+          {RS_CONFIG[state.responseStatus].label}
+        </button>
       </td>
 
       {/* ❶〜❹ */}
@@ -192,18 +184,14 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
         ] as const
       ).map((key) => (
         <td key={key} className="w-10 px-1 py-2 text-center">
-          {intent ? (
-            <button
-              type="button"
-              onClick={() => handleStep(key)}
-              disabled={isPending}
-              className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[state.workflowSteps[key]].cls}`}
-            >
-              {STEP_CONFIG[state.workflowSteps[key]].label}
-            </button>
-          ) : (
-            <span className="text-xs text-slate-300">ー</span>
-          )}
+          <button
+            type="button"
+            onClick={() => handleStep(key)}
+            disabled={isPending}
+            className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[state.workflowSteps[key]].cls}`}
+          >
+            {STEP_CONFIG[state.workflowSteps[key]].label}
+          </button>
         </td>
       ))}
 
@@ -214,9 +202,8 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
           value={state.notes}
           onChange={(e) => setState((s) => ({ ...s, notes: e.target.value }))}
           onBlur={() => handleTextBlur("notes")}
-          disabled={!intent}
-          placeholder={intent ? "メモ" : "ー"}
-          className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-slate-700 placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:outline-none disabled:cursor-default"
+          placeholder="メモ"
+          className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-slate-700 placeholder:text-slate-300 focus:border-blue-300 focus:bg-white focus:outline-none"
         />
       </td>
     </tr>
