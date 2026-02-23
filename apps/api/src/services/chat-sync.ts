@@ -8,11 +8,14 @@
 import type { ChatAnnotation, ChatAttachment, SyncMetadata } from "@hr-system/db";
 import { collections } from "@hr-system/db";
 import { Timestamp } from "firebase-admin/firestore";
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, Impersonated } from "google-auth-library";
 
 const SPACE_ID = process.env.CHAT_SPACE_ID ?? "AAAA-qf5jX0";
 const SPACE_NAME = `spaces/${SPACE_ID}`;
 const CHAT_API_BASE = "https://chat.googleapis.com/v1";
+// Chat API は chat.bot スコープが必要なため、hr-worker SA（Chatボット）を impersonate する
+const CHAT_WORKER_SA =
+  process.env.CHAT_SERVICE_ACCOUNT ?? "hr-worker@hr-system-487809.iam.gserviceaccount.com";
 
 export interface SyncResult {
   newMessages: number;
@@ -25,13 +28,18 @@ function sanitizeDocId(googleMessageId: string): string {
   return googleMessageId.replace(/\//g, "_").replace(/\./g, "_");
 }
 
-/** ADC で Chat API 用のアクセストークンを取得 */
+/** hr-worker SA を impersonate して Chat API 用のアクセストークンを取得 */
 export async function getAccessToken(): Promise<string> {
-  const auth = new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
+  const auth = new GoogleAuth();
+  const sourceClient = await auth.getClient();
+  const impersonated = new Impersonated({
+    sourceClient,
+    targetPrincipal: CHAT_WORKER_SA,
+    lifetime: 3600,
+    delegates: [],
+    targetScopes: ["https://www.googleapis.com/auth/chat.bot"],
   });
-  const client = await auth.getClient();
-  const tokenResponse = await client.getAccessToken();
+  const tokenResponse = await impersonated.getAccessToken();
   const token = typeof tokenResponse === "string" ? tokenResponse : tokenResponse?.token;
   if (!token) {
     throw new Error("アクセストークンの取得に失敗しました");
