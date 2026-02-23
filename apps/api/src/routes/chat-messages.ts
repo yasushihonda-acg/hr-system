@@ -374,25 +374,52 @@ chatMessageRoutes.patch(
       .limit(1)
       .get();
 
-    if (intentSnap.empty) {
-      return c.json({ error: "IntentRecord not found" }, 404);
-    }
-
-    // biome-ignore lint/style/noNonNullAssertion: intentSnap.empty checked above
-    const intentDoc = intentSnap.docs[0]!;
-
     await db.runTransaction(async (tx) => {
-      tx.update(intentDoc.ref, {
-        responseStatus,
-        responseStatusUpdatedBy: actor.email,
-        responseStatusUpdatedAt: FieldValue.serverTimestamp(),
-      });
+      let intentDocId: string;
+      if (intentSnap.empty) {
+        // IntentRecord がなければ新規作成（テーブルビューから直接更新するケース）
+        const intentRef = collections.intentRecords.doc();
+        intentDocId = intentRef.id;
+        tx.set(intentRef, {
+          chatMessageId,
+          category: "other" as ChatCategory,
+          confidenceScore: 0,
+          extractedParams: null,
+          classificationMethod: "manual",
+          regexPattern: null,
+          llmInput: null,
+          llmOutput: null,
+          isManualOverride: false,
+          originalCategory: null,
+          overriddenBy: null,
+          overriddenAt: null,
+          responseStatus,
+          responseStatusUpdatedBy: actor.email,
+          responseStatusUpdatedAt: FieldValue.serverTimestamp() as never,
+          taskSummary: null,
+          assignees: null,
+          notes: null,
+          workflowSteps: null,
+          workflowUpdatedBy: null,
+          workflowUpdatedAt: null,
+          createdAt: FieldValue.serverTimestamp() as never,
+        });
+      } else {
+        // biome-ignore lint/style/noNonNullAssertion: intentSnap.empty checked above
+        const intentDoc = intentSnap.docs[0]!;
+        intentDocId = intentDoc.id;
+        tx.update(intentDoc.ref, {
+          responseStatus,
+          responseStatusUpdatedBy: actor.email,
+          responseStatusUpdatedAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       const auditRef = collections.auditLogs.doc();
       tx.set(auditRef, {
         eventType: "response_status_updated",
         entityType: "intent_record",
-        entityId: intentDoc.id,
+        entityId: intentDocId,
         actorEmail: actor.email,
         actorRole: actorRole,
         details: { chatMessageId, responseStatus },
