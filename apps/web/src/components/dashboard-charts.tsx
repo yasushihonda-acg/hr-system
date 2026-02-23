@@ -47,6 +47,26 @@ function formatCount(value: number | undefined): [string, string] {
   return [`${value ?? 0}件`, "件数"];
 }
 
+function PieTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; payload: CategoryStat }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0];
+  if (!d) return null;
+  return (
+    <div className="rounded border bg-background px-3 py-2 shadow-md text-sm">
+      <p className="font-semibold">{d.name}</p>
+      <p className="text-muted-foreground">
+        {d.value}件 ({d.payload.percentage}%)
+      </p>
+    </div>
+  );
+}
+
 export function CategoryPieChart({ data }: { data: CategoryStat[] }) {
   const filtered = data.filter((d) => d.count > 0);
   return (
@@ -57,7 +77,7 @@ export function CategoryPieChart({ data }: { data: CategoryStat[] }) {
             <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] ?? "#6b7280"} />
           ))}
         </Pie>
-        <Tooltip formatter={formatCount} />
+        <Tooltip content={<PieTooltip />} />
         <Legend
           // biome-ignore lint/suspicious/noExplicitAny: Recharts LegendPayload does not expose pie data type
           formatter={(value: string, entry: any) =>
