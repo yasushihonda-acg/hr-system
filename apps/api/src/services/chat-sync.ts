@@ -25,7 +25,7 @@ function sanitizeDocId(googleMessageId: string): string {
   return googleMessageId.replace(/\//g, "_").replace(/\./g, "_");
 }
 
-/** ADC で Chat API 用のアクセストークンを取得 */
+/** ADC（開発者 OAuth クレデンシャル）で Chat API 用のアクセストークンを取得 */
 export async function getAccessToken(): Promise<string> {
   const auth = new GoogleAuth({
     scopes: ["https://www.googleapis.com/auth/chat.messages.readonly"],
