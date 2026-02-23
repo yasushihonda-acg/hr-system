@@ -11,6 +11,8 @@ export type {
   ResponseStatus,
   SalaryItemType,
   UserRole,
+  WorkflowStepStatus,
+  WorkflowSteps,
 } from "./types.js";
 export {
   ACTOR_ROLES,
@@ -26,4 +28,5 @@ export {
   TERMINAL_STATUSES,
   USER_ROLES,
   VALID_TRANSITIONS,
+  WORKFLOW_STEP_STATUSES,
 } from "./types.js";

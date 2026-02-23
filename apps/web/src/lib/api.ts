@@ -22,6 +22,7 @@ import type {
   SyncStatus,
   TestClassificationResult,
   TimelinePoint,
+  WorkflowUpdateRequest,
 } from "@/lib/types";
 
 const API_BASE_URL = process.env.API_BASE_URL ?? "http://localhost:3001";
@@ -201,6 +202,13 @@ export function updateResponseStatus(
     `/api/chat-messages/${id}/response-status`,
     { method: "PATCH", body: JSON.stringify({ responseStatus }) },
   );
+}
+
+export function updateWorkflow(id: string, body: WorkflowUpdateRequest) {
+  return request<{ success: boolean; chatMessageId: string }>(`/api/chat-messages/${id}/workflow`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }
 
 // --- Stats ---

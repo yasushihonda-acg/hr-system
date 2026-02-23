@@ -1,6 +1,12 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections, db } from "@hr-system/db";
-import { CHAT_CATEGORIES, type ChatCategory, RESPONSE_STATUSES } from "@hr-system/shared";
+import {
+  CHAT_CATEGORIES,
+  type ChatCategory,
+  RESPONSE_STATUSES,
+  WORKFLOW_STEP_STATUSES,
+  type WorkflowSteps,
+} from "@hr-system/shared";
 import { FieldValue } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -127,6 +133,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
             isManualOverride: intent.isManualOverride ?? false,
             originalCategory: intent.originalCategory ?? null,
             responseStatus: intent.responseStatus ?? "unresponded",
+            taskSummary: intent.taskSummary ?? null,
+            assignees: intent.assignees ?? null,
+            notes: intent.notes ?? null,
+            workflowSteps: intent.workflowSteps ?? null,
+            workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
+            workflowUpdatedAt: toISOOrNull(intent.workflowUpdatedAt),
             createdAt: toISO(intent.createdAt),
           }
         : null,
@@ -226,6 +238,12 @@ chatMessageRoutes.get("/:id", async (c) => {
           responseStatus: intent.responseStatus ?? "unresponded",
           responseStatusUpdatedBy: intent.responseStatusUpdatedBy ?? null,
           responseStatusUpdatedAt: toISOOrNull(intent.responseStatusUpdatedAt),
+          taskSummary: intent.taskSummary ?? null,
+          assignees: intent.assignees ?? null,
+          notes: intent.notes ?? null,
+          workflowSteps: intent.workflowSteps ?? null,
+          workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
+          workflowUpdatedAt: toISOOrNull(intent.workflowUpdatedAt),
           createdAt: toISO(intent.createdAt),
         }
       : null,
@@ -293,6 +311,12 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
         responseStatus: "unresponded",
         responseStatusUpdatedBy: null,
         responseStatusUpdatedAt: null,
+        taskSummary: null,
+        assignees: null,
+        notes: null,
+        workflowSteps: null,
+        workflowUpdatedBy: null,
+        workflowUpdatedAt: null,
         createdAt: FieldValue.serverTimestamp() as never,
       });
     }
@@ -379,3 +403,97 @@ chatMessageRoutes.patch(
     return c.json({ success: true, chatMessageId, responseStatus });
   },
 );
+
+// ---------------------------------------------------------------------------
+// PATCH /api/chat-messages/:id/workflow — 「作成案」ワークフロー管理フィールド更新
+// ---------------------------------------------------------------------------
+const workflowStepStatusSchema = z.enum(WORKFLOW_STEP_STATUSES);
+
+const patchWorkflowSchema = z.object({
+  taskSummary: z.string().max(500).nullable().optional(),
+  assignees: z.string().max(200).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  workflowSteps: z
+    .object({
+      salaryListReflection: workflowStepStatusSchema,
+      noticeExecution: workflowStepStatusSchema,
+      laborLawyerShare: workflowStepStatusSchema,
+      smartHRReflection: workflowStepStatusSchema,
+    })
+    .optional(),
+});
+
+chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema), async (c) => {
+  const chatMessageId = c.req.param("id");
+  const body = c.req.valid("json");
+  const actor = c.get("user");
+  const actorRole = c.get("actorRole");
+
+  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  const msgSnap = await collections.chatMessages.doc(chatMessageId).get();
+  if (!msgSnap.exists) throw notFound("ChatMessage", chatMessageId);
+
+  const intentSnap = await collections.intentRecords
+    .where("chatMessageId", "==", chatMessageId)
+    .limit(1)
+    .get();
+
+  const updates: Record<string, unknown> = {
+    workflowUpdatedBy: actor.email,
+    workflowUpdatedAt: FieldValue.serverTimestamp(),
+  };
+  if (body.taskSummary !== undefined) updates.taskSummary = body.taskSummary;
+  if (body.assignees !== undefined) updates.assignees = body.assignees;
+  if (body.notes !== undefined) updates.notes = body.notes;
+  if (body.workflowSteps !== undefined) updates.workflowSteps = body.workflowSteps;
+
+  await db.runTransaction(async (tx) => {
+    if (!intentSnap.empty) {
+      // biome-ignore lint/style/noNonNullAssertion: intentSnap.empty checked above
+      tx.update(intentSnap.docs[0]!.ref, updates);
+    } else {
+      // IntentRecord がなければ新規作成
+      const intentRef = collections.intentRecords.doc();
+      tx.set(intentRef, {
+        chatMessageId,
+        category: "other" as ChatCategory,
+        confidenceScore: 0,
+        extractedParams: null,
+        classificationMethod: "manual",
+        regexPattern: null,
+        llmInput: null,
+        llmOutput: null,
+        isManualOverride: false,
+        originalCategory: null,
+        overriddenBy: null,
+        overriddenAt: null,
+        responseStatus: "unresponded",
+        responseStatusUpdatedBy: null,
+        responseStatusUpdatedAt: null,
+        taskSummary: body.taskSummary ?? null,
+        assignees: body.assignees ?? null,
+        notes: body.notes ?? null,
+        workflowSteps: (body.workflowSteps as WorkflowSteps) ?? null,
+        workflowUpdatedBy: actor.email,
+        workflowUpdatedAt: FieldValue.serverTimestamp() as never,
+        createdAt: FieldValue.serverTimestamp() as never,
+      });
+    }
+
+    const auditRef = collections.auditLogs.doc();
+    tx.set(auditRef, {
+      eventType: "response_status_updated",
+      entityType: "intent_record",
+      entityId: intentSnap.docs[0]?.id ?? "new",
+      actorEmail: actor.email,
+      actorRole: actorRole,
+      details: { chatMessageId, workflowUpdates: body },
+      createdAt: FieldValue.serverTimestamp() as never,
+    });
+  });
+
+  return c.json({ success: true, chatMessageId });
+});

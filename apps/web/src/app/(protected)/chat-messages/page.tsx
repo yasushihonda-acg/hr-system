@@ -1,9 +1,10 @@
-import { ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutList, MessageSquare, Table2 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ChatSyncButton } from "@/components/chat/sync-button";
 import { getChatMessages, getStatsSpaces } from "@/lib/api";
 import { CATEGORY_CONFIG, MessageCard } from "./message-card";
+import { TableView } from "./table-view";
 
 interface Props {
   searchParams: Promise<{
@@ -12,6 +13,7 @@ interface Props {
     spaceId?: string;
     lowConfidence?: string;
     page?: string;
+    view?: string;
   }>;
 }
 
@@ -50,6 +52,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
   const isLowConfidence = params.lowConfidence === "1";
+  const isTableView = params.view === "table";
 
   const [{ data: messages, pagination }, spacesData] = await Promise.all([
     getChatMessages({
@@ -69,6 +72,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
     spaceId?: string;
     lowConfidence?: string;
     page?: string;
+    view?: string;
   }) {
     const sp = new URLSearchParams();
     const category = "category" in overrides ? overrides.category : params.category;
@@ -76,11 +80,13 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
     const spaceId = "spaceId" in overrides ? overrides.spaceId : params.spaceId;
     const lowConfidence =
       "lowConfidence" in overrides ? overrides.lowConfidence : params.lowConfidence;
+    const view = "view" in overrides ? overrides.view : params.view;
     const p = overrides.page;
     if (category) sp.set("category", category);
     if (messageType) sp.set("messageType", messageType);
     if (spaceId) sp.set("spaceId", spaceId);
     if (lowConfidence) sp.set("lowConfidence", lowConfidence);
+    if (view && view !== "card") sp.set("view", view);
     if (p && p !== "1") sp.set("page", p);
     const qs = sp.toString();
     return `/chat-messages${qs ? `?${qs}` : ""}`;
@@ -99,7 +105,30 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
               {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
             </p>
           </div>
-          <ChatSyncButton />
+          <div className="flex items-center gap-2">
+            {/* ビュー切替 */}
+            <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
+              <Link
+                href={buildUrl({ view: "card", page: "1" })}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  !isTableView ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <LayoutList size={13} />
+                カード
+              </Link>
+              <Link
+                href={buildUrl({ view: "table", page: "1" })}
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                  isTableView ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                <Table2 size={13} />
+                テーブル
+              </Link>
+            </div>
+            <ChatSyncButton />
+          </div>
         </div>
 
         {/* Filter panel */}
@@ -176,6 +205,8 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
             <p className="text-sm font-medium text-slate-500">メッセージがありません</p>
             <p className="mt-1 text-xs text-slate-400">フィルタ条件を変えてお試しください</p>
           </div>
+        ) : isTableView ? (
+          <TableView messages={messages} offset={offset} />
         ) : (
           <div className="space-y-3">
             {messages.map((msg) => (

@@ -113,6 +113,12 @@ export async function processMessage(event: ChatEvent): Promise<void> {
       responseStatus: "unresponded",
       responseStatusUpdatedBy: null,
       responseStatusUpdatedAt: null,
+      taskSummary: null,
+      assignees: null,
+      notes: null,
+      workflowSteps: null,
+      workflowUpdatedBy: null,
+      workflowUpdatedAt: null,
       createdAt: FieldValue.serverTimestamp() as never,
     });
   } catch (e) {
