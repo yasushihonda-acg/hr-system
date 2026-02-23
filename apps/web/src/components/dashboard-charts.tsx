@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -65,6 +65,18 @@ export function CategoryDistributionChart({
   total: number;
 }) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setActiveCategory(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const filtered = data.filter((d) => d.count > 0);
   const sorted = [...filtered].sort((a, b) => b.count - a.count);
   const maxCount = sorted[0]?.count ?? 1;
@@ -77,7 +89,7 @@ export function CategoryDistributionChart({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+    <div ref={containerRef} className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
       {/* コンパクトドーナツ（固定200×200px） */}
       <div className="shrink-0">
         <PieChart width={200} height={200}>
@@ -116,7 +128,7 @@ export function CategoryDistributionChart({
                 fill={CATEGORY_COLORS[entry.category] ?? "#6b7280"}
                 opacity={
                   activeCategory !== null && activeCategory !== entry.category
-                    ? 0.25
+                    ? 0.45
                     : entry.category === "other"
                       ? 0.45
                       : 1
@@ -178,7 +190,7 @@ export function CategoryDistributionChart({
             <button
               key={item.category}
               type="button"
-              className={`flex w-full items-center gap-2 px-1 py-0.5 rounded cursor-pointer transition-all duration-150 ${isActive ? "bg-muted" : "hover:bg-muted/50"} ${isDimmed ? "opacity-30" : ""}`}
+              className={`flex w-full items-center gap-2 px-1 py-0.5 rounded cursor-pointer transition-all duration-150 ${isActive ? "bg-muted" : "hover:bg-muted/50"} ${isDimmed ? "opacity-50" : ""}`}
               onClick={() => handleToggle(item.category)}
             >
               {/* カラードット */}
