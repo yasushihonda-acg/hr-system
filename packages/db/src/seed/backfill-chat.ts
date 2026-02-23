@@ -742,7 +742,7 @@ export async function repairChatMessages(limit?: number): Promise<void> {
         continue;
       }
       await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
-      const memberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${u.userId}`;
+      const memberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${u.userId.replace(/^users\//, "")}`;
       const member = await fetchMember(requestClient, bearerToken, memberName);
       mentionedUsers.push({ ...u, displayName: member?.displayName ?? "" });
     }
@@ -763,7 +763,7 @@ export async function repairChatMessages(limit?: number): Promise<void> {
     let repairedSenderName = apiMsg.sender?.displayName || "";
     if (!repairedSenderName && apiMsg.sender?.name) {
       await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS));
-      const senderMemberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${apiMsg.sender.name}`;
+      const senderMemberName = `${data.spaceId ? `spaces/${data.spaceId}` : SPACE_NAME}/members/${apiMsg.sender.name.replace(/^users\//, "")}`;
       const senderMember = await fetchMember(requestClient, bearerToken, senderMemberName);
       repairedSenderName = senderMember?.displayName ?? "";
     }
