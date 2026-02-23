@@ -50,27 +50,21 @@ function formatCount(value: number | undefined): [string, string] {
 export function CategoryPieChart({ data }: { data: CategoryStat[] }) {
   const filtered = data.filter((d) => d.count > 0);
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={420}>
       <PieChart>
-        <Pie
-          data={filtered}
-          dataKey="count"
-          nameKey="label"
-          cx="50%"
-          cy="50%"
-          outerRadius={100}
-          label={(props: { payload?: CategoryStat }) => {
-            const d = props.payload;
-            return d ? `${d.label} ${d.percentage}%` : "";
-          }}
-          labelLine={false}
-          fontSize={11}
-        >
+        <Pie data={filtered} dataKey="count" nameKey="label" cx="50%" cy="42%" outerRadius={110}>
           {filtered.map((entry) => (
             <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] ?? "#6b7280"} />
           ))}
         </Pie>
         <Tooltip formatter={formatCount} />
+        <Legend
+          // biome-ignore lint/suspicious/noExplicitAny: Recharts LegendPayload does not expose pie data type
+          formatter={(value: string, entry: any) =>
+            `${value} ${(entry?.payload as CategoryStat | undefined)?.percentage ?? ""}%`
+          }
+          wrapperStyle={{ fontSize: 12 }}
+        />
       </PieChart>
     </ResponsiveContainer>
   );
