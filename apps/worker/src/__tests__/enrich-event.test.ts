@@ -155,7 +155,7 @@ describe("enrichChatEvent", () => {
       const result = await enrichChatEvent(event, client);
 
       expect(result.mentionedUsers).toEqual([{ userId: "users/99999", displayName: "山田 花子" }]);
-      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/users/99999");
+      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/99999");
     });
 
     it("displayName が既にある場合 getMember は呼ばれない", async () => {
@@ -234,7 +234,7 @@ describe("enrichChatEvent", () => {
       const result = await enrichChatEvent(event, client);
 
       expect(result.senderName).toBe("田中 太郎");
-      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/users/12345");
+      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/12345");
     });
 
     it("sender.displayName が空で getMember が null の場合は event.senderName を維持する", async () => {
@@ -247,7 +247,7 @@ describe("enrichChatEvent", () => {
       const result = await enrichChatEvent(event, client);
 
       expect(result.senderName).toBe("田中 太郎");
-      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/users/12345");
+      expect(client.getMember).toHaveBeenCalledWith("spaces/AAAA-qf5jX0/members/12345");
     });
   });
 

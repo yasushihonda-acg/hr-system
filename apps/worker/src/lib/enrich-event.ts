@@ -37,7 +37,7 @@ export async function enrichChatEvent(event: ChatEvent, client: ChatApiClient): 
     const mentionedUsers = await Promise.all(
       rawMentionedUsers.map(async (u) => {
         if (u.displayName !== "" || !u.userId) return u;
-        const memberName = `${event.spaceName}/members/${u.userId}`;
+        const memberName = `${event.spaceName}/members/${u.userId.replace(/^users\//, "")}`;
         const membership = await client.getMember(memberName);
         return { ...u, displayName: membership?.member?.displayName ?? "" };
       }),
@@ -69,7 +69,7 @@ export async function enrichChatEvent(event: ChatEvent, client: ChatApiClient): 
     let senderName = message.sender?.displayName || "";
     if (!senderName && message.sender?.name) {
       const senderMembership = await client.getMember(
-        `${event.spaceName}/members/${message.sender.name}`,
+        `${event.spaceName}/members/${message.sender.name.replace(/^users\//, "")}`,
       );
       senderName = senderMembership?.member?.displayName || "";
     }
