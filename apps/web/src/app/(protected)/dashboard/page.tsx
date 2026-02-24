@@ -1,4 +1,5 @@
 import { MessageSquare, TrendingUp } from "lucide-react";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { CategoryDistributionChart, TimelineChart } from "@/components/dashboard-charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStatsCategories, getStatsSpaces, getStatsSummary, getStatsTimeline } from "@/lib/api";
@@ -13,6 +14,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <AutoRefresh />
       <h1 className="text-2xl font-bold">ダッシュボード</h1>
 
       {/* サマリーカード */}
