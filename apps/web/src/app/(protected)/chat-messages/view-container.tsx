@@ -2,10 +2,12 @@
 
 import { LayoutList, MessageSquare, Table2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChatMessageSummary } from "@/lib/types";
 import { MessageCard } from "./message-card";
 import { TableView } from "./table-view";
+
+const AUTO_REFRESH_INTERVAL_MS = 60_000; // 60秒ごとに最新データを取得
 
 export function ViewContainer({
   messages,
@@ -19,6 +21,16 @@ export function ViewContainer({
   const [view, setView] = useState<"card" | "table">(initialView);
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // タブがアクティブな間、定期的にサーバーデータを再取得する
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        router.refresh();
+      }
+    }, AUTO_REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [router]);
 
   const switchView = (newView: "card" | "table") => {
     setView(newView); // 即座にクライアント側を切り替え
