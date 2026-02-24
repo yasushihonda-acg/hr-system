@@ -1,17 +1,18 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-24（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `8d3401d` — 全変更 push 済み、未プッシュなし）
+**最終更新**: 2026-02-25（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `37248f5` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — チャット分析・ダッシュボード 60秒自動リフレッシュ完了 (PR #105 マージ済み)**
+**Phase 2 — チャットスペース管理機能 (PR #106) + 各種バグ修正完了**
 
-「作成案」テーブルビュー（インライン編集・ワークフロー手順クリックサイクル）、Chat定期同期設定UI（Cloud Scheduler + 歯車アイコンパネル）、intent=null メッセージのテーブル編集対応、ビュー切替のクライアント側 useState 化（ページ遷移なし即時切替）、60秒自動リフレッシュ（バックグラウンドタブはスキップ）を実施。
-CI (Deploy to Cloud Run) は #105 マージ後に成功・デプロイ完了。
-Issue #96/#97 も調査・対応完了。**積み残しタスクなし。**
+チャットスペース管理機能（スペース追加・削除・一覧表示、管理タブ）を追加（PR #106）。
+その後、スペース別メッセージ数への表示名反映・/admin/spaces の「詳しく見る」展開セクション追加・AutoRefresh マウント直後即時リフレッシュ修正を実施。
+CI (Deploy to Cloud Run) は最新コミット `37248f5` 後に成功・デプロイ完了。
+Issue #96/#97 調査・対応完了。**積み残しタスクなし。**
 
 ---
 
@@ -64,40 +65,36 @@ Issue #96/#97 も調査・対応完了。**積み残しタスクなし。**
 | **—** | **fix(web): intent=null のメッセージもテーブルビューで編集可能にする** | **main (#103)** | **完了** |
 | **—** | **perf(web): ビュー切替をクライアント側 useState に変更 — ページ遷移なしで即時切替** | **main (#104)** | **完了** |
 | **—** | **feat(web): チャット分析・ダッシュボードに60秒自動リフレッシュを追加（バックグラウンドタブはスキップ）** | **main (#105)** | **完了** |
+| **—** | **feat: チャットスペース管理機能を追加（スペース追加・削除・一覧、管理タブ）** | **main (#106)** | **完了** |
+| **—** | **fix(web): /admin/spaces に「詳しく見る」展開セクションを追加** | **main (49cab10)** | **完了** |
+| **—** | **fix(dashboard): スペース別メッセージ数に表示名を反映** | **main (1d0a8a6)** | **完了** |
+| **—** | **fix(web): AutoRefresh をマウント直後に即時リフレッシュするよう修正** | **main (37248f5)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
+### fix(web): AutoRefresh をマウント直後に即時リフレッシュするよう修正 (37248f5)
+- `auto-refresh.tsx`: マウント直後に即時リフレッシュが走るよう修正（初回表示時の遅延解消）
+
+### fix(dashboard): スペース別メッセージ数に表示名を反映 (1d0a8a6)
+- `apps/api/src/routes/stats.ts`: ChatSpace ドキュメントから displayName を取得してスペース別件数に付与
+- `apps/web/.../dashboard/page.tsx` + `lib/types.ts`: displayName フィールドを受け取り表示に反映
+
+### fix(web): /admin/spaces に「詳しく見る」展開セクションを追加 (49cab10)
+- `admin/spaces/page.tsx`: 各スペースカードに折りたたみ展開セクションを追加（詳細情報表示）
+
+### feat: チャットスペース管理機能を追加 (f870c6b, PR #106)
+- `apps/api/src/routes/chat-spaces.ts` 新規（GET/POST/DELETE エンドポイント）
+- `packages/db`: ChatSpace 型・コレクション追加
+- `apps/web/admin/spaces/` 新規ページ（スペース追加フォーム・一覧・削除）
+- ナビに「スペース管理」リンクを追加、管理タブ構成を整理
+- `firestore.indexes.json` にインデックス追加
+
 ### feat(web): チャット分析・ダッシュボードに60秒自動リフレッシュを追加 (8d3401d, PR #105)
 - `components/auto-refresh.tsx` を共通クライアントコンポーネントとして新規作成
 - チャット分析ページおよびダッシュボードに `<AutoRefresh />` を適用
 - `document.visibilityState === "visible"` 判定でバックグラウンドタブはスキップ
-
-### perf(web): ビュー切替をクライアント側 useState に変更 (9d621c6, PR #104)
-- カード/テーブル切替タブを URL クエリパラメータではなく useState で管理
-- ページ遷移なしで即時切替が可能に（UX改善）
-
-### fix(web): intent=null のメッセージもテーブルビューで編集可能にする (5b20636, PR #103)
-- PATCH /response-status: IntentRecord がない場合に 404 ではなく自動作成するよう修正
-- table-view.tsx: !intent ガードをすべて削除（disabled/早期return/三項演算子）
-
-### feat(web): 「作成案」ワークフロー管理テーブルビューを追加 (764e9fb, PR #102)
-- packages/shared: WorkflowStepStatus / WorkflowSteps 型を追加
-- packages/db: IntentRecord に taskSummary / assignees / notes / workflowSteps フィールドを追加
-- apps/api: PATCH /chat-messages/:id/workflow エンドポイントを新規追加
-- apps/web: スプレッドシート風インライン編集テーブルビューを追加（カード/テーブル切替タブ）
-
-### fix(db): backfill-chat repair に Firestore transient エラーリトライを追加 (8417cf8)
-- DEADLINE_EXCEEDED / UNAVAILABLE 発生時に指数バックオフ（1s→2s→4s）で最大3回リトライ
-
-### feat(chat-sync): 定期同期 + 設定変更 UI を追加 (07f9ee8, PR #101)
-- Cloud Scheduler API 有効化、chat-sync-job ジョブ作成（*/5 * * * * Asia/Tokyo）
-- API: GET/PATCH /api/chat-messages/sync/config エンドポイント追加
-- Web: 歯車アイコンから同期間隔・有効/無効を設定するパネルを追加
-
-### fix(lint): import順序・noNonNullAssertion・noUselessConstructorを修正 (6caf10e)
-- Biome lint エラー（import 順序、non-null assertion、useless constructor）を一括修正
 
 ---
 
