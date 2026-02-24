@@ -113,6 +113,15 @@ export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
 export const WORKFLOW_STEP_STATUSES = ["undetermined", "completed", "not_required"] as const;
 export type WorkflowStepStatus = (typeof WORKFLOW_STEP_STATUSES)[number];
 
+/** チャットスペース設定 */
+export interface ChatSpaceConfig {
+  spaceId: string;
+  displayName: string;
+  isActive: boolean;
+  addedBy: string;
+  updatedBy: string | null;
+}
+
 /** 「作成案」ワークフロー管理（スプレッドシート互換） */
 export interface WorkflowSteps {
   /** ❶条件通知書（変更）の職員給与一覧SSへの反映 */

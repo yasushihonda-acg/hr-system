@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import {
   getChatSyncConfig,
   getSyncMetadata,
-  syncChatMessages,
+  syncAllActiveSpaces,
   updateChatSyncConfig,
   updateSyncMetadata,
 } from "../services/chat-sync.js";
@@ -45,18 +45,21 @@ chatSyncRoutes.post("/", async (c) => {
     errorMessage: null,
   });
 
-  // バックグラウンドで同期実行
-  const syncPromise = syncChatMessages();
+  // バックグラウンドで同期実行（全アクティブスペース）
+  const syncPromise = syncAllActiveSpaces();
   syncPromise
-    .then(async (result) => {
+    .then(async (results) => {
       const { Timestamp } = await import("firebase-admin/firestore");
+      const totalNew = results.reduce((sum, r) => sum + r.newMessages, 0);
+      const totalDup = results.reduce((sum, r) => sum + r.duplicateSkipped, 0);
+      const totalMs = results.reduce((sum, r) => sum + r.durationMs, 0);
       await updateSyncMetadata({
         status: "idle",
         lastSyncedAt: Timestamp.now(),
         lastResult: {
-          newMessages: result.newMessages,
-          duplicateSkipped: result.duplicateSkipped,
-          durationMs: result.durationMs,
+          newMessages: totalNew,
+          duplicateSkipped: totalDup,
+          durationMs: totalMs,
           syncedAt: Timestamp.now(),
         },
         errorMessage: null,

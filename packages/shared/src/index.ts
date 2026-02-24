@@ -6,6 +6,7 @@ export type {
   AuditEventType,
   ChangeType,
   ChatCategory,
+  ChatSpaceConfig,
   DraftStatus,
   EmploymentType,
   ResponseStatus,

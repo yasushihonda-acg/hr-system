@@ -29,7 +29,8 @@ export function Nav() {
   return (
     <nav className="flex items-center gap-0.5">
       {links.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        const activeHref = href === "/admin/users" ? "/admin" : href;
+        const active = activeHref === "/" ? pathname === "/" : pathname.startsWith(activeHref);
         return (
           <Link
             key={href}

@@ -303,6 +303,18 @@ export interface SyncStatus {
   errorMessage: string | null;
 }
 
+/** チャットスペース設定 */
+export interface ChatSpaceConfig {
+  id: string;
+  spaceId: string;
+  displayName: string;
+  isActive: boolean;
+  addedBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** GET /api/chat-messages/:id */
 export interface ChatMessageDetail extends ChatMessageSummary {
   rawPayload: Record<string, unknown> | null;
