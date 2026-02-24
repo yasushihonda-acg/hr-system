@@ -3,6 +3,7 @@
 import { LayoutList, MessageSquare, Table2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { AutoRefresh } from "@/components/auto-refresh";
 import type { ChatMessageSummary } from "@/lib/types";
 import { MessageCard } from "./message-card";
 import { TableView } from "./table-view";
@@ -36,6 +37,7 @@ export function ViewContainer({
 
   return (
     <div className="space-y-3">
+      <AutoRefresh />
       {/* ビュー切替 */}
       <div className="flex justify-end">
         <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
