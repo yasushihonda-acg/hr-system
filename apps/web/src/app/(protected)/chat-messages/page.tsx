@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { ChatSyncButton } from "@/components/chat/sync-button";
-import { getChatMessages, getStatsSpaces } from "@/lib/api";
+import { getChatMessages, getChatSpaces, getStatsSpaces } from "@/lib/api";
 import { CATEGORY_CONFIG } from "./message-card";
 import { ViewContainer } from "./view-container";
 
@@ -19,10 +19,6 @@ interface Props {
 }
 
 const PAGE_SIZE = 30;
-
-const SPACE_NAMES: Record<string, string> = {
-  "AAAA-qf5jX0": "人事関連(全社共通)",
-};
 
 function FilterPill({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
@@ -55,7 +51,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const isLowConfidence = params.lowConfidence === "1";
   const initialView = params.view === "table" ? ("table" as const) : ("card" as const);
 
-  const [{ data: messages, pagination }, spacesData] = await Promise.all([
+  const [{ data: messages, pagination }, spacesData, spacesConfig] = await Promise.all([
     getChatMessages({
       category: params.category,
       messageType: params.messageType,
@@ -65,7 +61,10 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
       offset,
     }),
     getStatsSpaces(),
+    getChatSpaces(),
   ]);
+
+  const spaceNameMap = Object.fromEntries(spacesConfig.data.map((s) => [s.spaceId, s.displayName]));
 
   function buildUrl(overrides: {
     category?: string;
@@ -123,7 +122,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                   <FilterPill
                     key={spaceId}
                     href={buildUrl({ spaceId, page: "1" })}
-                    label={`${SPACE_NAMES[spaceId] ?? spaceId} (${count})`}
+                    label={`${spaceNameMap[spaceId] ?? spaceId} (${count})`}
                     active={params.spaceId === spaceId}
                   />
                 ))}

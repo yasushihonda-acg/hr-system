@@ -263,6 +263,17 @@ export interface ClassificationRule {
   updatedAt: Timestamp;
 }
 
+/** チャットスペース設定 */
+export interface ChatSpaceConfig {
+  spaceId: string;
+  displayName: string;
+  isActive: boolean;
+  addedBy: string;
+  updatedBy: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** LLM分類ルール（システムプロンプト・Few-shot例） */
 export interface LlmClassificationRule {
   type: "system_prompt" | "few_shot_example" | "category_definition";

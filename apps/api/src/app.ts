@@ -7,6 +7,7 @@ import { rbacMiddleware } from "./middleware/rbac.js";
 import { adminUserRoutes } from "./routes/admin-users.js";
 import { auditLogRoutes } from "./routes/audit-logs.js";
 import { chatMessageRoutes } from "./routes/chat-messages.js";
+import { chatSpaceRoutes } from "./routes/chat-spaces.js";
 import { chatSyncRoutes } from "./routes/chat-sync.js";
 import { classificationRulesRoutes } from "./routes/classification-rules.js";
 import { employeeRoutes } from "./routes/employees.js";
@@ -44,6 +45,7 @@ app.route("/api/intent-stats", intentStatsRoutes);
 app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/classification-rules", classificationRulesRoutes);
 app.route("/api/llm-rules", llmRulesRoutes);
+app.route("/api/chat-spaces", chatSpaceRoutes);
 
 // グローバルエラーハンドラ
 app.onError(appErrorHandler);

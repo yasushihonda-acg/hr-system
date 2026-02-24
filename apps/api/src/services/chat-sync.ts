@@ -10,13 +10,13 @@ import { collections } from "@hr-system/db";
 import { Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth } from "google-auth-library";
 
-const SPACE_ID = process.env.CHAT_SPACE_ID ?? "AAAA-qf5jX0";
-const SPACE_NAME = `spaces/${SPACE_ID}`;
+const DEFAULT_SPACE_ID = process.env.CHAT_SPACE_ID ?? "AAAA-qf5jX0";
 const CHAT_API_BASE = "https://chat.googleapis.com/v1";
 const PEOPLE_API_BASE = "https://people.googleapis.com/v1";
 const REQUEST_DELAY_MS = 100;
 
 export interface SyncResult {
+  spaceId: string;
   newMessages: number;
   duplicateSkipped: number;
   durationMs: number;
@@ -92,8 +92,9 @@ export async function updateChatSyncConfig(
     .set({ ...data, updatedAt: Timestamp.now(), updatedBy } as ChatSyncConfig, { merge: true });
 }
 
-/** Chat API からメッセージを差分取得して Firestore に保存 */
-export async function syncChatMessages(): Promise<SyncResult> {
+/** Chat API からメッセージを差分取得して Firestore に保存（単一スペース） */
+export async function syncChatMessages(spaceId: string): Promise<SyncResult> {
+  const spaceName = `spaces/${spaceId}`;
   const startTime = Date.now();
 
   // 最終同期日時を取得（なければ24時間前）
@@ -110,7 +111,7 @@ export async function syncChatMessages(): Promise<SyncResult> {
   let pageToken: string | undefined;
 
   do {
-    const url = new URL(`${CHAT_API_BASE}/${SPACE_NAME}/messages`);
+    const url = new URL(`${CHAT_API_BASE}/${spaceName}/messages`);
     url.searchParams.set("filter", filter);
     url.searchParams.set("pageSize", "100");
     if (pageToken) {
@@ -220,7 +221,7 @@ export async function syncChatMessages(): Promise<SyncResult> {
 
       // Firestore に保存
       await collections.chatMessages.doc(docId).set({
-        spaceId: SPACE_ID,
+        spaceId: spaceId,
         googleMessageId,
         senderUserId,
         senderEmail: "",
@@ -260,5 +261,25 @@ export async function syncChatMessages(): Promise<SyncResult> {
     createdAt: Timestamp.now(),
   });
 
-  return { newMessages, duplicateSkipped, durationMs };
+  return { spaceId, newMessages, duplicateSkipped, durationMs };
+}
+
+/** アクティブな全スペースを同期 */
+export async function syncAllActiveSpaces(): Promise<SyncResult[]> {
+  const snapshot = await collections.chatSpaces.where("isActive", "==", true).get();
+
+  let spaceIds: string[];
+  if (snapshot.empty) {
+    // フォールバック: 環境変数
+    spaceIds = [DEFAULT_SPACE_ID];
+  } else {
+    spaceIds = snapshot.docs.map((doc) => doc.data().spaceId);
+  }
+
+  const results: SyncResult[] = [];
+  for (const id of spaceIds) {
+    const result = await syncChatMessages(id);
+    results.push(result);
+  }
+  return results;
 }

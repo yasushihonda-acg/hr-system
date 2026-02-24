@@ -31,6 +31,11 @@ vi.mock("@hr-system/db", () => ({
     auditLogs: {
       add: mockAdd,
     },
+    chatSpaces: {
+      where: vi.fn(() => ({
+        get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+      })),
+    },
   },
 }));
 
@@ -114,7 +119,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      const result = await syncChatMessages();
+      const result = await syncChatMessages("AAAA-qf5jX0");
       expect(result.newMessages).toBe(1);
       expect(result.duplicateSkipped).toBe(0);
     });
@@ -143,7 +148,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在する
       mockGet.mockResolvedValueOnce({ exists: true });
 
-      const result = await syncChatMessages();
+      const result = await syncChatMessages("AAAA-qf5jX0");
       expect(result.newMessages).toBe(0);
       expect(result.duplicateSkipped).toBe(1);
     });
@@ -169,7 +174,7 @@ describe("chat-sync service", () => {
         ),
       );
 
-      const result = await syncChatMessages();
+      const result = await syncChatMessages("AAAA-qf5jX0");
       expect(result.newMessages).toBe(0);
       expect(result.duplicateSkipped).toBe(0);
     });
@@ -183,7 +188,7 @@ describe("chat-sync service", () => {
         new Response("Internal Server Error", { status: 500 }),
       );
 
-      await expect(syncChatMessages()).rejects.toThrow("Chat API エラー: 500");
+      await expect(syncChatMessages("AAAA-qf5jX0")).rejects.toThrow("Chat API エラー: 500");
     });
 
     it("annotations を Chat API レスポンスから保存する（空配列にハードコードしない）", async () => {
@@ -219,7 +224,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       // .set() に渡された引数を検証
       const setArg = mockSet.mock.calls.find(
@@ -264,7 +269,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
         string,
@@ -304,7 +309,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
         string,
@@ -339,7 +344,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
         string,
@@ -381,7 +386,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
         string,
@@ -429,7 +434,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
         string,
@@ -472,7 +477,7 @@ describe("chat-sync service", () => {
       // chatMessages.doc(docId).get() → 存在しない
       mockGet.mockResolvedValueOnce({ exists: false });
 
-      await syncChatMessages();
+      await syncChatMessages("AAAA-qf5jX0");
 
       const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
         string,

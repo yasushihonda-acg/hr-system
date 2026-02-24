@@ -6,6 +6,7 @@ import type {
   CategoryStat,
   ChatMessageDetail,
   ChatMessageSummary,
+  ChatSpaceConfig,
   ClassificationRule,
   ConfidenceTimelinePoint,
   ConfusionMatrixEntry,
@@ -416,4 +417,31 @@ export function getOverridePatterns() {
   return request<{ patterns: OverridePattern[]; totalOverrides: number }>(
     "/api/intent-stats/override-patterns",
   );
+}
+
+// --- Chat Spaces ---
+
+export function getChatSpaces(all?: boolean) {
+  const qs = all ? "?all=true" : "";
+  return request<{ data: ChatSpaceConfig[] }>(`/api/chat-spaces${qs}`);
+}
+
+export function createChatSpace(body: { spaceId: string; displayName: string }) {
+  return request<{ success: boolean; id: string }>("/api/chat-spaces", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateChatSpace(id: string, body: { displayName?: string; isActive?: boolean }) {
+  return request<{ success: boolean }>(`/api/chat-spaces/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteChatSpace(id: string) {
+  return request<{ success: boolean }>(`/api/chat-spaces/${id}`, {
+    method: "DELETE",
+  });
 }

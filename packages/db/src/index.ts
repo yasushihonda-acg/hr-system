@@ -14,6 +14,7 @@ export type {
   ChatAnnotation,
   ChatAttachment,
   ChatMessage,
+  ChatSpaceConfig,
   ChatSyncConfig,
   ClassificationRule,
   Employee,

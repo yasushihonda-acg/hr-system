@@ -28,6 +28,11 @@ vi.mock("@hr-system/db", () => ({
     auditLogs: {
       add: mockAdd,
     },
+    chatSpaces: {
+      where: vi.fn(() => ({
+        get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
+      })),
+    },
   },
 }));
 
