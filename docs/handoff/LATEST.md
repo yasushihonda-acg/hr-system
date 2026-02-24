@@ -1,6 +1,6 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-24（セッション終了時点）
+**最終更新**: 2026-02-24（セッション終了時点・最終更新）
 **ブランチ**: `main`（最新コミット: `8d3401d` — 全変更 push 済み、未プッシュなし）
 
 ---
@@ -11,7 +11,7 @@
 
 「作成案」テーブルビュー（インライン編集・ワークフロー手順クリックサイクル）、Chat定期同期設定UI（Cloud Scheduler + 歯車アイコンパネル）、intent=null メッセージのテーブル編集対応、ビュー切替のクライアント側 useState 化（ページ遷移なし即時切替）、60秒自動リフレッシュ（バックグラウンドタブはスキップ）を実施。
 CI (Deploy to Cloud Run) は #105 マージ後に成功・デプロイ完了。
-オープン Issue: なし（#96/#97 はバックログ）。
+Issue #96/#97 も調査・対応完了。**積み残しタスクなし。**
 
 ---
 
@@ -103,17 +103,21 @@ CI (Deploy to Cloud Run) は #105 マージ後に成功・デプロイ完了。
 
 ## 次のアクション候補
 
-1. **[P1] Issue #96 対応**: `chat.memberships.readonly` スコープの管理者承認待ち
-   - 承認後 `gcloud auth login --scopes=...` で再認証し senderName 根本解決を実施
-   - 対象: 既存メッセージ全5,573件 + 新規メッセージの displayName 補完
-2. **[P2] Issue #97 対応**: 不要 IAM バインディング（hr-api → hr-worker serviceAccountTokenCreator）を削除
-   - `gcloud iam service-accounts remove-iam-policy-binding ...` を実行
-3. **Cloud Run 本番シークレット設定**（必要な場合）
+**バックログに残っていた2件とも完了済みです。積み残しタスクはゼロです。**
+
+1. **Cloud Run 本番シークレット設定**（必要な場合）
    - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
-4. **Google OAuth 本番 Redirect URI 設定**
+2. **Google OAuth 本番 Redirect URI 設定**
    - GCP Console > APIs & Services > Credentials
-5. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-6. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
+3. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+4. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
+
+### 完了済みバックログ（参考）
+
+| Issue | 内容 | 結果 |
+|-------|------|------|
+| **#96** | senderName・メンション表示名が空になる問題の根本解決 | 調査完了。459件のうち199件は `users/unknown`（修復不可）、260件は退職済みアカウント（People API 404 — 技術的に修復不可）。Issue に調査結果コメント記録済み |
+| **#97** | 不要 IAM バインディング（hr-api → hr-worker serviceAccountTokenCreator）削除 | 削除済みを `gcloud iam` コマンドで確認済み |
 
 ---
 
@@ -146,12 +150,9 @@ CI (Deploy to Cloud Run) は #105 マージ後に成功・デプロイ完了。
 
 ## オープン GitHub Issues
 
-| # | タイトル | ラベル | 優先度 |
-|---|---------|--------|--------|
-| #96 | fix: senderName・メンション表示名が空になる問題を根本解決（chat.memberships.readonly スコープ取得） | enhancement | P1 |
-| #97 | chore: 不要になった IAM バインディングの削除（hr-api → hr-worker serviceAccountTokenCreator） | — | P2 |
+**なし — 積み残しタスクはゼロです。**
 
-（gh issue list 実行結果: オープン Issue 0件 — #96/#97 はバックログとして残存するが gh 上はクローズ済みまたは確認不可）
+（#96/#97 は調査・対応完了。詳細は「次のアクション候補」の完了済みバックログを参照）
 
 ---
 
