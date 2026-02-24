@@ -8,7 +8,11 @@ import { notFound } from "../lib/errors.js";
 import { toISO } from "../lib/serialize.js";
 
 const createSpaceSchema = z.object({
-  spaceId: z.string().min(1).max(100),
+  spaceId: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[A-Za-z0-9_-]+$/, "Invalid spaceId format"),
   displayName: z.string().min(1).max(200),
 });
 
