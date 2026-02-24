@@ -133,9 +133,21 @@ statsRoutes.get("/spaces", async (c) => {
     spaceCounts[spaceId] = (spaceCounts[spaceId] ?? 0) + 1;
   }
 
+  // chat_spaces から displayName を取得してマッピング
+  const spaceConfigSnap = await collections.chatSpaces.get();
+  const displayNameMap: Record<string, string> = {};
+  for (const doc of spaceConfigSnap.docs) {
+    const d = doc.data();
+    displayNameMap[d.spaceId] = d.displayName;
+  }
+
   const spaces = Object.entries(spaceCounts)
     .sort(([, a], [, b]) => b - a)
-    .map(([spaceId, count]) => ({ spaceId, count }));
+    .map(([spaceId, count]) => ({
+      spaceId,
+      displayName: displayNameMap[spaceId] ?? spaceId,
+      count,
+    }));
 
   const result = { spaces, total: snapshot.docs.length };
   setCache(CACHE_KEY, result, TTL.STATS);

@@ -78,7 +78,9 @@ export default async function DashboardPage() {
           <div className="space-y-3">
             {spacesData.spaces.map((space) => (
               <div key={space.spaceId} className="flex items-center justify-between">
-                <span className="text-sm font-medium truncate max-w-[300px]">{space.spaceId}</span>
+                <span className="text-sm font-medium truncate max-w-[300px]">
+                  {space.displayName}
+                </span>
                 <div className="flex items-center gap-3">
                   <div className="h-2 rounded-full bg-primary/20 w-[200px]">
                     <div

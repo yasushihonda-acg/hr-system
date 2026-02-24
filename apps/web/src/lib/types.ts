@@ -148,6 +148,7 @@ export interface TimelinePoint {
 
 export interface SpaceStat {
   spaceId: string;
+  displayName: string;
   count: number;
 }
 
