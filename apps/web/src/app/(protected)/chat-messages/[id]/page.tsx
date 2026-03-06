@@ -8,6 +8,7 @@ import { ReclassifyForm } from "@/components/reclassify-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getChatMessage } from "@/lib/api";
 import { buildMessageSearchUrl } from "@/lib/utils";
+import { AiPanel } from "./ai-panel";
 import { ChatOpenButton } from "./chat-open-button";
 import { ResponseStatusControl } from "./response-status-control";
 
@@ -149,10 +150,10 @@ export default async function ChatMessageDetailPage({ params }: Props) {
           </CardContent>
         </Card>
 
-        {/* AI 分類結果 */}
+        {/* AI 分類 + 推奨アクション */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">分類結果</CardTitle>
+            <CardTitle className="text-lg">AI 分析</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {intent ? (
@@ -171,27 +172,6 @@ export default async function ChatMessageDetailPage({ params }: Props) {
                     </span>
                   )}
                 </div>
-                <Row
-                  label="分類方法"
-                  value={METHOD_LABELS[intent.classificationMethod] ?? intent.classificationMethod}
-                />
-                <Row label="信頼度" value={`${(intent.confidenceScore * 100).toFixed(1)}%`} />
-                {intent.regexPattern && (
-                  <Row
-                    label="マッチパターン"
-                    value={
-                      <code className="rounded bg-muted px-1 text-xs">{intent.regexPattern}</code>
-                    }
-                  />
-                )}
-                {intent.reasoning && (
-                  <div>
-                    <p className="text-muted-foreground">AI 推論</p>
-                    <p className="mt-1 rounded-md bg-muted p-2 text-xs leading-relaxed">
-                      {intent.reasoning}
-                    </p>
-                  </div>
-                )}
                 {intent.isManualOverride && intent.originalCategory && (
                   <Row
                     label="元のカテゴリ"
@@ -202,6 +182,17 @@ export default async function ChatMessageDetailPage({ params }: Props) {
                 {intent.overriddenAt && (
                   <Row label="修正日時" value={formatDateTime(intent.overriddenAt)} />
                 )}
+                {intent.regexPattern && (
+                  <Row
+                    label="マッチパターン"
+                    value={
+                      <code className="rounded bg-muted px-1 text-xs">{intent.regexPattern}</code>
+                    }
+                  />
+                )}
+                <div className="border-t border-border/60 pt-3">
+                  <AiPanel intent={intent} />
+                </div>
               </>
             ) : (
               <p className="text-muted-foreground">分類結果がありません</p>
