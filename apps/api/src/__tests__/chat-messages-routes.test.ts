@@ -2,10 +2,13 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted でホイスト） ---
-const { mockChatMessagesGet, mockIntentRecordsGet } = vi.hoisted(() => ({
-  mockChatMessagesGet: vi.fn(),
-  mockIntentRecordsGet: vi.fn(),
-}));
+const { mockChatMessagesGet, mockIntentRecordsGet, mockIntentRecordsCollectionGet } = vi.hoisted(
+  () => ({
+    mockChatMessagesGet: vi.fn(),
+    mockIntentRecordsGet: vi.fn(),
+    mockIntentRecordsCollectionGet: vi.fn(),
+  }),
+);
 
 vi.mock("@hr-system/db", () => {
   const chatMessagesQuery: Record<string, unknown> = {};
@@ -22,6 +25,7 @@ vi.mock("@hr-system/db", () => {
         orderBy: vi.fn(() => chatMessagesQuery),
       },
       intentRecords: {
+        get: vi.fn(() => mockIntentRecordsCollectionGet()),
         where: vi.fn(() => {
           const q: Record<string, unknown> = {
             get: vi.fn(() => mockIntentRecordsGet()),
@@ -80,7 +84,11 @@ function makeChatDoc(id: string) {
   };
 }
 
-function makeIntentSnap(id: string, confidenceScore: number) {
+function makeIntentSnap(
+  id: string,
+  confidenceScore: number,
+  responseStatus: string = "unresponded",
+) {
   return {
     docs: [
       {
@@ -93,7 +101,7 @@ function makeIntentSnap(id: string, confidenceScore: number) {
           isManualOverride: false,
           originalCategory: null,
           regexPattern: null,
-          responseStatus: "unresponded",
+          responseStatus,
           createdAt: now,
         }),
       },
@@ -158,6 +166,135 @@ describe("chat-messages routes", () => {
       const body = (await res.json()) as { data: Array<{ id: string }> };
       expect(body.data).toHaveLength(1);
       expect(body.data[0]!.id).toBe("msg-2");
+    });
+
+    it("responseStatus=in_progress で対応中のメッセージのみ返す", async () => {
+      mockChatMessagesGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2"), makeChatDoc("msg-3")],
+      });
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [
+          ...makeIntentSnap("msg-1", 0.8, "unresponded").docs,
+          ...makeIntentSnap("msg-2", 0.8, "in_progress").docs,
+          ...makeIntentSnap("msg-3", 0.8, "responded").docs,
+        ],
+      });
+
+      const res = await app.request("/api/chat-messages?responseStatus=in_progress");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: Array<{ id: string }> };
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0]!.id).toBe("msg-2");
+    });
+
+    it("responseStatus フィルタで intent が null のメッセージを除外する", async () => {
+      mockChatMessagesGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
+      });
+      // msg-1 の intent は存在しない
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [...makeIntentSnap("msg-2", 0.8, "responded").docs],
+      });
+
+      const res = await app.request("/api/chat-messages?responseStatus=responded");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: Array<{ id: string }> };
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0]!.id).toBe("msg-2");
+    });
+
+    it("responseStatus=unresponded で intent が null のメッセージも除外する", async () => {
+      // intent が null の場合、responseStatus のデフォルトは "unresponded" だが
+      // 実装上は intent == null のときフィルタ外となる
+      mockChatMessagesGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
+      });
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [...makeIntentSnap("msg-2", 0.8, "unresponded").docs],
+      });
+
+      const res = await app.request("/api/chat-messages?responseStatus=unresponded");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: Array<{ id: string }> };
+      // msg-1 は intent null → 除外, msg-2 は unresponded → 通過
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0]!.id).toBe("msg-2");
+    });
+  });
+
+  describe("GET /api/chat-messages/inbox-counts", () => {
+    it("対応状況別の件数を集計して返す", async () => {
+      mockIntentRecordsCollectionGet.mockResolvedValueOnce({
+        docs: [
+          { data: () => ({ responseStatus: "unresponded" }) },
+          { data: () => ({ responseStatus: "unresponded" }) },
+          { data: () => ({ responseStatus: "in_progress" }) },
+          { data: () => ({ responseStatus: "responded" }) },
+          { data: () => ({ responseStatus: "not_required" }) },
+          { data: () => ({ responseStatus: "not_required" }) },
+        ],
+      });
+
+      const res = await app.request("/api/chat-messages/inbox-counts");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        counts: {
+          unresponded: number;
+          in_progress: number;
+          responded: number;
+          not_required: number;
+        };
+      };
+      expect(body.counts).toEqual({
+        unresponded: 2,
+        in_progress: 1,
+        responded: 1,
+        not_required: 2,
+      });
+    });
+
+    it("responseStatus が未設定のドキュメントを unresponded としてカウントする", async () => {
+      mockIntentRecordsCollectionGet.mockResolvedValueOnce({
+        docs: [
+          { data: () => ({ responseStatus: undefined }) },
+          { data: () => ({}) },
+          { data: () => ({ responseStatus: "responded" }) },
+        ],
+      });
+
+      const res = await app.request("/api/chat-messages/inbox-counts");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        counts: {
+          unresponded: number;
+          in_progress: number;
+          responded: number;
+          not_required: number;
+        };
+      };
+      expect(body.counts.unresponded).toBe(2);
+      expect(body.counts.responded).toBe(1);
+    });
+
+    it("ドキュメントが空の場合は全カウント0を返す", async () => {
+      mockIntentRecordsCollectionGet.mockResolvedValueOnce({ docs: [] });
+
+      const res = await app.request("/api/chat-messages/inbox-counts");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        counts: {
+          unresponded: number;
+          in_progress: number;
+          responded: number;
+          not_required: number;
+        };
+      };
+      expect(body.counts).toEqual({
+        unresponded: 0,
+        in_progress: 0,
+        responded: 0,
+        not_required: 0,
+      });
     });
   });
 });
