@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { ContentWithMentions } from "@/components/chat/rich-content";
 import type { ChatMessageSummary } from "@/lib/types";
-import { buildMessageSearchUrl } from "@/lib/utils";
+import { buildMessageSearchUrl, formatDateTimeJST } from "@/lib/utils";
 
 export const CATEGORY_CONFIG: Record<string, { label: string; accent: string; pill: string }> = {
   salary: {
@@ -105,15 +105,7 @@ function getInitials(name: string): string {
   return name.slice(0, 2);
 }
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const formatDateTime = formatDateTimeJST;
 
 function ConfidenceMeter({ score }: { score: number }) {
   const pct = Math.round(score * 100);

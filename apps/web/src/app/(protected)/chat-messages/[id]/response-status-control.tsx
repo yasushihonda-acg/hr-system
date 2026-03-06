@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDateTimeJST } from "@/lib/utils";
 import { updateResponseStatusAction } from "./actions";
 
 type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
@@ -64,19 +65,7 @@ export function ResponseStatusControl({ chatMessageId, current, updatedBy, updat
       {updatedBy && !saving && (
         <p className="text-xs text-muted-foreground">
           最終更新: {updatedBy}
-          {updatedAt && (
-            <span>
-              {" "}
-              (
-              {new Date(updatedAt).toLocaleString("ja-JP", {
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-              )
-            </span>
-          )}
+          {updatedAt && <span> ({formatDateTimeJST(updatedAt)})</span>}
         </p>
       )}
     </div>

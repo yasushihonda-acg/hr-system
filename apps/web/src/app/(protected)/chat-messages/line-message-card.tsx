@@ -1,6 +1,7 @@
 "use client";
 
 import type { LineMessageSummary } from "@/lib/types";
+import { formatDateTimeJST } from "@/lib/utils";
 
 const AVATAR_PALETTE = [
   "bg-rose-400",
@@ -25,15 +26,7 @@ function getInitials(name: string): string {
   return name.slice(0, 2);
 }
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const formatDateTime = formatDateTimeJST;
 
 export function LineMessageCard({ msg }: { msg: LineMessageSummary }) {
   const senderDisplay = msg.senderName || "不明";
