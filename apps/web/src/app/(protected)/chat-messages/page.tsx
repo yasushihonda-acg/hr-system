@@ -3,15 +3,24 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { ChatSyncButton } from "@/components/chat/sync-button";
-import { getChatMessages, getChatSpaces, getStatsSpaces } from "@/lib/api";
+import {
+  getChatMessages,
+  getChatSpaces,
+  getLineMessageStats,
+  getLineMessages,
+  getStatsSpaces,
+} from "@/lib/api";
+import { LineViewContainer } from "./line-view-container";
 import { CATEGORY_CONFIG } from "./message-card";
 import { ViewContainer } from "./view-container";
 
 interface Props {
   searchParams: Promise<{
+    source?: string;
     category?: string;
     messageType?: "MESSAGE" | "THREAD_REPLY";
     spaceId?: string;
+    groupId?: string;
     lowConfidence?: string;
     page?: string;
     view?: string;
@@ -46,11 +55,166 @@ function FilterRow({ label, children }: { label: string; children: ReactNode }) 
 
 export default async function ChatMessagesPage({ searchParams }: Props) {
   const params = await searchParams;
+  const source = params.source === "line" ? "line" : "gchat";
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
   const isLowConfidence = params.lowConfidence === "1";
   const initialView = params.view === "table" ? ("table" as const) : ("card" as const);
 
+  function buildUrl(overrides: {
+    source?: string;
+    category?: string;
+    messageType?: string;
+    spaceId?: string;
+    groupId?: string;
+    lowConfidence?: string;
+    page?: string;
+    view?: string;
+  }) {
+    const sp = new URLSearchParams();
+    const src = "source" in overrides ? overrides.source : params.source;
+    const category = "category" in overrides ? overrides.category : params.category;
+    const messageType = "messageType" in overrides ? overrides.messageType : params.messageType;
+    const spaceId = "spaceId" in overrides ? overrides.spaceId : params.spaceId;
+    const groupId = "groupId" in overrides ? overrides.groupId : params.groupId;
+    const lowConfidence =
+      "lowConfidence" in overrides ? overrides.lowConfidence : params.lowConfidence;
+    const view = "view" in overrides ? overrides.view : params.view;
+    const p = overrides.page;
+    if (src && src !== "gchat") sp.set("source", src);
+    if (category) sp.set("category", category);
+    if (messageType) sp.set("messageType", messageType);
+    if (spaceId) sp.set("spaceId", spaceId);
+    if (groupId) sp.set("groupId", groupId);
+    if (lowConfidence) sp.set("lowConfidence", lowConfidence);
+    if (view && view !== "card") sp.set("view", view);
+    if (p && p !== "1") sp.set("page", p);
+    const qs = sp.toString();
+    return `/chat-messages${qs ? `?${qs}` : ""}`;
+  }
+
+  // Source tabs (shared between both views)
+  const sourceTabsHtml = (
+    <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
+      <Link
+        href={buildUrl({
+          source: undefined,
+          page: "1",
+          category: undefined,
+          messageType: undefined,
+          spaceId: undefined,
+          groupId: undefined,
+          lowConfidence: undefined,
+        })}
+        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+          source === "gchat" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+        }`}
+      >
+        Google Chat
+      </Link>
+      <Link
+        href={buildUrl({
+          source: "line",
+          page: "1",
+          category: undefined,
+          messageType: undefined,
+          spaceId: undefined,
+          groupId: undefined,
+          lowConfidence: undefined,
+        })}
+        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+          source === "line" ? "bg-[#06C755] text-white" : "text-slate-500 hover:text-slate-700"
+        }`}
+      >
+        LINE
+      </Link>
+    </div>
+  );
+
+  if (source === "line") {
+    const [{ data: lineMessages, pagination }, statsData] = await Promise.all([
+      getLineMessages({ groupId: params.groupId, limit: PAGE_SIZE, offset }),
+      getLineMessageStats(),
+    ]);
+
+    const totalCount = offset + lineMessages.length;
+
+    return (
+      <div className="-mx-4 -mt-4 min-h-screen bg-slate-50/80 px-4 pt-4">
+        <div className="mx-auto max-w-4xl space-y-5">
+          {/* Page header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">チャット分析</h1>
+              <p className="mt-0.5 text-xs text-slate-500">
+                {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
+              </p>
+            </div>
+            {sourceTabsHtml}
+          </div>
+
+          {/* LINE Filter panel */}
+          {statsData.groups.length > 0 && (
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+              <FilterRow label="グループ">
+                <FilterPill
+                  href={buildUrl({ groupId: undefined, page: "1" })}
+                  label="すべて"
+                  active={!params.groupId}
+                />
+                {statsData.groups.map(({ groupId, groupName, count }) => (
+                  <FilterPill
+                    key={groupId}
+                    href={buildUrl({ groupId, page: "1" })}
+                    label={`${groupName ?? groupId.slice(0, 8)} (${count})`}
+                    active={params.groupId === groupId}
+                  />
+                ))}
+              </FilterRow>
+            </div>
+          )}
+
+          {/* LINE Message feed */}
+          <Suspense fallback={null}>
+            <LineViewContainer messages={lineMessages} />
+          </Suspense>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <Link
+              href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
+              aria-disabled={page <= 1}
+              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                page <= 1
+                  ? "pointer-events-none text-slate-300"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <ChevronLeft size={16} />
+              前へ
+            </Link>
+            <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-700">
+              ページ {page}
+            </span>
+            <Link
+              href={pagination.hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
+              aria-disabled={!pagination.hasMore}
+              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                !pagination.hasMore
+                  ? "pointer-events-none text-slate-300"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              次へ
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Google Chat view (default)
   const [{ data: messages, pagination }, spacesData, spacesConfig] = await Promise.all([
     getChatMessages({
       category: params.category,
@@ -65,33 +229,6 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   ]);
 
   const spaceNameMap = Object.fromEntries(spacesConfig.data.map((s) => [s.spaceId, s.displayName]));
-
-  function buildUrl(overrides: {
-    category?: string;
-    messageType?: string;
-    spaceId?: string;
-    lowConfidence?: string;
-    page?: string;
-    view?: string;
-  }) {
-    const sp = new URLSearchParams();
-    const category = "category" in overrides ? overrides.category : params.category;
-    const messageType = "messageType" in overrides ? overrides.messageType : params.messageType;
-    const spaceId = "spaceId" in overrides ? overrides.spaceId : params.spaceId;
-    const lowConfidence =
-      "lowConfidence" in overrides ? overrides.lowConfidence : params.lowConfidence;
-    const view = "view" in overrides ? overrides.view : params.view;
-    const p = overrides.page;
-    if (category) sp.set("category", category);
-    if (messageType) sp.set("messageType", messageType);
-    if (spaceId) sp.set("spaceId", spaceId);
-    if (lowConfidence) sp.set("lowConfidence", lowConfidence);
-    if (view && view !== "card") sp.set("view", view);
-    if (p && p !== "1") sp.set("page", p);
-    const qs = sp.toString();
-    return `/chat-messages${qs ? `?${qs}` : ""}`;
-  }
-
   const totalCount = offset + messages.length;
 
   return (
@@ -105,7 +242,10 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
               {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
             </p>
           </div>
-          <ChatSyncButton />
+          <div className="flex items-center gap-2">
+            {sourceTabsHtml}
+            <ChatSyncButton />
+          </div>
         </div>
 
         {/* Filter panel */}

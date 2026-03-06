@@ -14,6 +14,8 @@ import type {
   DraftSummary,
   EmployeeSummary,
   IntentStatsSummary,
+  LineGroupStat,
+  LineMessageSummary,
   LlmClassificationRule,
   OverridePattern,
   OverrideRatePoint,
@@ -417,6 +419,30 @@ export function getOverridePatterns() {
   return request<{ patterns: OverridePattern[]; totalOverrides: number }>(
     "/api/intent-stats/override-patterns",
   );
+}
+
+// --- LINE Messages ---
+
+export interface LineMessageListParams {
+  groupId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export function getLineMessages(params?: LineMessageListParams) {
+  const sp = new URLSearchParams();
+  if (params?.groupId) sp.set("groupId", params.groupId);
+  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.offset) sp.set("offset", String(params.offset));
+  const qs = sp.toString();
+  return request<{
+    data: LineMessageSummary[];
+    pagination: { limit: number; offset: number; hasMore: boolean };
+  }>(`/api/line-messages${qs ? `?${qs}` : ""}`);
+}
+
+export function getLineMessageStats() {
+  return request<{ groups: LineGroupStat[]; total: number }>("/api/line-messages/stats");
 }
 
 // --- Chat Spaces ---
