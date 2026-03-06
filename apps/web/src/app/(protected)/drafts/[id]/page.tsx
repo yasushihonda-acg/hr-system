@@ -66,7 +66,7 @@ export default async function DraftDetailPage({ params }: Props) {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <Row label="変更種別" value={draft.changeType === "mechanical" ? "機械的" : "裁量的"} />
-            <Row label="理由" value={draft.reason} />
+            <Row label="理由" value={draft.reason ?? "—"} />
             <Row label="適用日" value={formatDate(draft.effectiveDate)} />
             <Row label="作成日時" value={formatDateTime(draft.createdAt)} />
             <Row label="更新日時" value={formatDateTime(draft.updatedAt)} />
@@ -133,9 +133,12 @@ export default async function DraftDetailPage({ params }: Props) {
               <Row label="信頼度" value={`${(draft.aiConfidence * 100).toFixed(0)}%`} />
             )}
             {draft.aiReasoning && <Row label="推論" value={draft.aiReasoning} />}
-            {draft.appliedRules.length > 0 && (
-              <Row label="適用ルール" value={draft.appliedRules.join(", ")} />
-            )}
+            {(() => {
+              const ruleKeys = draft.appliedRules ? Object.keys(draft.appliedRules) : [];
+              return ruleKeys.length > 0 ? (
+                <Row label="適用ルール" value={ruleKeys.join(", ")} />
+              ) : null;
+            })()}
           </CardContent>
         </Card>
       )}
@@ -170,7 +173,7 @@ export default async function DraftDetailPage({ params }: Props) {
                       <StatusBadge status={log.toStatus} />
                     </TableCell>
                     <TableCell>{log.actorEmail}</TableCell>
-                    <TableCell>{log.comment ?? "-"}</TableCell>
+                    <TableCell>{log.comment ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

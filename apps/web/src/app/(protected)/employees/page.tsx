@@ -68,10 +68,10 @@ export default async function EmployeesPage({ searchParams }: Props) {
                 <TableRow key={e.id}>
                   <TableCell className="font-mono">{e.employeeNumber}</TableCell>
                   <TableCell className="font-medium">{e.name}</TableCell>
-                  <TableCell>{e.email}</TableCell>
+                  <TableCell>{e.email ?? "—"}</TableCell>
                   <TableCell>{EMPLOYMENT_LABELS[e.employmentType] ?? e.employmentType}</TableCell>
-                  <TableCell>{e.department}</TableCell>
-                  <TableCell>{e.position}</TableCell>
+                  <TableCell>{e.department ?? "—"}</TableCell>
+                  <TableCell>{e.position ?? "—"}</TableCell>
                   <TableCell>{formatDate(e.hireDate)}</TableCell>
                   <TableCell>
                     <Badge variant={e.isActive ? "default" : "secondary"}>

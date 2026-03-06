@@ -2,6 +2,7 @@ import type {
   ActorRole,
   ChangeType,
   DraftStatus,
+  SalaryItemType,
   WorkflowStepStatus,
   WorkflowSteps,
 } from "@hr-system/shared";
@@ -13,7 +14,7 @@ export interface DraftSummary {
   chatMessageId: string | null;
   status: DraftStatus;
   changeType: ChangeType;
-  reason: string;
+  reason: string | null;
   beforeBaseSalary: number;
   afterBaseSalary: number;
   beforeTotal: number;
@@ -21,7 +22,7 @@ export interface DraftSummary {
   effectiveDate: string;
   aiConfidence: number | null;
   aiReasoning: string | null;
-  appliedRules: string[];
+  appliedRules: Record<string, unknown> | null;
   reviewedBy: string | null;
   reviewedAt: string | null;
   approvedBy: string | null;
@@ -40,9 +41,11 @@ export interface DraftDetail extends DraftSummary {
 export interface DraftItem {
   id: string;
   draftId: string;
-  category: string;
-  beforeValue: number;
-  afterValue: number;
+  itemType: SalaryItemType;
+  itemName: string;
+  beforeAmount: number;
+  afterAmount: number;
+  isChanged: boolean;
 }
 
 export interface ApprovalLogEntry {
@@ -62,12 +65,29 @@ export interface EmployeeSummary {
   id: string;
   employeeNumber: string;
   name: string;
-  email: string;
+  email: string | null;
   employmentType: string;
-  department: string;
-  position: string;
+  department: string | null;
+  position: string | null;
   hireDate: string;
   isActive: boolean;
+}
+
+/** GET /api/employees/:id レスポンス */
+export interface EmployeeDetail extends EmployeeSummary {
+  googleChatUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  currentSalary: {
+    id: string;
+    baseSalary: number;
+    positionAllowance: number;
+    regionAllowance: number;
+    qualificationAllowance: number;
+    otherAllowance: number;
+    totalSalary: number;
+    effectiveFrom: string;
+  } | null;
 }
 
 /** GET /api/audit-logs レスポンスの1件 */
@@ -76,8 +96,8 @@ export interface AuditLogEntry {
   eventType: string;
   entityType: string;
   entityId: string;
-  actorEmail: string;
-  actorRole: ActorRole;
+  actorEmail: string | null;
+  actorRole: ActorRole | null;
   details: Record<string, unknown>;
   createdAt: string;
 }
