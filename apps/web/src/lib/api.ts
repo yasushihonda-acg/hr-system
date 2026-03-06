@@ -165,6 +165,7 @@ export interface ChatMessageListParams {
   messageType?: "MESSAGE" | "THREAD_REPLY";
   threadName?: string;
   category?: string;
+  responseStatus?: "unresponded" | "in_progress" | "responded" | "not_required";
   maxConfidence?: number;
   limit?: number;
   offset?: number;
@@ -176,6 +177,7 @@ export function getChatMessages(params?: ChatMessageListParams) {
   if (params?.messageType) sp.set("messageType", params.messageType);
   if (params?.threadName) sp.set("threadName", params.threadName);
   if (params?.category) sp.set("category", params.category);
+  if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
   if (params?.maxConfidence !== undefined) sp.set("maxConfidence", String(params.maxConfidence));
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.offset) sp.set("offset", String(params.offset));
@@ -205,6 +207,17 @@ export function updateResponseStatus(
     `/api/chat-messages/${id}/response-status`,
     { method: "PATCH", body: JSON.stringify({ responseStatus }) },
   );
+}
+
+export interface InboxCounts {
+  unresponded: number;
+  in_progress: number;
+  responded: number;
+  not_required: number;
+}
+
+export function getInboxCounts() {
+  return request<{ counts: InboxCounts }>("/api/chat-messages/inbox-counts");
 }
 
 export function updateWorkflow(id: string, body: WorkflowUpdateRequest) {
