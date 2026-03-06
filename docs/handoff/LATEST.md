@@ -1,18 +1,18 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-02-25（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `37248f5` — 全変更 push 済み、未プッシュなし）
+**最終更新**: 2026-03-06（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `53a79a2` — 全変更 push 済み、未プッシュなし）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 2 — チャットスペース管理機能 (PR #106) + 各種バグ修正完了**
+**Phase 2 — LINE グループチャット収集・表示機能 (PR #113) + ルーティング修正完了**
 
-チャットスペース管理機能（スペース追加・削除・一覧表示、管理タブ）を追加（PR #106）。
-その後、スペース別メッセージ数への表示名反映・/admin/spaces の「詳しく見る」展開セクション追加・AutoRefresh マウント直後即時リフレッシュ修正を実施。
-CI (Deploy to Cloud Run) は最新コミット `37248f5` 後に成功・デプロイ完了。
-Issue #96/#97 調査・対応完了。**積み残しタスクなし。**
+LINE グループチャット収集・表示機能（Webhook受信・Firestore保存・Web表示タブ切替）を追加（PR #113）。
+その後、`/api/line-messages/stats` の重複ルートマウントによるルーティングバグを修正（`53a79a2`）。
+CI (Deploy to Cloud Run) は最新コミット `53a79a2` 後に成功・デプロイ完了。
+**積み残しタスクなし。**
 
 ---
 
@@ -69,10 +69,22 @@ Issue #96/#97 調査・対応完了。**積み残しタスクなし。**
 | **—** | **fix(web): /admin/spaces に「詳しく見る」展開セクションを追加** | **main (49cab10)** | **完了** |
 | **—** | **fix(dashboard): スペース別メッセージ数に表示名を反映** | **main (1d0a8a6)** | **完了** |
 | **—** | **fix(web): AutoRefresh をマウント直後に即時リフレッシュするよう修正** | **main (37248f5)** | **完了** |
+| **#108〜#112** | **feat: LINE グループチャット収集・表示機能（Webhook・Firestore・API・Web タブ切替）** | **main (d259470, PR #113)** | **完了** |
+| **—** | **fix(api): line-messages/stats ルーティング修正 — 重複マウントを削除** | **main (53a79a2)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### fix(api): line-messages/stats ルーティング修正 — 重複マウントを削除 (53a79a2)
+- `apps/api/src/app.ts`: lineMessageRoutes の二重マウントを削除。`/stats` が `/:id` にヒットするバグを解消
+
+### feat: LINE グループチャット収集・表示機能 (d259470, PR #113)
+- `packages/db`: `LineMessage` 型定義・`lineMessages` コレクション追加
+- `apps/worker`: LINE Webhook エンドポイント (`POST /line/webhook`) — 署名検証・Firestore保存・重複排除・グループ名/表示名取得
+- `apps/api`: GET /api/line-messages（一覧・グループフィルタ・ページネーション）/ /stats（グループ別統計）/ /:id（詳細）
+- `apps/web`: チャット分析ページにソースタブ（Google Chat / LINE）追加。LINEメッセージカード（グリーン #06C755 アクセント）・グループフィルタ
+- テスト 7件追加（署名検証・重複排除・非グループスキップ等）
 
 ### fix(web): AutoRefresh をマウント直後に即時リフレッシュするよう修正 (37248f5)
 - `auto-refresh.tsx`: マウント直後に即時リフレッシュが走るよう修正（初回表示時の遅延解消）
@@ -84,30 +96,21 @@ Issue #96/#97 調査・対応完了。**積み残しタスクなし。**
 ### fix(web): /admin/spaces に「詳しく見る」展開セクションを追加 (49cab10)
 - `admin/spaces/page.tsx`: 各スペースカードに折りたたみ展開セクションを追加（詳細情報表示）
 
-### feat: チャットスペース管理機能を追加 (f870c6b, PR #106)
-- `apps/api/src/routes/chat-spaces.ts` 新規（GET/POST/DELETE エンドポイント）
-- `packages/db`: ChatSpace 型・コレクション追加
-- `apps/web/admin/spaces/` 新規ページ（スペース追加フォーム・一覧・削除）
-- ナビに「スペース管理」リンクを追加、管理タブ構成を整理
-- `firestore.indexes.json` にインデックス追加
-
-### feat(web): チャット分析・ダッシュボードに60秒自動リフレッシュを追加 (8d3401d, PR #105)
-- `components/auto-refresh.tsx` を共通クライアントコンポーネントとして新規作成
-- チャット分析ページおよびダッシュボードに `<AutoRefresh />` を適用
-- `document.visibilityState === "visible"` 判定でバックグラウンドタブはスキップ
-
 ---
 
 ## 次のアクション候補
 
-**バックログに残っていた2件とも完了済みです。積み残しタスクはゼロです。**
+**積み残しタスクはゼロです。**
 
-1. **Cloud Run 本番シークレット設定**（必要な場合）
+1. **LINE Webhook 本番設定**
+   - LINE Developers Console で Webhook URL を Cloud Run Worker の `/line/webhook` に設定
+   - `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` を Cloud Run Worker の Secret に追加
+2. **Cloud Run 本番シークレット設定**（未設定の場合）
    - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
-2. **Google OAuth 本番 Redirect URI 設定**
+3. **Google OAuth 本番 Redirect URI 設定**
    - GCP Console > APIs & Services > Credentials
-3. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-4. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
+4. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+5. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
 
 ### 完了済みバックログ（参考）
 
