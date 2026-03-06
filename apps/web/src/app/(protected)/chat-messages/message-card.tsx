@@ -96,7 +96,7 @@ const AVATAR_PALETTE = [
 function getAvatarColor(name: string): string {
   let h = 0;
   for (const c of name) h = ((h << 5) - h + c.charCodeAt(0)) | 0;
-  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length] ?? "bg-slate-500";
+  return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length] ?? "bg-muted-foreground";
 }
 
 function getInitials(name: string): string {
@@ -113,7 +113,7 @@ function ConfidenceMeter({ score }: { score: number }) {
   const txt = pct >= 80 ? "text-emerald-700" : pct >= 60 ? "text-amber-600" : "text-rose-600";
   return (
     <div className="flex items-center gap-1.5">
-      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-slate-200">
+      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-muted">
         <div className={`h-full rounded-full ${bar}`} style={{ width: `${pct}%` }} />
       </div>
       <span className={`font-mono text-xs tabular-nums ${txt}`}>{pct}%</span>
@@ -141,12 +141,12 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
       className="group block w-full cursor-pointer text-left"
     >
       <div
-        className={`relative border-l-4 ${accent} rounded-r-xl bg-white px-5 py-4 shadow ring-1 ring-slate-200/80 transition-all duration-150 group-hover:shadow-lg group-hover:ring-slate-300 ${
+        className={`relative border-l-4 ${accent} rounded-r-xl bg-card px-5 py-4 shadow ring-1 ring-border/80 transition-all duration-150 group-hover:shadow-lg group-hover:ring-border ${
           isReply ? "ml-8" : ""
         }`}
       >
         {isReply && (
-          <div className="absolute -left-[30px] top-4 text-slate-400">
+          <div className="absolute -left-[30px] top-4 text-muted-foreground">
             <CornerDownRight size={15} />
           </div>
         )}
@@ -167,19 +167,19 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span
-                  className={`truncate text-sm font-bold ${senderDisplay === "不明" ? "italic text-slate-400" : "text-slate-800"}`}
+                  className={`truncate text-sm font-bold ${senderDisplay === "不明" ? "italic text-muted-foreground" : "text-foreground"}`}
                 >
                   {senderDisplay}
                 </span>
                 {msg.isEdited && (
-                  <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-slate-400">
+                  <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground">
                     <Pencil size={9} />
                     編集済
                   </span>
                 )}
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <time className="font-mono text-xs text-slate-400 tabular-nums">
+                <time className="font-mono text-xs text-muted-foreground tabular-nums">
                   {formatDateTime(msg.createdAt)}
                 </time>
                 {buildMessageSearchUrl(msg.content) && (
@@ -193,7 +193,7 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                         "noopener,noreferrer,width=1400,height=900",
                       );
                     }}
-                    className="text-slate-400 transition-colors hover:text-slate-600"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
                     title="Google Chat でメッセージを検索して開く（新しいウィンドウ）"
                   >
                     <ExternalLink size={12} />
@@ -207,7 +207,7 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
               content={msg.content}
               formattedContent={msg.formattedContent}
               mentionedUsers={msg.mentionedUsers}
-              className="mb-2.5 line-clamp-2 text-sm leading-relaxed text-slate-700"
+              className="mb-2.5 line-clamp-2 text-sm leading-relaxed text-foreground/80"
             />
 
             {/* Metadata */}
@@ -219,7 +219,7 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                   {catCfg.label}
                 </span>
               ) : (
-                <span className="text-xs text-slate-400">未分類</span>
+                <span className="text-xs text-muted-foreground">未分類</span>
               )}
               {methCfg && (
                 <span
@@ -244,7 +244,7 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
             {/* Attachments */}
             {msg.attachments.length > 0 && (
               <div className="mt-2">
-                <p className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-400">
+                <p className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
                   <Paperclip size={11} />
                   添付ファイル ({msg.attachments.length}件)
                 </p>

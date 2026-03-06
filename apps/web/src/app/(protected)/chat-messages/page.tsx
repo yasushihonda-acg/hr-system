@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
@@ -10,6 +10,7 @@ import {
   getLineMessages,
   getStatsSpaces,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import { LineViewContainer } from "./line-view-container";
 import { CATEGORY_CONFIG } from "./message-card";
 import { ViewContainer } from "./view-container";
@@ -33,9 +34,12 @@ function FilterPill({ href, label, active }: { href: string; label: string; acti
   return (
     <Link
       href={href}
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
-        active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-      }`}
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+        active
+          ? "bg-[var(--gradient-from)] text-white"
+          : "bg-muted text-muted-foreground hover:bg-accent",
+      )}
     >
       {label}
     </Link>
@@ -45,7 +49,7 @@ function FilterPill({ href, label, active }: { href: string; label: string; acti
 function FilterRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+      <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       {children}
@@ -95,7 +99,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
 
   // Source tabs (shared between both views)
   const sourceTabsHtml = (
-    <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
+    <div className="flex rounded-lg border border-border/60 bg-card p-0.5">
       <Link
         href={buildUrl({
           source: undefined,
@@ -106,9 +110,12 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
           groupId: undefined,
           lowConfidence: undefined,
         })}
-        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-          source === "gchat" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
-        }`}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+          source === "gchat"
+            ? "bg-[var(--gradient-from)] text-white"
+            : "text-muted-foreground hover:text-foreground",
+        )}
       >
         Google Chat
       </Link>
@@ -122,9 +129,12 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
           groupId: undefined,
           lowConfidence: undefined,
         })}
-        className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-          source === "line" ? "bg-[#06C755] text-white" : "text-slate-500 hover:text-slate-700"
-        }`}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+          source === "line"
+            ? "bg-[#06C755] text-white"
+            : "text-muted-foreground hover:text-foreground",
+        )}
       >
         LINE
       </Link>
@@ -140,76 +150,51 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
     const totalCount = offset + lineMessages.length;
 
     return (
-      <div className="-mx-4 -mt-4 min-h-screen bg-slate-50/80 px-4 pt-4">
-        <div className="mx-auto max-w-4xl space-y-5">
-          {/* Page header */}
-          <div className="flex items-center justify-between">
+      <div className="mx-auto max-w-4xl space-y-5">
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-accent shadow-sm">
+              <MessageSquare className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">チャット分析</h1>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <h1 className="text-xl font-bold tracking-tight">チャット分析</h1>
+              <p className="text-xs text-muted-foreground">
                 {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
               </p>
             </div>
-            {sourceTabsHtml}
           </div>
-
-          {/* LINE Filter panel */}
-          {statsData.groups.length > 0 && (
-            <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-              <FilterRow label="グループ">
-                <FilterPill
-                  href={buildUrl({ groupId: undefined, page: "1" })}
-                  label="すべて"
-                  active={!params.groupId}
-                />
-                {statsData.groups.map(({ groupId, groupName, count }) => (
-                  <FilterPill
-                    key={groupId}
-                    href={buildUrl({ groupId, page: "1" })}
-                    label={`${groupName ?? groupId.slice(0, 8)} (${count})`}
-                    active={params.groupId === groupId}
-                  />
-                ))}
-              </FilterRow>
-            </div>
-          )}
-
-          {/* LINE Message feed */}
-          <Suspense fallback={null}>
-            <LineViewContainer messages={lineMessages} />
-          </Suspense>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-2 pt-2">
-            <Link
-              href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
-              aria-disabled={page <= 1}
-              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                page <= 1
-                  ? "pointer-events-none text-slate-300"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              <ChevronLeft size={16} />
-              前へ
-            </Link>
-            <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-700">
-              ページ {page}
-            </span>
-            <Link
-              href={pagination.hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
-              aria-disabled={!pagination.hasMore}
-              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                !pagination.hasMore
-                  ? "pointer-events-none text-slate-300"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              次へ
-              <ChevronRight size={16} />
-            </Link>
-          </div>
+          {sourceTabsHtml}
         </div>
+
+        {/* LINE Filter panel */}
+        {statsData.groups.length > 0 && (
+          <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
+            <FilterRow label="グループ">
+              <FilterPill
+                href={buildUrl({ groupId: undefined, page: "1" })}
+                label="すべて"
+                active={!params.groupId}
+              />
+              {statsData.groups.map(({ groupId, groupName, count }) => (
+                <FilterPill
+                  key={groupId}
+                  href={buildUrl({ groupId, page: "1" })}
+                  label={`${groupName ?? groupId.slice(0, 8)} (${count})`}
+                  active={params.groupId === groupId}
+                />
+              ))}
+            </FilterRow>
+          </div>
+        )}
+
+        {/* LINE Message feed */}
+        <Suspense fallback={null}>
+          <LineViewContainer messages={lineMessages} />
+        </Suspense>
+
+        {/* Pagination */}
+        <Pagination page={page} hasMore={pagination.hasMore} buildUrl={buildUrl} />
       </div>
     );
   }
@@ -232,123 +217,144 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
   const totalCount = offset + messages.length;
 
   return (
-    <div className="-mx-4 -mt-4 min-h-screen bg-slate-50/80 px-4 pt-4">
-      <div className="mx-auto max-w-4xl space-y-5">
-        {/* Page header */}
-        <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-4xl space-y-5">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-accent shadow-sm">
+            <MessageSquare className="h-5 w-5 text-white" />
+          </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">チャット分析</h1>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <h1 className="text-xl font-bold tracking-tight">チャット分析</h1>
+            <p className="text-xs text-muted-foreground">
               {pagination.hasMore ? `${totalCount}件以上表示中` : `全${totalCount}件`}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {sourceTabsHtml}
-            <ChatSyncButton />
-          </div>
         </div>
+        <div className="flex items-center gap-2">
+          {sourceTabsHtml}
+          <ChatSyncButton />
+        </div>
+      </div>
 
-        {/* Filter panel */}
-        <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-          <div className="space-y-2.5">
-            {spacesData.spaces.length > 0 && (
-              <FilterRow label="スペース">
-                <FilterPill
-                  href={buildUrl({ spaceId: undefined, page: "1" })}
-                  label="すべて"
-                  active={!params.spaceId}
-                />
-                {spacesData.spaces.map(({ spaceId, count }) => (
-                  <FilterPill
-                    key={spaceId}
-                    href={buildUrl({ spaceId, page: "1" })}
-                    label={`${spaceNameMap[spaceId] ?? spaceId} (${count})`}
-                    active={params.spaceId === spaceId}
-                  />
-                ))}
-              </FilterRow>
-            )}
-            <FilterRow label="カテゴリ">
+      {/* Filter panel */}
+      <div className="rounded-xl border border-border/60 bg-card px-5 py-4">
+        <div className="space-y-2.5">
+          {spacesData.spaces.length > 0 && (
+            <FilterRow label="スペース">
               <FilterPill
-                href={buildUrl({ category: undefined, page: "1" })}
+                href={buildUrl({ spaceId: undefined, page: "1" })}
                 label="すべて"
-                active={!params.category}
+                active={!params.spaceId}
               />
-              {Object.entries(CATEGORY_CONFIG).map(([value, cfg]) => (
+              {spacesData.spaces.map(({ spaceId, count }) => (
                 <FilterPill
-                  key={value}
-                  href={buildUrl({ category: value, page: "1" })}
-                  label={cfg.label}
-                  active={params.category === value}
+                  key={spaceId}
+                  href={buildUrl({ spaceId, page: "1" })}
+                  label={`${spaceNameMap[spaceId] ?? spaceId} (${count})`}
+                  active={params.spaceId === spaceId}
                 />
               ))}
             </FilterRow>
-            <FilterRow label="種別">
+          )}
+          <FilterRow label="カテゴリ">
+            <FilterPill
+              href={buildUrl({ category: undefined, page: "1" })}
+              label="すべて"
+              active={!params.category}
+            />
+            {Object.entries(CATEGORY_CONFIG).map(([value, cfg]) => (
               <FilterPill
-                href={buildUrl({ messageType: undefined, page: "1" })}
-                label="全投稿"
-                active={!params.messageType}
+                key={value}
+                href={buildUrl({ category: value, page: "1" })}
+                label={cfg.label}
+                active={params.category === value}
               />
-              <FilterPill
-                href={buildUrl({ messageType: "MESSAGE", page: "1" })}
-                label="通常投稿"
-                active={params.messageType === "MESSAGE"}
-              />
-              <FilterPill
-                href={buildUrl({ messageType: "THREAD_REPLY", page: "1" })}
-                label="スレッド返信"
-                active={params.messageType === "THREAD_REPLY"}
-              />
-            </FilterRow>
-            <FilterRow label="信頼度">
-              <FilterPill
-                href={buildUrl({ lowConfidence: undefined, page: "1" })}
-                label="すべて"
-                active={!isLowConfidence}
-              />
-              <FilterPill
-                href={buildUrl({ lowConfidence: "1", page: "1" })}
-                label="⚠ 要確認 (< 70%)"
-                active={isLowConfidence}
-              />
-            </FilterRow>
-          </div>
-        </div>
-
-        {/* Message feed */}
-        <Suspense fallback={null}>
-          <ViewContainer messages={messages} offset={offset} initialView={initialView} />
-        </Suspense>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Link
-            href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
-            aria-disabled={page <= 1}
-            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              page <= 1 ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            <ChevronLeft size={16} />
-            前へ
-          </Link>
-          <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-700">
-            ページ {page}
-          </span>
-          <Link
-            href={pagination.hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
-            aria-disabled={!pagination.hasMore}
-            className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              !pagination.hasMore
-                ? "pointer-events-none text-slate-300"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            次へ
-            <ChevronRight size={16} />
-          </Link>
+            ))}
+          </FilterRow>
+          <FilterRow label="種別">
+            <FilterPill
+              href={buildUrl({ messageType: undefined, page: "1" })}
+              label="全投稿"
+              active={!params.messageType}
+            />
+            <FilterPill
+              href={buildUrl({ messageType: "MESSAGE", page: "1" })}
+              label="通常投稿"
+              active={params.messageType === "MESSAGE"}
+            />
+            <FilterPill
+              href={buildUrl({ messageType: "THREAD_REPLY", page: "1" })}
+              label="スレッド返信"
+              active={params.messageType === "THREAD_REPLY"}
+            />
+          </FilterRow>
+          <FilterRow label="信頼度">
+            <FilterPill
+              href={buildUrl({ lowConfidence: undefined, page: "1" })}
+              label="すべて"
+              active={!isLowConfidence}
+            />
+            <FilterPill
+              href={buildUrl({ lowConfidence: "1", page: "1" })}
+              label="⚠ 要確認 (< 70%)"
+              active={isLowConfidence}
+            />
+          </FilterRow>
         </div>
       </div>
+
+      {/* Message feed */}
+      <Suspense fallback={null}>
+        <ViewContainer messages={messages} offset={offset} initialView={initialView} />
+      </Suspense>
+
+      {/* Pagination */}
+      <Pagination page={page} hasMore={pagination.hasMore} buildUrl={buildUrl} />
+    </div>
+  );
+}
+
+function Pagination({
+  page,
+  hasMore,
+  buildUrl,
+}: {
+  page: number;
+  hasMore: boolean;
+  buildUrl: (overrides: { page?: string }) => string;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-2 pt-2">
+      <Link
+        href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
+        aria-disabled={page <= 1}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+          page <= 1
+            ? "pointer-events-none text-muted-foreground/30"
+            : "text-muted-foreground hover:bg-accent",
+        )}
+      >
+        <ChevronLeft size={16} />
+        前へ
+      </Link>
+      <span className="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold tabular-nums">
+        ページ {page}
+      </span>
+      <Link
+        href={hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
+        aria-disabled={!hasMore}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+          !hasMore
+            ? "pointer-events-none text-muted-foreground/30"
+            : "text-muted-foreground hover:bg-accent",
+        )}
+      >
+        次へ
+        <ChevronRight size={16} />
+      </Link>
     </div>
   );
 }

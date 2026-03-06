@@ -40,12 +40,14 @@ export function ViewContainer({
       <AutoRefresh />
       {/* ビュー切替 */}
       <div className="flex justify-end">
-        <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
+        <div className="flex rounded-lg border border-border/60 bg-card p-0.5">
           <button
             type="button"
             onClick={() => switchView("card")}
             className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              view === "card" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+              view === "card"
+                ? "bg-[var(--gradient-from)] text-white"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <LayoutList size={13} />
@@ -55,7 +57,9 @@ export function ViewContainer({
             type="button"
             onClick={() => switchView("table")}
             className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              view === "table" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-700"
+              view === "table"
+                ? "bg-[var(--gradient-from)] text-white"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Table2 size={13} />
@@ -66,10 +70,12 @@ export function ViewContainer({
 
       {/* コンテンツ */}
       {messages.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white py-20 text-center">
-          <MessageSquare className="mb-3 text-slate-300" size={36} />
-          <p className="text-sm font-medium text-slate-500">メッセージがありません</p>
-          <p className="mt-1 text-xs text-slate-400">フィルタ条件を変えてお試しください</p>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-20 text-center">
+          <MessageSquare className="mb-3 text-muted-foreground/40" size={36} />
+          <p className="text-sm font-medium text-muted-foreground">メッセージがありません</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">
+            フィルタ条件を変えてお試しください
+          </p>
         </div>
       ) : view === "table" ? (
         <TableView messages={messages} offset={offset} />
