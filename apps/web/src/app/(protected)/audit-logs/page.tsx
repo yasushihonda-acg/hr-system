@@ -98,8 +98,8 @@ export default async function AuditLogsPage({ searchParams }: Props) {
                       <span className="font-mono text-xs">{log.entityId.slice(0, 8)}...</span>
                     )}
                   </TableCell>
-                  <TableCell>{log.actorEmail}</TableCell>
-                  <TableCell>{log.actorRole}</TableCell>
+                  <TableCell>{log.actorEmail ?? "—"}</TableCell>
+                  <TableCell>{log.actorRole ?? "—"}</TableCell>
                 </TableRow>
               ))
             )}

@@ -12,6 +12,7 @@ import type {
   ConfusionMatrixEntry,
   DraftDetail,
   DraftSummary,
+  EmployeeDetail,
   EmployeeSummary,
   IntentStatsSummary,
   LineGroupStat,
@@ -129,9 +130,7 @@ export function getEmployees(params?: EmployeeListParams) {
 }
 
 export function getEmployee(id: string) {
-  return request<EmployeeSummary & { currentSalary: Record<string, unknown> | null }>(
-    `/api/employees/${id}`,
-  );
+  return request<EmployeeDetail>(`/api/employees/${id}`);
 }
 
 // --- Audit Logs ---

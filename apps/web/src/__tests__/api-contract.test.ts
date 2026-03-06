@@ -26,6 +26,7 @@ import type {
   DraftDetail,
   DraftItem,
   DraftSummary,
+  EmployeeDetail,
   EmployeeSummary,
   IntentDetail,
   IntentSummary,
@@ -58,7 +59,7 @@ const sampleDraftSummary: DraftSummary = {
   effectiveDate: "2026-03-01T00:00:00.000Z",
   aiConfidence: 0.95,
   aiReasoning: "職種変更に伴う給与見直し",
-  appliedRules: [],
+  appliedRules: null,
   reviewedBy: null,
   reviewedAt: null,
   approvedBy: null,
@@ -70,9 +71,11 @@ const sampleDraftSummary: DraftSummary = {
 const sampleDraftItem: DraftItem = {
   id: "item-001",
   draftId: "draft-001",
-  category: "base_salary",
-  beforeValue: 247000,
-  afterValue: 260000,
+  itemType: "base_salary",
+  itemName: "基本給",
+  beforeAmount: 247000,
+  afterAmount: 260000,
+  isChanged: true,
 };
 
 const sampleApprovalLog: ApprovalLogEntry = {
@@ -172,14 +175,37 @@ const sampleEmployee: EmployeeSummary = {
   isActive: true,
 };
 
+const sampleEmployeeNullable: EmployeeSummary = {
+  id: "emp-002",
+  employeeNumber: "E0002",
+  name: "佐藤 次郎",
+  email: null,
+  employmentType: "part_time",
+  department: null,
+  position: null,
+  hireDate: "2021-04-01T00:00:00.000Z",
+  isActive: true,
+};
+
 const sampleAuditLog: AuditLogEntry = {
   id: "audit-001",
-  eventType: "DRAFT_CREATED",
-  entityType: "salary_draft",
+  eventType: "draft_created",
+  entityType: "SalaryDraft",
   entityId: "draft-001",
   actorEmail: "manager@example.com",
   actorRole: "hr_manager",
   details: { draftId: "draft-001" },
+  createdAt: "2026-02-18T00:00:00.000Z",
+};
+
+const sampleAuditLogNullable: AuditLogEntry = {
+  id: "audit-002",
+  eventType: "external_sync",
+  entityType: "ChatMessage",
+  entityId: "msg-001",
+  actorEmail: null,
+  actorRole: null,
+  details: {},
   createdAt: "2026-02-18T00:00:00.000Z",
 };
 
@@ -231,6 +257,17 @@ describe("DraftSummary 契約", () => {
     expect(typeof sampleDraftSummary.updatedAt).toBe("string");
   });
 
+  it("appliedRules が null 許容であること", () => {
+    expect(sampleDraftSummary.appliedRules).toBeNull();
+    const withRules: DraftSummary = { ...sampleDraftSummary, appliedRules: { pitch_up: true } };
+    expect(withRules.appliedRules).not.toBeNull();
+  });
+
+  it("reason が null 許容であること", () => {
+    const withNull: DraftSummary = { ...sampleDraftSummary, reason: null };
+    expect(withNull.reason).toBeNull();
+  });
+
   it("beforeBaseSalary / afterBaseSalary が number であること", () => {
     expect(typeof sampleDraftSummary.beforeBaseSalary).toBe("number");
     expect(typeof sampleDraftSummary.afterBaseSalary).toBe("number");
@@ -276,8 +313,8 @@ describe("ページネーション構造の整合性", () => {
       limit: number;
       offset: number;
     } = {
-      employees: [sampleEmployee],
-      total: 1,
+      employees: [sampleEmployee, sampleEmployeeNullable],
+      total: 2,
       limit: 20,
       offset: 0,
     };
@@ -291,8 +328,8 @@ describe("ページネーション構造の整合性", () => {
       limit: number;
       offset: number;
     } = {
-      logs: [sampleAuditLog],
-      total: 1,
+      logs: [sampleAuditLog, sampleAuditLogNullable],
+      total: 2,
       limit: 20,
       offset: 0,
     };
@@ -394,5 +431,49 @@ describe("AdminUser 契約", () => {
 
   it("isActive が boolean であること", () => {
     expect(typeof sampleAdminUser.isActive).toBe("boolean");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 契約テスト: EmployeeDetail
+// ---------------------------------------------------------------------------
+
+describe("EmployeeDetail 契約", () => {
+  const baseEmployeeDetail: EmployeeDetail = {
+    ...sampleEmployee,
+    googleChatUserId: null,
+    createdAt: "2026-02-18T00:00:00.000Z",
+    updatedAt: "2026-02-18T00:00:00.000Z",
+    currentSalary: null,
+  };
+
+  it("EmployeeSummary を継承し googleChatUserId / currentSalary を持つこと", () => {
+    expect(
+      hasAllKeys(baseEmployeeDetail, [
+        "googleChatUserId",
+        "currentSalary",
+        "createdAt",
+        "updatedAt",
+      ]),
+    ).toBe(true);
+  });
+
+  it("currentSalary が null 許容であること", () => {
+    expect(baseEmployeeDetail.currentSalary).toBeNull();
+
+    const withSalary: EmployeeDetail = {
+      ...baseEmployeeDetail,
+      currentSalary: {
+        id: "sal-001",
+        baseSalary: 250000,
+        positionAllowance: 10000,
+        regionAllowance: 5000,
+        qualificationAllowance: 3000,
+        otherAllowance: 2000,
+        totalSalary: 270000,
+        effectiveFrom: "2026-01-01T00:00:00.000Z",
+      },
+    };
+    expect(withSalary.currentSalary).not.toBeNull();
   });
 });
