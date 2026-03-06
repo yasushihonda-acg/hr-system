@@ -5,6 +5,7 @@ import {
   Bot,
   ClipboardList,
   FileText,
+  Inbox,
   MessageSquare,
   Settings,
   Users,
@@ -24,6 +25,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { href: "/", label: "ドラフト", icon: FileText },
+  { href: "/inbox", label: "受信箱", icon: Inbox },
   { href: "/dashboard", label: "ダッシュ", icon: BarChart3 },
   { href: "/employees", label: "従業員", icon: Users },
   { href: "/chat-messages", label: "チャット", icon: MessageSquare },

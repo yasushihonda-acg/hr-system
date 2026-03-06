@@ -20,6 +20,7 @@ const listQuerySchema = z.object({
   messageType: z.enum(["MESSAGE", "THREAD_REPLY"]).optional(),
   threadName: z.string().optional(),
   category: z.enum(CHAT_CATEGORIES).optional(),
+  responseStatus: z.enum(RESPONSE_STATUSES).optional(),
   maxConfidence: z.coerce.number().min(0).max(1).optional(),
   limit: z.string().optional(),
   offset: z.string().optional(),
@@ -36,8 +37,16 @@ export const chatMessageRoutes = new Hono();
 // GET /api/chat-messages — メッセージ一覧（フィルタリング・スレッド構造付き）
 // ---------------------------------------------------------------------------
 chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
-  const { spaceId, messageType, threadName, category, maxConfidence, limit, offset } =
-    c.req.valid("query");
+  const {
+    spaceId,
+    messageType,
+    threadName,
+    category,
+    responseStatus,
+    maxConfidence,
+    limit,
+    offset,
+  } = c.req.valid("query");
   const { limit: lim, offset: off } = parsePagination({ limit, offset });
   const actorRole = c.get("actorRole");
 
@@ -98,6 +107,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       return null; // フィルタ外
     }
     if (
+      responseStatus &&
+      (intent == null || (intent.responseStatus ?? "unresponded") !== responseStatus)
+    ) {
+      return null; // 対応状況フィルタ外
+    }
+    if (
       maxConfidence !== undefined &&
       (intent == null || intent.confidenceScore >= maxConfidence)
     ) {
@@ -155,6 +170,27 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       hasMore,
     },
   });
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/chat-messages/inbox-counts — 対応状況別件数（Inboxバッジ用）
+// ---------------------------------------------------------------------------
+chatMessageRoutes.get("/inbox-counts", async (c) => {
+  const actorRole = c.get("actorRole");
+  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  const snapshot = await collections.intentRecords.get();
+  const counts = { unresponded: 0, in_progress: 0, responded: 0, not_required: 0 };
+  for (const doc of snapshot.docs) {
+    const status = doc.data().responseStatus ?? "unresponded";
+    if (status in counts) {
+      counts[status as keyof typeof counts]++;
+    }
+  }
+
+  return c.json({ counts });
 });
 
 // ---------------------------------------------------------------------------
