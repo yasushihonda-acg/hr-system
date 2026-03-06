@@ -47,7 +47,6 @@ app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/classification-rules", classificationRulesRoutes);
 app.route("/api/llm-rules", llmRulesRoutes);
 app.route("/api/chat-spaces", chatSpaceRoutes);
-app.route("/api/line-messages/stats", lineMessageRoutes);
 app.route("/api/line-messages", lineMessageRoutes);
 
 // グローバルエラーハンドラ
