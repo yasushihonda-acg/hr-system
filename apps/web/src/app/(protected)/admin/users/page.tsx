@@ -17,18 +17,18 @@ export default async function AdminUsersPage() {
   const { data: users } = await getAdminUsers();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">ユーザー管理</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-sm font-semibold">ユーザー一覧</h2>
+          <p className="text-xs text-muted-foreground">
             ダッシュボードへのアクセスを許可するユーザーを管理します
           </p>
         </div>
         <AddUserForm />
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>

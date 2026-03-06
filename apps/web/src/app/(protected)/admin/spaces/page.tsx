@@ -20,7 +20,7 @@ export default async function AdminSpacesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <div className="rounded-xl border border-amber-200/60 bg-amber-50 p-4">
         <p className="text-sm text-amber-800">
           ⚠ 追加するスペースには <span className="font-mono font-medium">{syncAccountEmail}</span>{" "}
           が参加している必要があります。
@@ -61,15 +61,13 @@ export default async function AdminSpacesPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold">スペース一覧</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            チャット同期の対象スペースを管理します
-          </p>
+          <h2 className="text-sm font-semibold">スペース一覧</h2>
+          <p className="text-xs text-muted-foreground">チャット同期の対象スペースを管理します</p>
         </div>
         <AddSpaceForm />
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
