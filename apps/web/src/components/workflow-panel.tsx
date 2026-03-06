@@ -41,7 +41,6 @@ export function WorkflowPanel({ steps, onUpdate, compact = false }: WorkflowPane
   const [saving, setSaving] = useState(false);
 
   const completedCount = STEP_LABELS.filter((s) => localSteps[s.key] === "completed").length;
-  const progress = completedCount / STEP_LABELS.length;
 
   async function handleToggle(key: keyof WorkflowSteps) {
     const currentStatus = localSteps[key];
