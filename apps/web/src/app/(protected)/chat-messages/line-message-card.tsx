@@ -63,9 +63,45 @@ export function LineMessageCard({ msg }: { msg: LineMessageSummary }) {
             </div>
 
             {/* Content */}
-            <p className="mb-2.5 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-              {msg.content}
-            </p>
+            {msg.content && (
+              <p className="mb-2.5 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+                {msg.content}
+              </p>
+            )}
+
+            {/* Media (image) */}
+            {msg.contentUrl && msg.lineMessageType === "image" && (
+              <a
+                href={msg.contentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-2.5 block"
+              >
+                <img
+                  src={msg.contentUrl}
+                  alt="LINE 画像"
+                  className="max-h-64 rounded-lg border border-slate-200 object-contain"
+                  loading="lazy"
+                />
+              </a>
+            )}
+
+            {/* Media (other) */}
+            {msg.contentUrl && msg.lineMessageType !== "image" && (
+              <a
+                href={msg.contentUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mb-2.5 inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200"
+              >
+                {msg.lineMessageType === "video"
+                  ? "動画"
+                  : msg.lineMessageType === "audio"
+                    ? "音声"
+                    : "ファイル"}
+                を開く
+              </a>
+            )}
 
             {/* Metadata */}
             <div className="flex flex-wrap items-center gap-2">

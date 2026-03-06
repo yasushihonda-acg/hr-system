@@ -1,6 +1,7 @@
 import { collections } from "@hr-system/db";
 import { Timestamp } from "firebase-admin/firestore";
-import { getGroupMemberProfile, getGroupSummary } from "../lib/line-api.js";
+import { getGroupMemberProfile, getGroupSummary, getMessageContent } from "../lib/line-api.js";
+import { uploadLineMedia } from "../lib/storage.js";
 
 interface LineWebhookEvent {
   type: string;
@@ -55,6 +56,21 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     getGroupSummary(groupId),
   ]);
 
+  // メディアメッセージ（image, video, audio, file）の場合、コンテンツをダウンロードしてGCSに保存
+  const MEDIA_TYPES = new Set(["image", "video", "audio", "file"]);
+  let contentUrl: string | null = null;
+  if (MEDIA_TYPES.has(message.type)) {
+    const binary = await getMessageContent(lineMessageId);
+    if (binary) {
+      try {
+        contentUrl = await uploadLineMedia(lineMessageId, message.type, binary);
+        console.log(`[LineWorker] Uploaded media: ${contentUrl}`);
+      } catch (e) {
+        console.warn(`[LineWorker] Media upload failed: ${String(e)}`);
+      }
+    }
+  }
+
   await collections.lineMessages.add({
     groupId,
     groupName: groupName ?? null,
@@ -62,6 +78,7 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     senderUserId: userId,
     senderName: senderName ?? "unknown",
     content: message.text ?? "",
+    contentUrl,
     lineMessageType: message.type,
     rawPayload: event as unknown as Record<string, unknown>,
     createdAt: Timestamp.fromMillis(event.timestamp),
