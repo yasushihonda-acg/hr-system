@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { logger } from "hono/logger";
 import { workerErrorHandler } from "./lib/errors.js";
 import { pubsubAuthMiddleware } from "./middleware/pubsub-auth.js";
+import { lineRoutes } from "./routes/line.js";
 import { pubsubRoutes } from "./routes/pubsub.js";
 
 const app = new Hono();
@@ -20,6 +21,9 @@ app.get("/health", (c) =>
 // Pub/Sub push エンドポイント（OIDC 認証）
 app.use("/pubsub/*", pubsubAuthMiddleware);
 app.route("/", pubsubRoutes);
+
+// LINE Webhook エンドポイント（署名検証はルート内で実施）
+app.route("/", lineRoutes);
 
 // グローバルエラーハンドラ
 app.onError(workerErrorHandler);

@@ -274,6 +274,27 @@ export interface ChatSpaceConfig {
   updatedAt: Timestamp;
 }
 
+/** LINE メッセージ */
+export interface LineMessage {
+  /** LINE グループ/ルームID */
+  groupId: string;
+  /** グループ名（LINE API getGroupSummary で取得） */
+  groupName: string | null;
+  /** LINE message ID（重複排除キー） */
+  lineMessageId: string;
+  /** LINE user ID */
+  senderUserId: string;
+  /** 表示名（LINE API getGroupMemberProfile で取得） */
+  senderName: string;
+  /** プレーンテキスト */
+  content: string;
+  /** LINE メッセージタイプ: text, image, video, audio, file, sticker 等 */
+  lineMessageType: string;
+  /** 生ペイロード（将来の再解析用） */
+  rawPayload: Record<string, unknown>;
+  createdAt: Timestamp;
+}
+
 /** LLM分類ルール（システムプロンプト・Few-shot例） */
 export interface LlmClassificationRule {
   type: "system_prompt" | "few_shot_example" | "category_definition";
