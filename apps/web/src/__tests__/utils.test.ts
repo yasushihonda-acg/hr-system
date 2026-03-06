@@ -1,5 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { buildMessageSearchUrl } from "../lib/utils";
+
+// sidebar-nav の依存をモック（@/lib/utils の cn 関数）
+vi.mock("@/lib/utils", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
+
+// next/navigation のモック
+vi.mock("next/navigation", () => ({
+  usePathname: vi.fn(() => "/"),
+}));
+
+import { isNavActive } from "../components/sidebar-nav";
 
 describe("buildMessageSearchUrl", () => {
   it("本文の先頭30文字でエンコードした検索URLを生成する", () => {
@@ -32,5 +44,37 @@ describe("buildMessageSearchUrl", () => {
   it("u/0 アカウントパスが含まれる", () => {
     const url = buildMessageSearchUrl("テスト");
     expect(url).toContain("/chat/u/0/");
+  });
+});
+
+describe("isNavActive", () => {
+  it("/ はルートパスのみマッチする", () => {
+    expect(isNavActive("/", "/")).toBe(true);
+    expect(isNavActive("/", "/inbox")).toBe(false);
+    expect(isNavActive("/", "/dashboard")).toBe(false);
+  });
+
+  it("/inbox は /inbox で始まるパスにマッチする", () => {
+    expect(isNavActive("/inbox", "/inbox")).toBe(true);
+    expect(isNavActive("/inbox", "/inbox/detail")).toBe(true);
+    expect(isNavActive("/inbox", "/")).toBe(false);
+  });
+
+  it("/dashboard は /dashboard で始まるパスにマッチする", () => {
+    expect(isNavActive("/dashboard", "/dashboard")).toBe(true);
+    expect(isNavActive("/dashboard", "/dashboard/sub")).toBe(true);
+    expect(isNavActive("/dashboard", "/")).toBe(false);
+  });
+
+  it("/admin/users は /admin で始まるパスにマッチする", () => {
+    expect(isNavActive("/admin/users", "/admin/users")).toBe(true);
+    expect(isNavActive("/admin/users", "/admin/other")).toBe(true);
+    expect(isNavActive("/admin/users", "/")).toBe(false);
+  });
+
+  it("/chat-messages は /chat-messages で始まるパスにマッチする", () => {
+    expect(isNavActive("/chat-messages", "/chat-messages")).toBe(true);
+    expect(isNavActive("/chat-messages", "/chat-messages/msg-123")).toBe(true);
+    expect(isNavActive("/chat-messages", "/")).toBe(false);
   });
 });
