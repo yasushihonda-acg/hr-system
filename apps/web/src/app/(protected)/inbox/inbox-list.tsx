@@ -7,6 +7,7 @@ import { WorkflowPanel } from "@/components/workflow-panel";
 import type { ChatMessageSummary, WorkflowSteps } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import { updateResponseStatusAction, updateWorkflowAction } from "./actions";
+import { HandoverForm } from "./handover-form";
 
 type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
 
@@ -159,7 +160,7 @@ function InboxCard({
       {/* Expanded panel */}
       {isExpanded && (
         <div className="border-t border-border/60 bg-muted/30 px-4 py-4 animate-fade-up">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             {/* Status control */}
             <div>
               <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
@@ -192,6 +193,16 @@ function InboxCard({
               <WorkflowPanel
                 steps={intent?.workflowSteps ?? null}
                 onUpdate={handleWorkflowUpdate}
+              />
+            </div>
+
+            {/* Handover notes */}
+            <div>
+              <HandoverForm
+                chatMessageId={message.id}
+                taskSummary={intent?.taskSummary ?? null}
+                assignees={intent?.assignees ?? null}
+                notes={intent?.notes ?? null}
               />
             </div>
           </div>
