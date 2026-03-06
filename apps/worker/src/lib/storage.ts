@@ -31,7 +31,6 @@ export async function uploadLineMedia(
   const file = bucket.file(filePath);
   await file.save(data, {
     metadata: { contentType },
-    public: true,
   });
 
   return `https://storage.googleapis.com/${BUCKET_NAME}/${filePath}`;
