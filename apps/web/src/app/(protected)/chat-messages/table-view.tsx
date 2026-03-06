@@ -4,7 +4,7 @@ import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ChatMessageSummary, WorkflowStepStatus, WorkflowSteps } from "@/lib/types";
-import { buildMessageSearchUrl } from "@/lib/utils";
+import { buildMessageSearchUrl, formatDateJST } from "@/lib/utils";
 import { updateResponseStatusAction, updateWorkflowAction } from "./[id]/actions";
 
 type ResponseStatus = NonNullable<ChatMessageSummary["intent"]>["responseStatus"];
@@ -43,13 +43,7 @@ function nextInCycle<T>(arr: T[], current: T): T {
   return arr[(idx + 1) % arr.length] ?? arr[0]!;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
+const formatDate = formatDateJST;
 
 interface RowState {
   responseStatus: ResponseStatus;

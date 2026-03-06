@@ -4,6 +4,7 @@ import { Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { SyncConfig, SyncStatus } from "@/lib/types";
+import { formatDateTimeJST } from "@/lib/utils";
 
 const INTERVAL_OPTIONS = [
   { label: "5分", value: 5 },
@@ -106,7 +107,7 @@ export function ChatSyncButton() {
   };
 
   const lastSyncLabel = status?.lastSyncedAt
-    ? `最終同期: ${new Date(status.lastSyncedAt).toLocaleString("ja-JP")}`
+    ? `最終同期: ${formatDateTimeJST(status.lastSyncedAt)}`
     : null;
 
   return (
@@ -181,7 +182,7 @@ export function ChatSyncButton() {
 
           {config.updatedAt && (
             <p className="mt-3 text-[10px] text-slate-400">
-              更新: {new Date(config.updatedAt).toLocaleString("ja-JP")}
+              更新: {formatDateTimeJST(config.updatedAt)}
             </p>
           )}
         </div>
