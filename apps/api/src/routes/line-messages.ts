@@ -48,6 +48,7 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       senderUserId: msg.senderUserId as string,
       senderName: msg.senderName as string,
       content: msg.content as string,
+      contentUrl: (msg.contentUrl as string) ?? null,
       lineMessageType: msg.lineMessageType as string,
       createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
     };
@@ -116,6 +117,7 @@ lineMessageRoutes.get("/:id", async (c) => {
     senderUserId: msg.senderUserId,
     senderName: msg.senderName,
     content: msg.content,
+    contentUrl: msg.contentUrl ?? null,
     lineMessageType: msg.lineMessageType,
     rawPayload: msg.rawPayload,
     createdAt: toISO(msg.createdAt),

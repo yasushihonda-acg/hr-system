@@ -1,6 +1,7 @@
 import { messagingApi } from "@line/bot-sdk";
 
 let client: messagingApi.MessagingApiClient | null = null;
+let blobClient: messagingApi.MessagingApiBlobClient | null = null;
 
 function getClient(): messagingApi.MessagingApiClient {
   if (!client) {
@@ -9,6 +10,15 @@ function getClient(): messagingApi.MessagingApiClient {
     });
   }
   return client;
+}
+
+function getBlobClient(): messagingApi.MessagingApiBlobClient {
+  if (!blobClient) {
+    blobClient = new messagingApi.MessagingApiBlobClient({
+      channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "",
+    });
+  }
+  return blobClient;
 }
 
 /** グループメンバーのプロフィール取得（displayName） */
@@ -32,6 +42,21 @@ export async function getGroupSummary(groupId: string): Promise<string | null> {
     return summary.groupName;
   } catch (e) {
     console.warn(`[LineApi] getGroupSummary failed: ${String(e)}`);
+    return null;
+  }
+}
+
+/** メッセージコンテンツ（画像・動画・ファイル等）のバイナリを取得 */
+export async function getMessageContent(messageId: string): Promise<Buffer | null> {
+  try {
+    const stream = await getBlobClient().getMessageContent(messageId);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream as AsyncIterable<Buffer>) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  } catch (e) {
+    console.warn(`[LineApi] getMessageContent failed: ${String(e)}`);
     return null;
   }
 }

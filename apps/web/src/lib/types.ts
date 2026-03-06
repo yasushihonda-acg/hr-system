@@ -326,6 +326,7 @@ export interface LineMessageSummary {
   senderUserId: string;
   senderName: string;
   content: string;
+  contentUrl: string | null;
   lineMessageType: string;
   createdAt: string;
 }

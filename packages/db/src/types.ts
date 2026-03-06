@@ -288,6 +288,8 @@ export interface LineMessage {
   senderName: string;
   /** プレーンテキスト */
   content: string;
+  /** メディアコンテンツの Cloud Storage URL（image, video, audio, file） */
+  contentUrl: string | null;
   /** LINE メッセージタイプ: text, image, video, audio, file, sticker 等 */
   lineMessageType: string;
   /** 生ペイロード（将来の再解析用） */
