@@ -2,7 +2,7 @@ import { Bot, Lightbulb } from "lucide-react";
 import type { IntentDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_ACTIONS: Record<string, string[]> = {
+export const CATEGORY_ACTIONS: Record<string, string[]> = {
   salary: [
     "給与変更ドラフトの確認・作成",
     "職員給与一覧SSへの反映",
@@ -31,7 +31,7 @@ const CONFIDENCE_LABELS: { min: number; label: string; color: string }[] = [
   { min: 0, label: "低信頼度", color: "text-[var(--status-danger)]" },
 ];
 
-function getConfidenceLabel(score: number) {
+export function getConfidenceLabel(score: number) {
   return CONFIDENCE_LABELS.find((l) => score >= l.min) ?? CONFIDENCE_LABELS[2]!;
 }
 
