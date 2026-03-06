@@ -316,6 +316,27 @@ export interface ChatSpaceConfig {
   updatedAt: string;
 }
 
+// --- LINE Messages ---
+
+/** GET /api/line-messages の1件 */
+export interface LineMessageSummary {
+  id: string;
+  groupId: string;
+  groupName: string | null;
+  senderUserId: string;
+  senderName: string;
+  content: string;
+  lineMessageType: string;
+  createdAt: string;
+}
+
+/** GET /api/line-messages/stats のグループ統計 */
+export interface LineGroupStat {
+  groupId: string;
+  groupName: string | null;
+  count: number;
+}
+
 /** GET /api/chat-messages/:id */
 export interface ChatMessageDetail extends ChatMessageSummary {
   rawPayload: Record<string, unknown> | null;

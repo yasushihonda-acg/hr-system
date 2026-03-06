@@ -16,6 +16,7 @@ import type {
   ClassificationRule,
   Employee,
   IntentRecord,
+  LineMessage,
   LlmClassificationRule,
   PitchTable,
   Salary,
@@ -53,4 +54,5 @@ export const collections = {
   syncMetadata: typedCollection<SyncMetadata>("sync_metadata"),
   chatSyncConfig: typedCollection<ChatSyncConfig>("chat_sync_config"),
   chatSpaces: typedCollection<ChatSpaceConfig>("chat_spaces"),
+  lineMessages: typedCollection<LineMessage>("line_messages"),
 };

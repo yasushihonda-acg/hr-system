@@ -19,6 +19,7 @@ export type {
   ClassificationRule,
   Employee,
   IntentRecord,
+  LineMessage,
   LlmClassificationRule,
   PitchTable,
   Salary,

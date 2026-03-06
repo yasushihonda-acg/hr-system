@@ -18,6 +18,7 @@
     "@hr-system/db": "workspace:*",
     "@hr-system/salary": "workspace:*",
     "@hr-system/shared": "workspace:*",
+    "@line/bot-sdk": "^10.6.0",
     "firebase-admin": "^13.6.0",
     "google-auth-library": "^10.5.0",
     "hono": "^4.11.0"
