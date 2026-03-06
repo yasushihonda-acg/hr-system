@@ -25,6 +25,16 @@ export function formatDateJST(iso: string): string {
   return `${mm}/${dd}`;
 }
 
+/** Asia/Tokyo の Date を "YYYY/MM/DD" 形式で返す */
+export function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  const yyyy = jst.getUTCFullYear();
+  const mm = String(jst.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(jst.getUTCDate()).padStart(2, "0");
+  return `${yyyy}/${mm}/${dd}`;
+}
+
 /** メッセージ本文の先頭部分で Google Chat 内検索するURL */
 export function buildMessageSearchUrl(content: string): string {
   const query = content.trim().slice(0, 30);

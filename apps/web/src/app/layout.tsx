@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import { Header } from "@/components/header";
+import { SidebarNav } from "@/components/sidebar-nav";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-noto-sans",
   display: "swap",
 });
@@ -25,9 +26,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={notoSansJP.variable} suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body className="flex min-h-screen flex-col" suppressHydrationWarning>
         <Header />
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <div className="flex flex-1 overflow-hidden">
+          <SidebarNav />
+          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        </div>
       </body>
     </html>
   );

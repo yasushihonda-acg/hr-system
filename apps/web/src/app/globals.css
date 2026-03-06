@@ -107,6 +107,16 @@
   /* カスタム: アンバーアクセント */
   --amber: oklch(0.73 0.18 55);
   --amber-dim: oklch(0.68 0.16 55);
+
+  /* グラデーションアクセント (新UI) */
+  --gradient-from: oklch(0.55 0.2 264); /* #4361EE 相当 */
+  --gradient-to: oklch(0.42 0.25 310); /* #7B2FBE 相当 */
+
+  /* ステータスカラー */
+  --status-ok: oklch(0.6 0.18 160);
+  --status-warn: oklch(0.65 0.18 75);
+  --status-danger: oklch(0.58 0.22 25);
+  --status-info: oklch(0.55 0.16 230);
 }
 
 .dark {
@@ -159,13 +169,36 @@
   }
 }
 
+/* ===== アニメーション ===== */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* ===== ユーティリティ拡張 ===== */
 @layer utilities {
   /* アンバーアクセントボーダー */
   .border-accent-amber {
     border-color: var(--amber);
   }
-  /* ナビアクティブインジケーター */
+  /* ナビアクティブインジケーター（水平ナビ用 — レガシー互換） */
   .nav-active-indicator {
     position: relative;
   }
@@ -179,6 +212,30 @@
     height: 2px;
     background: var(--amber);
     border-radius: 1px;
+  }
+  /* グラデーションアクセント */
+  .bg-gradient-accent {
+    background: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+  }
+  .bg-gradient-accent-soft {
+    background: linear-gradient(
+      135deg,
+      oklch(from var(--gradient-from) l c h / 7%),
+      oklch(from var(--gradient-to) l c h / 5%)
+    );
+  }
+  .text-gradient-accent {
+    background: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  /* アニメーション */
+  .animate-fade-up {
+    animation: fade-up 0.2s ease;
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.18s ease;
   }
   /* カードホバー */
   .card-hover {
