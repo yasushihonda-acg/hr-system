@@ -63,7 +63,7 @@ export function LineMessageCard({ msg }: { msg: LineMessageSummary }) {
             </div>
 
             {/* Content */}
-            <p className="mb-2.5 line-clamp-3 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
+            <p className="mb-2.5 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
               {msg.content}
             </p>
 
