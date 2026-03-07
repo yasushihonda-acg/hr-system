@@ -66,6 +66,21 @@ vi.mock("lucide-react", () => ({
   X: () => React.createElement("span", { "data-testid": "icon-x" }),
 }));
 
+vi.mock("@/components/ui/tabs", () => ({
+  Tabs: ({ children, ...props }: Record<string, unknown>) =>
+    React.createElement("div", { "data-slot": "tabs", ...props }, children as React.ReactNode),
+  TabsList: ({ children, ...props }: Record<string, unknown>) =>
+    React.createElement("div", { "data-slot": "tabs-list", ...props }, children as React.ReactNode),
+  TabsTrigger: ({ children, value, ...props }: Record<string, unknown>) =>
+    React.createElement(
+      "button",
+      { type: "button", "data-value": value, ...props },
+      children as React.ReactNode,
+    ),
+  TabsContent: ({ children, value, ...props }: Record<string, unknown>) =>
+    React.createElement("div", { "data-value": value, ...props }, children as React.ReactNode),
+}));
+
 vi.mock("@/components/workflow-panel", () => ({
   WorkflowPanel: () => React.createElement("div", { "data-testid": "workflow-panel" }),
 }));
@@ -382,7 +397,7 @@ describe("Inbox3Pane", () => {
   });
 
   describe("スレッド表示", () => {
-    it("スレッドメッセージがある場合にスレッド件数と内容が表示される", () => {
+    it("スレッドメッセージがある場合にタブとスレッド内容が表示される", () => {
       const detail = makeDetail({
         threadMessages: [
           {
@@ -412,21 +427,22 @@ describe("Inbox3Pane", () => {
           selectedId: "msg-1",
         }),
       );
-      expect(text).toContain("スレッド (2件)");
+      expect(text).toContain("メッセージ");
+      expect(text).toContain("スレッド (2)");
       expect(text).toContain("佐藤花子");
       expect(text).toContain("了解しました");
       expect(text).toContain("鈴木一郎");
     });
 
-    it("スレッドが空の場合はスレッドセクションが表示されない", () => {
-      const text = renderToText(
+    it("スレッドが空の場合はタブが表示されない", () => {
+      const html = renderToHtml(
         React.createElement(Inbox3Pane, {
           messages: [makeSummary()],
           selectedMessage: makeDetail({ threadMessages: [] }),
           selectedId: "msg-1",
         }),
       );
-      expect(text).not.toContain("スレッド");
+      expect(html).not.toContain('data-slot="tabs-list"');
     });
   });
 
