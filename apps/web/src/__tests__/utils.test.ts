@@ -48,16 +48,16 @@ describe("buildMessageSearchUrl", () => {
 });
 
 describe("isNavActive", () => {
-  it("/ はルートパスのみマッチする", () => {
-    expect(isNavActive("/", "/")).toBe(true);
-    expect(isNavActive("/", "/inbox")).toBe(false);
-    expect(isNavActive("/", "/dashboard")).toBe(false);
-  });
-
   it("/inbox は /inbox で始まるパスにマッチする", () => {
     expect(isNavActive("/inbox", "/inbox")).toBe(true);
     expect(isNavActive("/inbox", "/inbox/detail")).toBe(true);
     expect(isNavActive("/inbox", "/")).toBe(false);
+  });
+
+  it("/tasks は /tasks で始まるパスにマッチする", () => {
+    expect(isNavActive("/tasks", "/tasks")).toBe(true);
+    expect(isNavActive("/tasks", "/tasks/draft-001")).toBe(true);
+    expect(isNavActive("/tasks", "/")).toBe(false);
   });
 
   it("/dashboard は /dashboard で始まるパスにマッチする", () => {
@@ -66,15 +66,10 @@ describe("isNavActive", () => {
     expect(isNavActive("/dashboard", "/")).toBe(false);
   });
 
-  it("/admin/users は /admin で始まるパスにマッチする", () => {
-    expect(isNavActive("/admin/users", "/admin/users")).toBe(true);
-    expect(isNavActive("/admin/users", "/admin/other")).toBe(true);
-    expect(isNavActive("/admin/users", "/")).toBe(false);
-  });
-
-  it("/chat-messages は /chat-messages で始まるパスにマッチする", () => {
-    expect(isNavActive("/chat-messages", "/chat-messages")).toBe(true);
-    expect(isNavActive("/chat-messages", "/chat-messages/msg-123")).toBe(true);
-    expect(isNavActive("/chat-messages", "/")).toBe(false);
+  it("/admin は /admin で始まるパスにマッチする", () => {
+    expect(isNavActive("/admin", "/admin")).toBe(true);
+    expect(isNavActive("/admin", "/admin/users")).toBe(true);
+    expect(isNavActive("/admin", "/admin/spaces")).toBe(true);
+    expect(isNavActive("/admin", "/")).toBe(false);
   });
 });
