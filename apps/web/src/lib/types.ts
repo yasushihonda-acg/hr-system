@@ -2,6 +2,7 @@ import type {
   ActorRole,
   ChangeType,
   DraftStatus,
+  ResponseStatus,
   SalaryItemType,
   WorkflowStepStatus,
   WorkflowSteps,
@@ -348,7 +349,16 @@ export interface LineMessageSummary {
   content: string;
   contentUrl: string | null;
   lineMessageType: string;
+  responseStatus: ResponseStatus;
   createdAt: string;
+}
+
+/** GET /api/line-messages/:id の詳細レスポンス */
+export interface LineMessageDetail extends LineMessageSummary {
+  lineMessageId: string;
+  responseStatusUpdatedBy: string | null;
+  responseStatusUpdatedAt: string | null;
+  rawPayload: Record<string, unknown> | null;
 }
 
 /** GET /api/line-messages/stats のグループ統計 */

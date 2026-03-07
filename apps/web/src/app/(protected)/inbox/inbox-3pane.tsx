@@ -3,15 +3,10 @@
 import type { ResponseStatus } from "@hr-system/shared";
 import { ExternalLink, MessageSquare, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowPanel } from "@/components/workflow-panel";
-import {
-  CATEGORY_LABELS,
-  RESPONSE_STATUS_DOT_COLORS,
-  RESPONSE_STATUS_LABELS,
-} from "@/lib/constants";
+import { CATEGORY_LABELS, RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type {
   ChatMessageDetail,
   ChatMessageSummary,
@@ -21,6 +16,7 @@ import type {
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import { updateResponseStatusAction, updateWorkflowAction } from "./actions";
 import { HandoverForm } from "./handover-form";
+import { useSelectMessage } from "./use-select-message";
 
 interface Inbox3PaneProps {
   messages: ChatMessageSummary[];
@@ -29,21 +25,7 @@ interface Inbox3PaneProps {
 }
 
 export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3PaneProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const selectMessage = useCallback(
-    (id: string | null) => {
-      const sp = new URLSearchParams(searchParams.toString());
-      if (id) {
-        sp.set("id", id);
-      } else {
-        sp.delete("id");
-      }
-      router.replace(`/inbox?${sp.toString()}`, { scroll: false });
-    },
-    [router, searchParams],
-  );
+  const selectMessage = useSelectMessage();
 
   if (messages.length === 0) {
     return (
@@ -181,7 +163,10 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
             {/* 対応ステータス変更 */}
             <div className="mt-4">
               <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
-              <StatusButtons chatMessageId={message.id} currentStatus={responseStatus} />
+              <ResponseStatusButtons
+                currentStatus={responseStatus}
+                onChangeStatus={(s) => updateResponseStatusAction(message.id, s)}
+              />
             </div>
 
             {/* ワークフロー */}
@@ -290,47 +275,6 @@ function AiAnalysisPanel({ intent }: { intent: IntentDetail }) {
             </p>
           )}
         </div>
-      )}
-    </div>
-  );
-}
-
-// --- ステータス変更ボタン ---
-
-function StatusButtons({
-  chatMessageId,
-  currentStatus,
-}: {
-  chatMessageId: string;
-  currentStatus: ResponseStatus;
-}) {
-  async function handleChange(status: ResponseStatus) {
-    if (status === currentStatus) return;
-    await updateResponseStatusAction(chatMessageId, status);
-  }
-
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {(["unresponded", "in_progress", "responded", "not_required"] as ResponseStatus[]).map(
-        (s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => handleChange(s)}
-            className={cn(
-              "rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-              s === currentStatus
-                ? "border-current bg-current/10 ring-2 ring-current/20"
-                : "border-border text-muted-foreground opacity-60 hover:opacity-100",
-              s === "unresponded" && "text-red-600",
-              s === "in_progress" && "text-yellow-600",
-              s === "responded" && "text-green-600",
-              s === "not_required" && "text-gray-500",
-            )}
-          >
-            {RESPONSE_STATUS_LABELS[s]}
-          </button>
-        ),
       )}
     </div>
   );
