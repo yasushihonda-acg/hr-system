@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections } from "@hr-system/db";
-import { RESPONSE_STATUSES } from "@hr-system/shared";
+import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import { notFound } from "../lib/errors.js";
@@ -55,6 +55,7 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       content: msg.content as string,
       contentUrl: (msg.contentUrl as string) ?? null,
       lineMessageType: msg.lineMessageType as string,
+      taskPriority: (msg.taskPriority as string) ?? null,
       responseStatus: (msg.responseStatus as string) ?? "unresponded",
       createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
     };
@@ -147,6 +148,7 @@ lineMessageRoutes.get("/:id", async (c) => {
     content: msg.content,
     contentUrl: msg.contentUrl ?? null,
     lineMessageType: msg.lineMessageType,
+    taskPriority: msg.taskPriority ?? null,
     responseStatus: msg.responseStatus ?? "unresponded",
     responseStatusUpdatedBy: msg.responseStatusUpdatedBy ?? null,
     responseStatusUpdatedAt: msg.responseStatusUpdatedAt
@@ -186,6 +188,35 @@ lineMessageRoutes.patch(
       responseStatusUpdatedBy: actor.email,
       responseStatusUpdatedAt: new Date(),
     });
+
+    return c.json({ success: true });
+  },
+);
+
+// ---------------------------------------------------------------------------
+// PATCH /api/line-messages/:id/task-priority — タスク優先度更新
+// ---------------------------------------------------------------------------
+const updateTaskPrioritySchema = z.object({
+  taskPriority: z.enum(TASK_PRIORITIES).nullable(),
+});
+
+lineMessageRoutes.patch(
+  "/:id/task-priority",
+  zValidator("json", updateTaskPrioritySchema),
+  async (c) => {
+    const id = c.req.param("id");
+    const { taskPriority } = c.req.valid("json");
+    const actorRole = c.get("actorRole");
+
+    if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const docRef = collections.lineMessages.doc(id);
+    const docSnap = await docRef.get();
+    if (!docSnap.exists) throw notFound("LineMessage", id);
+
+    await docRef.update({ taskPriority });
 
     return c.json({ success: true });
   },

@@ -81,6 +81,7 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     contentUrl,
     lineMessageType: message.type,
     rawPayload: event as unknown as Record<string, unknown>,
+    taskPriority: null,
     responseStatus: "unresponded",
     responseStatusUpdatedBy: null,
     responseStatusUpdatedAt: null,

@@ -106,6 +106,7 @@ const sampleIntentSummary: IntentSummary = {
   isManualOverride: false,
   originalCategory: null,
   responseStatus: "unresponded",
+  taskPriority: null,
   taskSummary: null,
   assignees: null,
   notes: null,

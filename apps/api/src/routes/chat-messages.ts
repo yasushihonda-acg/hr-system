@@ -4,6 +4,7 @@ import {
   CHAT_CATEGORIES,
   type ChatCategory,
   RESPONSE_STATUSES,
+  TASK_PRIORITIES,
   WORKFLOW_STEP_STATUSES,
   type WorkflowSteps,
 } from "@hr-system/shared";
@@ -148,6 +149,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
             isManualOverride: intent.isManualOverride ?? false,
             originalCategory: intent.originalCategory ?? null,
             responseStatus: intent.responseStatus ?? "unresponded",
+            taskPriority: intent.taskPriority ?? null,
             taskSummary: intent.taskSummary ?? null,
             assignees: intent.assignees ?? null,
             notes: intent.notes ?? null,
@@ -274,6 +276,7 @@ chatMessageRoutes.get("/:id", async (c) => {
           responseStatus: intent.responseStatus ?? "unresponded",
           responseStatusUpdatedBy: intent.responseStatusUpdatedBy ?? null,
           responseStatusUpdatedAt: toISOOrNull(intent.responseStatusUpdatedAt),
+          taskPriority: intent.taskPriority ?? null,
           taskSummary: intent.taskSummary ?? null,
           assignees: intent.assignees ?? null,
           notes: intent.notes ?? null,
@@ -347,6 +350,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
         responseStatus: "unresponded",
         responseStatusUpdatedBy: null,
         responseStatusUpdatedAt: null,
+        taskPriority: null,
         taskSummary: null,
         assignees: null,
         notes: null,
@@ -432,6 +436,7 @@ chatMessageRoutes.patch(
           responseStatus,
           responseStatusUpdatedBy: actor.email,
           responseStatusUpdatedAt: FieldValue.serverTimestamp() as never,
+          taskPriority: null,
           taskSummary: null,
           assignees: null,
           notes: null,
@@ -473,6 +478,7 @@ chatMessageRoutes.patch(
 const workflowStepStatusSchema = z.enum(WORKFLOW_STEP_STATUSES);
 
 const patchWorkflowSchema = z.object({
+  taskPriority: z.enum(TASK_PRIORITIES).nullable().optional(),
   taskSummary: z.string().max(500).nullable().optional(),
   assignees: z.string().max(200).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
@@ -508,6 +514,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
     workflowUpdatedBy: actor.email,
     workflowUpdatedAt: FieldValue.serverTimestamp(),
   };
+  if (body.taskPriority !== undefined) updates.taskPriority = body.taskPriority;
   if (body.taskSummary !== undefined) updates.taskSummary = body.taskSummary;
   if (body.assignees !== undefined) updates.assignees = body.assignees;
   if (body.notes !== undefined) updates.notes = body.notes;
@@ -536,6 +543,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
         responseStatus: "unresponded",
         responseStatusUpdatedBy: null,
         responseStatusUpdatedAt: null,
+        taskPriority: body.taskPriority ?? null,
         taskSummary: body.taskSummary ?? null,
         assignees: body.assignees ?? null,
         notes: body.notes ?? null,

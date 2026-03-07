@@ -162,6 +162,8 @@ export interface IntentRecord {
   /** 対応状況を更新した人の email */
   responseStatusUpdatedBy: string | null;
   responseStatusUpdatedAt: Timestamp | null;
+  /** タスク優先度 */
+  taskPriority: "critical" | "high" | "medium" | "low" | null;
   /** 「作成案」タスク管理フィールド */
   taskSummary: string | null;
   assignees: string | null;
@@ -292,6 +294,8 @@ export interface LineMessage {
   contentUrl: string | null;
   /** LINE メッセージタイプ: text, image, video, audio, file, sticker 等 */
   lineMessageType: string;
+  /** タスク優先度 */
+  taskPriority: "critical" | "high" | "medium" | "low" | null;
   /** 対応状況（受信箱管理用） */
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   /** 対応状況の最終更新者 */
