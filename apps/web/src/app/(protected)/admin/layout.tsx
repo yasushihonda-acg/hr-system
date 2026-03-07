@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
         <div>
           <h1 className="text-xl font-bold tracking-tight">管理設定</h1>
-          <p className="text-xs text-muted-foreground">ユーザー・スペースの管理</p>
+          <p className="text-xs text-muted-foreground">システム管理・設定</p>
         </div>
       </div>
 

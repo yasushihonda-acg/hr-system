@@ -14,5 +14,5 @@ export async function updateRuleAction(
   },
 ) {
   await updateClassificationRule(category, data);
-  revalidatePath("/ai-settings");
+  revalidatePath("/admin/ai-settings");
 }
