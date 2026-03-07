@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-07（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `df1da2e` — docs(handoff): 次のアクション候補から完了済み項目を削除）
+**最終更新**: 2026-03-08（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `32e6182` — fix: セキュリティ強化・テスト品質・パフォーマンス改善 (#159)）
 
 ---
 
@@ -90,10 +90,19 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 | **—** | **docs: CLAUDE.md を現状に合わせて更新** | **main (b63350d)** | **完了** |
 | **#148** | **fix: Google Chat メッセージで Intent なしでもタスク優先度を設定可能にする** | **main (#149)** | **完了** |
 | **#150/#151** | **fix(web): 受信箱の詳細ページ遷移リンク削除 + 添付ファイル表示追加** | **main (#152)** | **完了** |
+| **#153〜#158** | **fix: セキュリティ強化・テスト品質・パフォーマンス改善（Server Actions 認証・PII除去・count()集計・境界値テスト追加）** | **main (#159)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: セキュリティ強化・テスト品質・パフォーマンス改善 (32e6182, PR #159)
+- **セキュリティ**: Server Actions 全7ファイルに `requireAccess()` / `requireAdmin()` 追加（defense-in-depth）
+- **セキュリティ**: `process-line-message.ts` のログから PII（senderName）を除去
+- **セキュリティ**: 開発用トークンバイパスに `ALLOW_DEV_TOKEN` フラグの二重ガードを追加
+- **パフォーマンス**: `inbox-counts` を全件スキャン → `count()` 4並列クエリに変更（chat + LINE 両方）
+- **テスト**: Pitch 境界値テスト追加、event-parser テストを分割、smoke.test.ts を意味あるテストに置換
+- Closes #153, #154, #155, #156, #157, #158
 
 ### fix: 受信箱の詳細ページ遷移リンク削除 + 添付ファイル表示追加 (c51c9fa, PR #152)
 - 受信箱詳細ペインから不要なページ遷移リンクを削除
@@ -174,6 +183,7 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 | apps/api (integration) | firestore-queries.integration.test.ts | 17 |
 | apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts | 41 |
 | apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx 等 | 92 |
+| **合計** | | **297+** |
 
 ---
 
