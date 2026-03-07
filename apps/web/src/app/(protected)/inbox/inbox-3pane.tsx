@@ -4,6 +4,7 @@ import type { ResponseStatus } from "@hr-system/shared";
 import { ExternalLink, MessageSquare, X } from "lucide-react";
 import Link from "next/link";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
+import { TaskPriorityDot, TaskPrioritySelector } from "@/components/task-priority-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowPanel } from "@/components/workflow-panel";
 import { CATEGORY_LABELS, RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
@@ -14,7 +15,11 @@ import type {
   WorkflowSteps,
 } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
-import { updateResponseStatusAction, updateWorkflowAction } from "./actions";
+import {
+  updateResponseStatusAction,
+  updateTaskPriorityAction,
+  updateWorkflowAction,
+} from "./actions";
 import { HandoverForm } from "./handover-form";
 import { useSelectMessage } from "./use-select-message";
 
@@ -86,6 +91,7 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
                     {(intent.confidenceScore * 100).toFixed(0)}%
                   </span>
                 )}
+                {intent?.taskPriority && <TaskPriorityDot priority={intent.taskPriority} />}
               </div>
             </button>
           );
@@ -168,6 +174,17 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
                 onChangeStatus={(s) => updateResponseStatusAction(message.id, s)}
               />
             </div>
+
+            {/* タスク優先度 */}
+            {intent && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
+                <TaskPrioritySelector
+                  value={intent.taskPriority ?? null}
+                  onChange={(p) => updateTaskPriorityAction(message.id, p)}
+                />
+              </div>
+            )}
 
             {/* ワークフロー */}
             {intent && (

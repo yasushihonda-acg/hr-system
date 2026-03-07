@@ -2,10 +2,11 @@
 
 import { Image as ImageIcon, MessageSquare, X } from "lucide-react";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
+import { TaskPriorityDot, TaskPrioritySelector } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type { LineMessageDetail, LineMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
-import { updateLineResponseStatusAction } from "./actions";
+import { updateLineResponseStatusAction, updateLineTaskPriorityAction } from "./actions";
 import { useSelectMessage } from "./use-select-message";
 
 interface LineInbox3PaneProps {
@@ -87,6 +88,7 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
                     {msg.lineMessageType}
                   </span>
                 )}
+                {msg.taskPriority && <TaskPriorityDot priority={msg.taskPriority} />}
               </div>
             </button>
           );
@@ -155,6 +157,15 @@ function LineDetailPane({ message, onClose }: { message: LineMessageDetail; onCl
           <ResponseStatusButtons
             currentStatus={responseStatus}
             onChangeStatus={(s) => updateLineResponseStatusAction(message.id, s)}
+          />
+        </div>
+
+        {/* タスク優先度 */}
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
+          <TaskPrioritySelector
+            value={message.taskPriority}
+            onChange={(p) => updateLineTaskPriorityAction(message.id, p)}
           />
         </div>
 
