@@ -138,17 +138,8 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 **積み残しタスクはゼロです。**
 
 1. **未追跡ファイル削除**: `layout-refresh-login.png` / `layout-refresh-login-fixed.png` — ルートに残っているスクリーンショット。不要なら削除
-2. **LINE Webhook 本番設定**
-   - LINE Developers Console で Webhook URL を Cloud Run Worker の `/line/webhook` に設定
-   - `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` を Cloud Run Worker の Secret に追加
-   - GCS バケット `hr-system-487809-line-media` の allUsers 公開ポリシー設定（画像表示に必要）
-   - 既存メディアメッセージのバックフィル: `apps/worker/src/scripts/backfill-line-media.ts`
-3. **Cloud Run 本番シークレット設定**（未設定の場合）
-   - `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `API_BASE_URL`
-4. **Google OAuth 本番 Redirect URI 設定**
-   - GCP Console > APIs & Services > Credentials
-5. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-6. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
+2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+3. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
 
 ### 完了済みバックログ（参考）
 
