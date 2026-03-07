@@ -88,7 +88,5 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     createdAt: Timestamp.fromMillis(event.timestamp),
   });
 
-  console.log(
-    `[LineWorker] Saved message: ${lineMessageId} from ${senderName ?? userId} in ${groupName ?? groupId}`,
-  );
+  console.log(`[LineWorker] Saved message: ${lineMessageId} (group: ${groupId})`);
 }

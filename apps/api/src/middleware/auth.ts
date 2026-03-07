@@ -43,8 +43,12 @@ export const authMiddleware = createMiddleware(async (c, next) => {
   }
   const token = authHeader.slice(7);
 
-  // 開発環境: "dev:{email}" 形式のトークンをバイパス
-  if (process.env.NODE_ENV === "development" && token.startsWith("dev:")) {
+  // 開発環境: "dev:{email}" 形式のトークンをバイパス（NODE_ENV + 明示的フラグの二重ガード）
+  if (
+    process.env.NODE_ENV === "development" &&
+    process.env.ALLOW_DEV_TOKEN === "true" &&
+    token.startsWith("dev:")
+  ) {
     const email = token.slice(4);
     logger.debug("Dev token login", { email });
     const dashboardRole = await resolveAllowedRole(email);

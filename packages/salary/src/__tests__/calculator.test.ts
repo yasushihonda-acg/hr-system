@@ -103,6 +103,32 @@ describe("applyMechanicalChange - pitch_change", () => {
     expect(result.after.total).toBe(200000 + 15000 + 20000);
   });
 
+  it("最小 Pitch（grade=1, step=1）に変更できる", () => {
+    const result = applyMechanicalChange(
+      { kind: "pitch_change", current: CURRENT, newGrade: 1, newStep: 1 },
+      MASTER,
+    );
+    expect(result.after.baseSalary).toBe(55000);
+    expect(result.after.total).toBe(55000 + 15000 + 20000);
+  });
+
+  it("最大 Pitch（grade=5, step=10）に変更できる", () => {
+    const result = applyMechanicalChange(
+      { kind: "pitch_change", current: CURRENT, newGrade: 5, newStep: 10 },
+      MASTER,
+    );
+    expect(result.after.baseSalary).toBe(300000);
+    expect(result.after.total).toBe(300000 + 15000 + 20000);
+  });
+
+  it("最小 Pitch の隣（grade=1, step=2）に変更できる", () => {
+    const result = applyMechanicalChange(
+      { kind: "pitch_change", current: CURRENT, newGrade: 1, newStep: 2 },
+      MASTER,
+    );
+    expect(result.after.baseSalary).toBe(60000);
+  });
+
   it("存在しない grade/step は Error を throw", () => {
     expect(() =>
       applyMechanicalChange(

@@ -59,17 +59,35 @@ function makeChatPayload(
 
 describe("parsePubSubEvent", () => {
   describe("正常系", () => {
-    it("human の message.created イベントを正しくパースする", () => {
-      const body = makePubSubBody({});
-      const event = parsePubSubEvent(body);
-
+    it("null でないイベントを返す", () => {
+      const event = parsePubSubEvent(makePubSubBody({}));
       expect(event).not.toBeNull();
+    });
+
+    it("spaceName を正しく抽出する", () => {
+      const event = parsePubSubEvent(makePubSubBody({}));
       expect(event?.spaceName).toBe("spaces/AAAA-qf5jX0");
+    });
+
+    it("googleMessageId を正しく抽出する", () => {
+      const event = parsePubSubEvent(makePubSubBody({}));
       expect(event?.googleMessageId).toBe("spaces/AAAA-qf5jX0/messages/abc123");
+    });
+
+    it("sender 情報を正しく抽出する", () => {
+      const event = parsePubSubEvent(makePubSubBody({}));
       expect(event?.senderUserId).toBe("users/12345");
       expect(event?.senderName).toBe("田中 太郎");
       expect(event?.senderType).toBe("HUMAN");
+    });
+
+    it("text を正しく抽出する", () => {
+      const event = parsePubSubEvent(makePubSubBody({}));
       expect(event?.text).toBe("山田さんの給与を2ピッチ上げてください");
+    });
+
+    it("デフォルト値が正しく設定される", () => {
+      const event = parsePubSubEvent(makePubSubBody({}));
       expect(event?.messageType).toBe("MESSAGE");
       expect(event?.threadName).toBeNull();
       expect(event?.mentionedUsers).toEqual([]);
