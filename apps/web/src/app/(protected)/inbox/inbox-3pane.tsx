@@ -5,6 +5,7 @@ import { ExternalLink, MessageSquare, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowPanel } from "@/components/workflow-panel";
 import {
   CATEGORY_LABELS,
@@ -158,54 +159,62 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
           </Link>
         </div>
 
-        {/* メッセージ本文 */}
-        <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">{message.content}</div>
+        {/* メッセージ / スレッド タブ */}
+        <Tabs defaultValue="message">
+          {message.threadMessages.length > 0 && (
+            <TabsList variant="line" className="mb-4 w-full">
+              <TabsTrigger value="message" className="flex-1">
+                メッセージ
+              </TabsTrigger>
+              <TabsTrigger value="thread" className="flex-1">
+                スレッド ({message.threadMessages.length})
+              </TabsTrigger>
+            </TabsList>
+          )}
 
-        {/* 対応ステータス変更 */}
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
-          <StatusButtons chatMessageId={message.id} currentStatus={responseStatus} />
-        </div>
-
-        {/* ワークフロー */}
-        {intent && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">ワークフロー</p>
-            <WorkflowPanelWrapper chatMessageId={message.id} steps={intent.workflowSteps ?? null} />
-          </div>
-        )}
-
-        {/* 引き継ぎメモ */}
-        {intent && (
-          <div className="mt-4">
-            <HandoverForm
-              chatMessageId={message.id}
-              taskSummary={intent.taskSummary ?? null}
-              assignees={intent.assignees ?? null}
-              notes={intent.notes ?? null}
-            />
-          </div>
-        )}
-
-        {/* スレッド */}
-        {message.threadMessages.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-xs font-semibold text-muted-foreground">
-              スレッド ({message.threadMessages.length}件)
-            </p>
-            <div className="space-y-2">
-              {message.threadMessages.map((tm) => (
-                <div key={tm.id} className="rounded-lg border border-border/60 p-3 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{tm.senderName}</span>
-                    <span className="text-muted-foreground">{formatDateTimeJST(tm.createdAt)}</span>
-                  </div>
-                  <p className="mt-1 text-muted-foreground">{tm.content}</p>
-                </div>
-              ))}
+          <TabsContent value="message">
+            {/* メッセージ本文 */}
+            <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">
+              {message.content}
             </div>
-          </div>
-        )}
+
+            {/* 対応ステータス変更 */}
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
+              <StatusButtons chatMessageId={message.id} currentStatus={responseStatus} />
+            </div>
+
+            {/* ワークフロー */}
+            {intent && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold text-muted-foreground">ワークフロー</p>
+                <WorkflowPanelWrapper
+                  chatMessageId={message.id}
+                  steps={intent.workflowSteps ?? null}
+                />
+              </div>
+            )}
+
+            {/* 引き継ぎメモ */}
+            {intent && (
+              <div className="mt-4">
+                <HandoverForm
+                  chatMessageId={message.id}
+                  taskSummary={intent.taskSummary ?? null}
+                  assignees={intent.assignees ?? null}
+                  notes={intent.notes ?? null}
+                />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="thread">
+            <ThreadView
+              threadMessages={message.threadMessages}
+              originalSenderName={message.senderName}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* 右ペイン: AI分析 (lg以上で表示) */}
@@ -341,4 +350,60 @@ function WorkflowPanelWrapper({
   }
 
   return <WorkflowPanel steps={steps} onUpdate={handleUpdate} />;
+}
+
+// --- スレッド表示（チャット風） ---
+
+function ThreadView({
+  threadMessages,
+  originalSenderName,
+}: {
+  threadMessages: ChatMessageDetail["threadMessages"];
+  originalSenderName: string;
+}) {
+  if (threadMessages.length === 0) {
+    return <p className="text-sm text-muted-foreground">スレッドはありません</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {threadMessages.map((tm) => {
+        const isOriginalSender = tm.senderName === originalSenderName;
+        const initial = tm.senderName?.[0] ?? "?";
+
+        return (
+          <div key={tm.id} className={cn("flex gap-2.5", !isOriginalSender && "flex-row-reverse")}>
+            {/* アバター */}
+            <div
+              className={cn(
+                "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white",
+                isOriginalSender ? "bg-slate-500" : "bg-indigo-500",
+              )}
+            >
+              {initial}
+            </div>
+
+            {/* バブル */}
+            <div className={cn("max-w-[75%]", !isOriginalSender && "text-right")}>
+              <div className="mb-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="font-medium">{tm.senderName}</span>
+                <span>·</span>
+                <span>{formatDateTimeJST(tm.createdAt)}</span>
+              </div>
+              <div
+                className={cn(
+                  "inline-block rounded-xl px-3.5 py-2.5 text-sm leading-relaxed",
+                  isOriginalSender
+                    ? "rounded-tl-sm bg-muted/70 text-foreground"
+                    : "rounded-tr-sm bg-indigo-50 text-foreground",
+                )}
+              >
+                {tm.content}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
