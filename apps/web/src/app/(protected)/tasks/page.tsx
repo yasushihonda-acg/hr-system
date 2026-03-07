@@ -10,9 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getDraft, getDrafts } from "@/lib/api";
-import type { DraftDetail } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { ApiError, getDraft, getDrafts } from "@/lib/api";
+import { formatCurrency } from "@/lib/constants";
+import { cn, formatDate } from "@/lib/utils";
 import { DraftSidePanel } from "./draft-side-panel";
 
 interface Props {
@@ -21,34 +21,26 @@ interface Props {
 
 const PAGE_SIZE = 20;
 
-function formatCurrency(n: number) {
-  return `¥${n.toLocaleString("ja-JP")}`;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ja-JP");
-}
-
 export default async function TasksPage({ searchParams }: Props) {
   const params = await searchParams;
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
   const selectedId = params.id ?? null;
 
-  const { drafts, total } = await getDrafts({
-    status: params.status,
-    limit: PAGE_SIZE,
-    offset,
-  });
-
-  let selectedDraft: DraftDetail | null = null;
-  if (selectedId) {
-    try {
-      selectedDraft = await getDraft(selectedId);
-    } catch {
-      // 選択ドラフトが見つからない場合は無視
-    }
-  }
+  const [{ drafts, total }, selectedDraft] = await Promise.all([
+    getDrafts({
+      status: params.status,
+      limit: PAGE_SIZE,
+      offset,
+    }),
+    selectedId
+      ? getDraft(selectedId).catch((err: unknown) => {
+          if (err instanceof ApiError && err.status === 404) return null;
+          console.error("Failed to fetch draft:", err);
+          return null;
+        })
+      : Promise.resolve(null),
+  ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 

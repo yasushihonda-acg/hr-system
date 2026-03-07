@@ -14,6 +14,33 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockReplace = vi.fn();
 const mockSearchParams = new URLSearchParams();
 
+vi.mock("@/lib/constants", () => ({
+  CATEGORY_LABELS: {
+    salary: "給与・社保",
+    retirement: "退職・休職",
+    hiring: "入社・採用",
+    contract: "契約変更",
+    transfer: "施設・異動",
+    foreigner: "外国人・ビザ",
+    training: "研修・監査",
+    health_check: "健康診断",
+    attendance: "勤怠・休暇",
+    other: "その他",
+  },
+  RESPONSE_STATUS_LABELS: {
+    unresponded: "未対応",
+    in_progress: "対応中",
+    responded: "対応済",
+    not_required: "対応不要",
+  },
+  RESPONSE_STATUS_DOT_COLORS: {
+    unresponded: "bg-red-500",
+    in_progress: "bg-yellow-500",
+    responded: "bg-green-500",
+    not_required: "bg-gray-400",
+  },
+}));
+
 vi.mock("@/lib/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   formatDateTimeJST: (d: string) => new Date(d).toLocaleString("ja-JP"),

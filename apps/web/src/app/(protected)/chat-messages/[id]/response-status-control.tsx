@@ -1,17 +1,11 @@
 "use client";
 
+import type { ResponseStatus } from "@hr-system/shared";
+import { RESPONSE_STATUSES } from "@hr-system/shared";
 import { useState } from "react";
+import { RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { formatDateTimeJST } from "@/lib/utils";
 import { updateResponseStatusAction } from "./actions";
-
-type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
-
-const STATUS_LABELS: Record<ResponseStatus, string> = {
-  unresponded: "未対応",
-  in_progress: "対応中",
-  responded: "対応済",
-  not_required: "対応不要",
-};
 
 const STATUS_COLORS: Record<ResponseStatus, string> = {
   unresponded: "bg-red-100 text-red-800 border-red-200",
@@ -19,8 +13,6 @@ const STATUS_COLORS: Record<ResponseStatus, string> = {
   responded: "bg-green-100 text-green-800 border-green-200",
   not_required: "bg-gray-100 text-gray-600 border-gray-200",
 };
-
-const ALL_STATUSES: ResponseStatus[] = ["unresponded", "in_progress", "responded", "not_required"];
 
 interface Props {
   chatMessageId: string;
@@ -47,7 +39,7 @@ export function ResponseStatusControl({ chatMessageId, current, updatedBy, updat
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        {ALL_STATUSES.map((s) => (
+        {RESPONSE_STATUSES.map((s) => (
           <button
             key={s}
             type="button"
@@ -57,7 +49,7 @@ export function ResponseStatusControl({ chatMessageId, current, updatedBy, updat
               STATUS_COLORS[s]
             } ${s === status ? "ring-2 ring-offset-1 ring-current opacity-100" : "opacity-60 hover:opacity-90"}`}
           >
-            {STATUS_LABELS[s]}
+            {RESPONSE_STATUS_LABELS[s]}
           </button>
         ))}
       </div>
@@ -77,7 +69,7 @@ export function ResponseStatusBadge({ status }: { status: ResponseStatus }) {
     <span
       className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[status]}`}
     >
-      {STATUS_LABELS[status]}
+      {RESPONSE_STATUS_LABELS[status]}
     </span>
   );
 }

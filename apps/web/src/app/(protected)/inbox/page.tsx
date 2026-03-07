@@ -1,6 +1,7 @@
+import type { ResponseStatus } from "@hr-system/shared";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { getChatMessage, getChatMessages, getInboxCounts } from "@/lib/api";
+import { ApiError, getChatMessage, getChatMessages, getInboxCounts } from "@/lib/api";
 import type { ChatMessageDetail } from "@/lib/types";
 import { Inbox3Pane } from "./inbox-3pane";
 
@@ -11,8 +12,6 @@ interface Props {
     id?: string;
   }>;
 }
-
-type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
 
 const STATUS_TABS: { value: ResponseStatus | "all"; label: string }[] = [
   { value: "all", label: "すべて" },
@@ -46,8 +45,10 @@ export default async function InboxPage({ searchParams }: Props) {
   if (selectedId) {
     try {
       selectedMessage = await getChatMessage(selectedId);
-    } catch {
-      // 選択メッセージが見つからない場合は無視
+    } catch (err) {
+      if (!(err instanceof ApiError && err.status === 404)) {
+        console.error("Failed to fetch message:", err);
+      }
     }
   }
 

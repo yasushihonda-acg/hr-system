@@ -5,21 +5,9 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CATEGORY_LABELS } from "@/lib/constants";
 import type { TestClassificationResult } from "@/lib/types";
 import { testClassifyAction } from "./test-classify-action";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  salary: "給与・社保",
-  retirement: "退職・休職",
-  hiring: "入社・採用",
-  contract: "契約変更",
-  transfer: "施設・異動",
-  foreigner: "外国人・ビザ",
-  training: "研修・監査",
-  health_check: "健康診断",
-  attendance: "勤怠・休暇",
-  other: "その他",
-};
 
 export function ClassificationTester() {
   const [message, setMessage] = useState("");

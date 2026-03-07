@@ -6,19 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { TransitionButtons } from "@/components/transition-buttons";
+import { formatCurrency } from "@/lib/constants";
 import type { DraftDetail } from "@/lib/types";
-
-function formatCurrency(n: number) {
-  return `¥${n.toLocaleString("ja-JP")}`;
-}
-
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString("ja-JP");
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ja-JP");
-}
+import { formatDate, formatDateTimeJST } from "@/lib/utils";
 
 interface DraftSidePanelProps {
   draft: DraftDetail;
@@ -76,7 +66,7 @@ export function DraftSidePanel({ draft }: DraftSidePanelProps) {
             <Row label="変更種別" value={draft.changeType === "mechanical" ? "機械的" : "裁量的"} />
             <Row label="理由" value={draft.reason ?? "—"} />
             <Row label="適用日" value={formatDate(draft.effectiveDate)} />
-            <Row label="作成日" value={formatDateTime(draft.createdAt)} />
+            <Row label="作成日" value={formatDateTimeJST(draft.createdAt)} />
             {draft.reviewedBy && <Row label="レビュー者" value={draft.reviewedBy} />}
             {draft.approvedBy && <Row label="承認者" value={draft.approvedBy} />}
           </div>
@@ -128,7 +118,7 @@ export function DraftSidePanel({ draft }: DraftSidePanelProps) {
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-muted-foreground">
                     <span>{log.actorEmail}</span>
-                    <span>{formatDateTime(log.createdAt)}</span>
+                    <span>{formatDateTimeJST(log.createdAt)}</span>
                   </div>
                   {log.comment && <p className="mt-1">{log.comment}</p>}
                 </div>
