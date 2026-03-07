@@ -292,6 +292,12 @@ export interface LineMessage {
   contentUrl: string | null;
   /** LINE メッセージタイプ: text, image, video, audio, file, sticker 等 */
   lineMessageType: string;
+  /** 対応状況（受信箱管理用） */
+  responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
+  /** 対応状況の最終更新者 */
+  responseStatusUpdatedBy: string | null;
+  /** 対応状況の最終更新日時 */
+  responseStatusUpdatedAt: Timestamp | null;
   /** 生ペイロード（将来の再解析用） */
   rawPayload: Record<string, unknown>;
   createdAt: Timestamp;

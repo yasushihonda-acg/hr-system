@@ -81,6 +81,11 @@ vi.mock("@/components/ui/tabs", () => ({
     React.createElement("div", { "data-value": value, ...props }, children as React.ReactNode),
 }));
 
+vi.mock("@/components/response-status-buttons", () => ({
+  ResponseStatusButtons: ({ currentStatus }: Record<string, unknown>) =>
+    React.createElement("div", { "data-testid": "status-buttons", "data-status": currentStatus }),
+}));
+
 vi.mock("@/components/workflow-panel", () => ({
   WorkflowPanel: () => React.createElement("div", { "data-testid": "workflow-panel" }),
 }));
@@ -92,6 +97,10 @@ vi.mock("../app/(protected)/inbox/handover-form", () => ({
       { "data-testid": "handover-form" },
       [taskSummary, assignees, notes].filter(Boolean).join(","),
     ),
+}));
+
+vi.mock("../app/(protected)/inbox/use-select-message", () => ({
+  useSelectMessage: () => vi.fn(),
 }));
 
 vi.mock("../app/(protected)/inbox/actions", () => ({
@@ -299,18 +308,16 @@ describe("Inbox3Pane", () => {
       expect(text).toContain("給与変更をお願いします");
     });
 
-    it("対応状況のステータスボタンが4つ表示される", () => {
-      const text = renderToText(
+    it("対応状況のステータスボタンが表示される", () => {
+      const html = ReactDOMServer.renderToStaticMarkup(
         React.createElement(Inbox3Pane, {
           messages: [makeSummary()],
           selectedMessage: makeDetail(),
           selectedId: "msg-1",
         }),
       );
-      expect(text).toContain("未対応");
-      expect(text).toContain("対応中");
-      expect(text).toContain("対応済");
-      expect(text).toContain("対応不要");
+      expect(html).toContain('data-testid="status-buttons"');
+      expect(html).toContain('data-status="unresponded"');
     });
 
     it("AI判定パネルにカテゴリと信頼度が表示される", () => {

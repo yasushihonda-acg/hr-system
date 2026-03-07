@@ -1,4 +1,4 @@
-import type { DraftStatus } from "@hr-system/shared";
+import type { DraftStatus, ResponseStatus } from "@hr-system/shared";
 import { auth } from "@/auth";
 import type {
   AdminUser,
@@ -16,6 +16,7 @@ import type {
   EmployeeSummary,
   IntentStatsSummary,
   LineGroupStat,
+  LineMessageDetail,
   LineMessageSummary,
   LlmClassificationRule,
   OverridePattern,
@@ -437,6 +438,7 @@ export function getOverridePatterns() {
 
 export interface LineMessageListParams {
   groupId?: string;
+  responseStatus?: ResponseStatus;
   limit?: number;
   offset?: number;
 }
@@ -444,6 +446,7 @@ export interface LineMessageListParams {
 export function getLineMessages(params?: LineMessageListParams) {
   const sp = new URLSearchParams();
   if (params?.groupId) sp.set("groupId", params.groupId);
+  if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.offset) sp.set("offset", String(params.offset));
   const qs = sp.toString();
@@ -455,6 +458,24 @@ export function getLineMessages(params?: LineMessageListParams) {
 
 export function getLineMessageStats() {
   return request<{ groups: LineGroupStat[]; total: number }>("/api/line-messages/stats");
+}
+
+export function getLineInboxCounts() {
+  return request<{ counts: InboxCounts }>("/api/line-messages/inbox-counts");
+}
+
+export function getLineMessage(id: string) {
+  return request<LineMessageDetail>(`/api/line-messages/${encodeURIComponent(id)}`);
+}
+
+export function updateLineResponseStatus(id: string, responseStatus: ResponseStatus) {
+  return request<{ success: boolean }>(
+    `/api/line-messages/${encodeURIComponent(id)}/response-status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ responseStatus }),
+    },
+  );
 }
 
 // --- Chat Spaces ---
