@@ -1,16 +1,17 @@
+import type { ResponseStatus } from "@hr-system/shared";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { getChatMessages, getInboxCounts } from "@/lib/api";
-import { InboxList } from "./inbox-list";
+import { ApiError, getChatMessage, getChatMessages, getInboxCounts } from "@/lib/api";
+import type { ChatMessageDetail } from "@/lib/types";
+import { Inbox3Pane } from "./inbox-3pane";
 
 interface Props {
   searchParams: Promise<{
     status?: string;
     page?: string;
+    id?: string;
   }>;
 }
-
-type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
 
 const STATUS_TABS: { value: ResponseStatus | "all"; label: string }[] = [
   { value: "all", label: "すべて" },
@@ -27,7 +28,9 @@ export default async function InboxPage({ searchParams }: Props) {
   const activeStatus = (params.status as ResponseStatus | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
+  const selectedId = params.id ?? null;
 
+  // 一覧 + カウント取得（常時）
   const [{ data: messages, pagination }, { counts }] = await Promise.all([
     getChatMessages({
       responseStatus: activeStatus,
@@ -37,12 +40,26 @@ export default async function InboxPage({ searchParams }: Props) {
     getInboxCounts(),
   ]);
 
-  function buildUrl(overrides: { status?: string; page?: string }) {
+  // 選択メッセージの詳細取得（?id= がある場合のみ）
+  let selectedMessage: ChatMessageDetail | null = null;
+  if (selectedId) {
+    try {
+      selectedMessage = await getChatMessage(selectedId);
+    } catch (err) {
+      if (!(err instanceof ApiError && err.status === 404)) {
+        console.error("Failed to fetch message:", err);
+      }
+    }
+  }
+
+  function buildUrl(overrides: { status?: string; page?: string; id?: string }) {
     const sp = new URLSearchParams();
     const s = "status" in overrides ? overrides.status : params.status;
     const p = overrides.page;
+    const id = "id" in overrides ? overrides.id : params.id;
     if (s && s !== "all") sp.set("status", s);
     if (p && p !== "1") sp.set("page", p);
+    if (id) sp.set("id", id);
     const qs = sp.toString();
     return `/inbox${qs ? `?${qs}` : ""}`;
   }
@@ -56,15 +73,14 @@ export default async function InboxPage({ searchParams }: Props) {
   }
 
   return (
-    <div className="-mx-4 -mt-4 min-h-screen bg-slate-50/80 px-4 pt-4">
-      <div className="mx-auto max-w-4xl space-y-5">
-        {/* Header */}
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">受信箱</h1>
-          <p className="mt-0.5 text-xs text-slate-500">チャットメッセージの対応状況を管理</p>
+    <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
+      {/* ヘッダー + ステータスタブ */}
+      <div className="flex-shrink-0 border-b border-border/60 bg-white px-5 py-3">
+        <div className="mb-2 flex items-center justify-between">
+          <h1 className="text-lg font-bold tracking-tight">受信箱</h1>
+          <span className="text-xs text-muted-foreground">全{totalActive}件</span>
         </div>
 
-        {/* Status tabs */}
         <div className="flex flex-wrap gap-1.5">
           {STATUS_TABS.map((tab) => {
             const isActive = tab.value === "all" ? !activeStatus : activeStatus === tab.value;
@@ -75,6 +91,7 @@ export default async function InboxPage({ searchParams }: Props) {
                 href={buildUrl({
                   status: tab.value === "all" ? undefined : tab.value,
                   page: "1",
+                  id: undefined,
                 })}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                   isActive
@@ -94,12 +111,14 @@ export default async function InboxPage({ searchParams }: Props) {
             );
           })}
         </div>
+      </div>
 
-        {/* Message list */}
-        <InboxList messages={messages} />
+      {/* 3ペインレイアウト */}
+      <Inbox3Pane messages={messages} selectedMessage={selectedMessage} selectedId={selectedId} />
 
-        {/* Pagination */}
-        <div className="flex items-center justify-center gap-2 pt-2">
+      {/* ページネーション */}
+      <div className="flex-shrink-0 border-t border-border/60 bg-white px-5 py-2">
+        <div className="flex items-center justify-center gap-2">
           <Link
             href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
             aria-disabled={page <= 1}

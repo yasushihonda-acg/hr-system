@@ -16,7 +16,7 @@ export function TabNav({ activeTab }: { activeTab: string }) {
       {TABS.map((tab) => (
         <Link
           key={tab.key}
-          href={`/ai-settings?tab=${tab.key}`}
+          href={`/admin/ai-settings?tab=${tab.key}`}
           className={cn(
             "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors",
             activeTab === tab.key

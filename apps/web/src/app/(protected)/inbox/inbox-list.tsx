@@ -1,42 +1,19 @@
 "use client";
 
+import type { ResponseStatus } from "@hr-system/shared";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { WorkflowPanel } from "@/components/workflow-panel";
+import {
+  CATEGORY_LABELS,
+  RESPONSE_STATUS_BADGE_COLORS,
+  RESPONSE_STATUS_LABELS,
+} from "@/lib/constants";
 import type { ChatMessageSummary, WorkflowSteps } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import { updateResponseStatusAction, updateWorkflowAction } from "./actions";
 import { HandoverForm } from "./handover-form";
-
-type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
-
-const RESPONSE_STATUS_LABELS: Record<ResponseStatus, string> = {
-  unresponded: "未対応",
-  in_progress: "対応中",
-  responded: "対応済",
-  not_required: "対応不要",
-};
-
-const RESPONSE_STATUS_COLORS: Record<ResponseStatus, string> = {
-  unresponded: "bg-red-100 text-red-800",
-  in_progress: "bg-yellow-100 text-yellow-800",
-  responded: "bg-green-100 text-green-800",
-  not_required: "bg-gray-100 text-gray-600",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  salary: "給与・社保",
-  retirement: "退職・休職",
-  hiring: "入社・採用",
-  contract: "契約変更",
-  transfer: "施設・異動",
-  foreigner: "外国人・ビザ",
-  training: "研修・監査",
-  health_check: "健康診断",
-  attendance: "勤怠・休暇",
-  other: "その他",
-};
 
 interface InboxListProps {
   messages: ChatMessageSummary[];
@@ -127,7 +104,7 @@ function InboxCard({
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                RESPONSE_STATUS_COLORS[currentStatus],
+                RESPONSE_STATUS_BADGE_COLORS[currentStatus],
               )}
             >
               {RESPONSE_STATUS_LABELS[currentStatus]}
@@ -175,7 +152,7 @@ function InboxCard({
                     onClick={() => handleStatusChange(s)}
                     className={cn(
                       "rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
-                      RESPONSE_STATUS_COLORS[s],
+                      RESPONSE_STATUS_BADGE_COLORS[s],
                       s === currentStatus
                         ? "ring-2 ring-current/30 ring-offset-1"
                         : "opacity-50 hover:opacity-80",

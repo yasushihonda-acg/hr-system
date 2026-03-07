@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CATEGORY_LABELS } from "@/lib/constants";
 import type { ClassificationRule } from "@/lib/types";
 import { updateRuleAction } from "./actions";
 
@@ -21,19 +22,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   health_check: "bg-pink-100 text-pink-800",
   attendance: "bg-teal-100 text-teal-800",
   other: "bg-gray-100 text-gray-600",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  salary: "給与・社保",
-  retirement: "退職・休職",
-  hiring: "入社・採用",
-  contract: "契約変更",
-  transfer: "施設・異動",
-  foreigner: "外国人・ビザ",
-  training: "研修・監査",
-  health_check: "健康診断",
-  attendance: "勤怠・休暇",
-  other: "その他",
 };
 
 function TagInput({
