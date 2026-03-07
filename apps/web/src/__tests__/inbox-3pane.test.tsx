@@ -61,8 +61,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("lucide-react", () => ({
-  ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
   MessageSquare: () => React.createElement("span", { "data-testid": "icon-message-square" }),
+  Paperclip: () => React.createElement("span", { "data-testid": "icon-paperclip" }),
   X: () => React.createElement("span", { "data-testid": "icon-x" }),
 }));
 
@@ -118,6 +118,14 @@ vi.mock("../app/(protected)/inbox/use-select-message", () => ({
 vi.mock("../app/(protected)/inbox/actions", () => ({
   updateResponseStatusAction: vi.fn(),
   updateWorkflowAction: vi.fn(),
+}));
+
+vi.mock("@/components/chat/attachment-list", () => ({
+  AttachmentList: ({ attachments }: { attachments: unknown[] }) =>
+    React.createElement("div", {
+      "data-testid": "attachment-list",
+      "data-count": attachments.length,
+    }),
 }));
 
 import type { ChatMessageDetail, ChatMessageSummary } from "../lib/types";
@@ -276,6 +284,21 @@ describe("Inbox3Pane", () => {
       expect(text).toContain("95%");
     });
 
+    it("添付ファイルがある場合にクリップアイコンが表示される", () => {
+      const html = renderToHtml(
+        React.createElement(Inbox3Pane, {
+          messages: [
+            makeSummary({
+              attachments: [{ name: "file.pdf", contentType: "application/pdf" }],
+            }),
+          ],
+          selectedMessage: null,
+          selectedId: null,
+        }),
+      );
+      expect(html).toContain('data-testid="icon-paperclip"');
+    });
+
     it("複数メッセージが一覧に表示される", () => {
       const text = renderToText(
         React.createElement(Inbox3Pane, {
@@ -406,7 +429,7 @@ describe("Inbox3Pane", () => {
       expect(text).toContain("給与・社保");
     });
 
-    it("詳細ページへのリンクが存在する", () => {
+    it("詳細ページへの遷移リンクが存在しない", () => {
       const html = renderToHtml(
         React.createElement(Inbox3Pane, {
           messages: [makeSummary()],
@@ -414,7 +437,35 @@ describe("Inbox3Pane", () => {
           selectedId: "msg-1",
         }),
       );
-      expect(html).toContain('href="/chat-messages/msg-1"');
+      expect(html).not.toContain('href="/chat-messages/');
+    });
+
+    it("添付ファイルがある場合にAttachmentListが表示される", () => {
+      const detail = makeDetail({
+        attachments: [
+          { name: "report.pdf", contentName: "report.pdf", contentType: "application/pdf" },
+        ],
+      });
+      const html = renderToHtml(
+        React.createElement(Inbox3Pane, {
+          messages: [makeSummary()],
+          selectedMessage: detail,
+          selectedId: "msg-1",
+        }),
+      );
+      expect(html).toContain('data-testid="attachment-list"');
+      expect(html).toContain('data-count="1"');
+    });
+
+    it("添付ファイルがない場合にAttachmentListが表示されない", () => {
+      const html = renderToHtml(
+        React.createElement(Inbox3Pane, {
+          messages: [makeSummary()],
+          selectedMessage: makeDetail({ attachments: [] }),
+          selectedId: "msg-1",
+        }),
+      );
+      expect(html).not.toContain('data-testid="attachment-list"');
     });
   });
 
