@@ -2,13 +2,11 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted でホイスト） ---
-const { mockChatMessagesGet, mockIntentRecordsGet, mockIntentRecordsCollectionGet } = vi.hoisted(
-  () => ({
-    mockChatMessagesGet: vi.fn(),
-    mockIntentRecordsGet: vi.fn(),
-    mockIntentRecordsCollectionGet: vi.fn(),
-  }),
-);
+const { mockChatMessagesGet, mockIntentRecordsGet, mockIntentRecordsCountGet } = vi.hoisted(() => ({
+  mockChatMessagesGet: vi.fn(),
+  mockIntentRecordsGet: vi.fn(),
+  mockIntentRecordsCountGet: vi.fn(),
+}));
 
 vi.mock("@hr-system/db", () => {
   const chatMessagesQuery: Record<string, unknown> = {};
@@ -25,10 +23,12 @@ vi.mock("@hr-system/db", () => {
         orderBy: vi.fn(() => chatMessagesQuery),
       },
       intentRecords: {
-        get: vi.fn(() => mockIntentRecordsCollectionGet()),
         where: vi.fn(() => {
           const q: Record<string, unknown> = {
             get: vi.fn(() => mockIntentRecordsGet()),
+            count: vi.fn(() => ({
+              get: vi.fn(() => mockIntentRecordsCountGet()),
+            })),
           };
           q.where = vi.fn(() => q);
           q.limit = vi.fn(() => q);
@@ -224,16 +224,13 @@ describe("chat-messages routes", () => {
 
   describe("GET /api/chat-messages/inbox-counts", () => {
     it("対応状況別の件数を集計して返す", async () => {
-      mockIntentRecordsCollectionGet.mockResolvedValueOnce({
-        docs: [
-          { data: () => ({ responseStatus: "unresponded" }) },
-          { data: () => ({ responseStatus: "unresponded" }) },
-          { data: () => ({ responseStatus: "in_progress" }) },
-          { data: () => ({ responseStatus: "responded" }) },
-          { data: () => ({ responseStatus: "not_required" }) },
-          { data: () => ({ responseStatus: "not_required" }) },
-        ],
-      });
+      // count() クエリが各ステータスに対して順に呼ばれる
+      // statuses: ["unresponded", "in_progress", "responded", "not_required"]
+      mockIntentRecordsCountGet
+        .mockResolvedValueOnce({ data: () => ({ count: 2 }) }) // unresponded
+        .mockResolvedValueOnce({ data: () => ({ count: 1 }) }) // in_progress
+        .mockResolvedValueOnce({ data: () => ({ count: 1 }) }) // responded
+        .mockResolvedValueOnce({ data: () => ({ count: 2 }) }); // not_required
 
       const res = await app.request("/api/chat-messages/inbox-counts");
       expect(res.status).toBe(200);
@@ -253,31 +250,12 @@ describe("chat-messages routes", () => {
       });
     });
 
-    it("responseStatus が未設定のドキュメントを unresponded としてカウントする", async () => {
-      mockIntentRecordsCollectionGet.mockResolvedValueOnce({
-        docs: [
-          { data: () => ({ responseStatus: undefined }) },
-          { data: () => ({}) },
-          { data: () => ({ responseStatus: "responded" }) },
-        ],
-      });
-
-      const res = await app.request("/api/chat-messages/inbox-counts");
-      expect(res.status).toBe(200);
-      const body = (await res.json()) as {
-        counts: {
-          unresponded: number;
-          in_progress: number;
-          responded: number;
-          not_required: number;
-        };
-      };
-      expect(body.counts.unresponded).toBe(2);
-      expect(body.counts.responded).toBe(1);
-    });
-
     it("ドキュメントが空の場合は全カウント0を返す", async () => {
-      mockIntentRecordsCollectionGet.mockResolvedValueOnce({ docs: [] });
+      mockIntentRecordsCountGet
+        .mockResolvedValueOnce({ data: () => ({ count: 0 }) })
+        .mockResolvedValueOnce({ data: () => ({ count: 0 }) })
+        .mockResolvedValueOnce({ data: () => ({ count: 0 }) })
+        .mockResolvedValueOnce({ data: () => ({ count: 0 }) });
 
       const res = await app.request("/api/chat-messages/inbox-counts");
       expect(res.status).toBe(200);
