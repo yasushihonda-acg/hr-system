@@ -1,4 +1,4 @@
-import type { DraftStatus, ResponseStatus } from "@hr-system/shared";
+import type { DraftStatus, ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { auth } from "@/auth";
 import type {
   AdminUser,
@@ -474,6 +474,16 @@ export function updateLineResponseStatus(id: string, responseStatus: ResponseSta
     {
       method: "PATCH",
       body: JSON.stringify({ responseStatus }),
+    },
+  );
+}
+
+export function updateLineTaskPriority(id: string, taskPriority: TaskPriority | null) {
+  return request<{ success: boolean }>(
+    `/api/line-messages/${encodeURIComponent(id)}/task-priority`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ taskPriority }),
     },
   );
 }

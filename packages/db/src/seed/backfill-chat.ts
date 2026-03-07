@@ -504,6 +504,7 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
         responseStatus: "unresponded" as const,
         responseStatusUpdatedBy: null,
         responseStatusUpdatedAt: null,
+        taskPriority: null,
         taskSummary: null,
         assignees: null,
         notes: null,

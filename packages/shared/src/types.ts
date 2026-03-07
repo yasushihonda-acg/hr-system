@@ -109,6 +109,10 @@ export const RESPONSE_STATUSES = [
 ] as const;
 export type ResponseStatus = (typeof RESPONSE_STATUSES)[number];
 
+/** タスク優先度 */
+export const TASK_PRIORITIES = ["critical", "high", "medium", "low"] as const;
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
 /** ワークフローステップの進捗状況 */
 export const WORKFLOW_STEP_STATUSES = ["undetermined", "completed", "not_required"] as const;
 export type WorkflowStepStatus = (typeof WORKFLOW_STEP_STATUSES)[number];

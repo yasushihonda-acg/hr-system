@@ -4,6 +4,7 @@ import type {
   DraftStatus,
   ResponseStatus,
   SalaryItemType,
+  TaskPriority,
   WorkflowStepStatus,
   WorkflowSteps,
 } from "@hr-system/shared";
@@ -196,6 +197,7 @@ export interface IntentSummary {
   isManualOverride: boolean;
   originalCategory: string | null;
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
+  taskPriority: TaskPriority | null;
   taskSummary: string | null;
   assignees: string | null;
   notes: string | null;
@@ -216,6 +218,7 @@ export interface IntentDetail extends IntentSummary {
 
 /** PATCH /api/chat-messages/:id/workflow リクエスト */
 export interface WorkflowUpdateRequest {
+  taskPriority?: TaskPriority | null;
   taskSummary?: string | null;
   assignees?: string | null;
   notes?: string | null;
@@ -349,6 +352,7 @@ export interface LineMessageSummary {
   content: string;
   contentUrl: string | null;
   lineMessageType: string;
+  taskPriority: TaskPriority | null;
   responseStatus: ResponseStatus;
   createdAt: string;
 }

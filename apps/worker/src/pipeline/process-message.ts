@@ -113,6 +113,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
       responseStatus: "unresponded",
       responseStatusUpdatedBy: null,
       responseStatusUpdatedAt: null,
+      taskPriority: null,
       taskSummary: null,
       assignees: null,
       notes: null,
