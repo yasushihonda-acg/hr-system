@@ -90,6 +90,18 @@ vi.mock("@/components/workflow-panel", () => ({
   WorkflowPanel: () => React.createElement("div", { "data-testid": "workflow-panel" }),
 }));
 
+vi.mock("@/components/task-priority-selector", () => ({
+  TaskPrioritySelector: ({ value }: Record<string, unknown>) =>
+    React.createElement("div", { "data-testid": "task-priority-selector", "data-value": value }),
+  TaskPriorityDot: ({ priority }: Record<string, unknown>) =>
+    priority
+      ? React.createElement("span", {
+          "data-testid": "task-priority-dot",
+          "data-priority": priority,
+        })
+      : null,
+}));
+
 vi.mock("../app/(protected)/inbox/handover-form", () => ({
   HandoverForm: ({ taskSummary, assignees, notes }: Record<string, unknown>) =>
     React.createElement(
