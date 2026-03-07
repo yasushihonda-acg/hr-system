@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-07（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `b63350d` — CLAUDE.md 更新のみ未プッシュ）
+**ブランチ**: `main`（最新コミット: `e42e1b9` — fix: Google Chat メッセージで Intent なしでもタスク優先度を設定可能にする）
 
 ---
 
@@ -88,10 +88,15 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 | **#143** | **feat: 受信箱に優先度セレクター追加（極高/高/中/低）** | **main (#146)** | **完了** |
 | **#144** | **feat: タスクビューページ追加 — 優先度付きメッセージの一覧・フィルタ** | **main (#147)** | **完了** |
 | **—** | **docs: CLAUDE.md を現状に合わせて更新** | **main (b63350d)** | **完了** |
+| **#148** | **fix: Google Chat メッセージで Intent なしでもタスク優先度を設定可能にする** | **main (#149)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: Google Chat メッセージで Intent なしでもタスク優先度を設定可能にする (e42e1b9, PR #149)
+- intent が null のメッセージでも taskPriority を PATCH できるよう修正
+- (#148 の不具合対応)
 
 ### docs: CLAUDE.md を現状に合わせて更新 (b63350d)
 - Project Structure: worker/salary/ai パッケージ追加
