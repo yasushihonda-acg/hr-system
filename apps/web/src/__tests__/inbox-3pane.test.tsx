@@ -72,7 +72,11 @@ vi.mock("@/components/ui/tabs", () => ({
   TabsList: ({ children, ...props }: Record<string, unknown>) =>
     React.createElement("div", { "data-slot": "tabs-list", ...props }, children as React.ReactNode),
   TabsTrigger: ({ children, value, ...props }: Record<string, unknown>) =>
-    React.createElement("button", { "data-value": value, ...props }, children as React.ReactNode),
+    React.createElement(
+      "button",
+      { type: "button", "data-value": value, ...props },
+      children as React.ReactNode,
+    ),
   TabsContent: ({ children, value, ...props }: Record<string, unknown>) =>
     React.createElement("div", { "data-value": value, ...props }, children as React.ReactNode),
 }));

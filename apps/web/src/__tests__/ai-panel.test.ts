@@ -66,18 +66,18 @@ describe("CATEGORY_ACTIONS", () => {
   it("全10カテゴリにアクションが定義されている", () => {
     for (const cat of ALL_CATEGORIES) {
       expect(CATEGORY_ACTIONS[cat]).toBeDefined();
-      expect(CATEGORY_ACTIONS[cat]!.length).toBeGreaterThan(0);
+      expect(CATEGORY_ACTIONS[cat]?.length).toBeGreaterThan(0);
     }
   });
 
   it("salary カテゴリは給与関連のアクションを含む", () => {
-    const actions = CATEGORY_ACTIONS.salary!;
+    const actions = CATEGORY_ACTIONS.salary;
     expect(actions).toContain("給与変更ドラフトの確認・作成");
     expect(actions).toContain("SmartHRへの反映");
   });
 
   it("未定義カテゴリの場合は undefined を返す（呼び出し側で other にフォールバック）", () => {
-    expect(CATEGORY_ACTIONS["unknown_category"]).toBeUndefined();
+    expect(CATEGORY_ACTIONS.unknown_category).toBeUndefined();
   });
 
   it("other カテゴリは汎用的なアクションを持つ", () => {
