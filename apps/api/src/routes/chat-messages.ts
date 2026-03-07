@@ -183,9 +183,8 @@ chatMessageRoutes.get("/inbox-counts", async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
-  const statuses = ["unresponded", "in_progress", "responded", "not_required"] as const;
   const results = await Promise.all(
-    statuses.map((s) =>
+    RESPONSE_STATUSES.map((s) =>
       collections.intentRecords
         .where("responseStatus", "==", s)
         .count()
@@ -193,7 +192,7 @@ chatMessageRoutes.get("/inbox-counts", async (c) => {
         .then((snap) => snap.data().count),
     ),
   );
-  const counts = Object.fromEntries(statuses.map((s, i) => [s, results[i]]));
+  const counts = Object.fromEntries(RESPONSE_STATUSES.map((s, i) => [s, results[i] ?? 0]));
 
   return c.json({ counts });
 });

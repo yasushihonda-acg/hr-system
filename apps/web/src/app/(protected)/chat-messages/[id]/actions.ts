@@ -1,5 +1,6 @@
 "use server";
 
+import type { ResponseStatus } from "@hr-system/shared";
 import { revalidatePath } from "next/cache";
 import { requireAccess } from "@/lib/access-control";
 import { updateResponseStatus, updateWorkflow } from "@/lib/api";
@@ -7,7 +8,7 @@ import type { WorkflowUpdateRequest } from "@/lib/types";
 
 export async function updateResponseStatusAction(
   chatMessageId: string,
-  responseStatus: "unresponded" | "in_progress" | "responded" | "not_required",
+  responseStatus: ResponseStatus,
 ) {
   await requireAccess();
   await updateResponseStatus(chatMessageId, responseStatus);
