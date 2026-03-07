@@ -1,8 +1,8 @@
 /**
  * サイドバーナビゲーション テスト
  *
- * App Shell 再設計: 8項目→4項目のナビゲーション構造変更を検証
- * - 新ナビ項目: 受信箱, タスク, ダッシュボード, 管理
+ * App Shell 再設計: 5項目のナビゲーション構造を検証
+ * - ナビ項目: 受信箱, タスク, 承認, ダッシュボード, 管理
  * - isNavActive のルーティング判定
  */
 import { describe, expect, it, vi } from "vitest";
@@ -17,8 +17,8 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 import { isNavActive, navItems } from "../components/sidebar-nav";
 
 describe("sidebar-nav 構造", () => {
-  it("ナビゲーション項目が4つであること", () => {
-    expect(navItems).toHaveLength(4);
+  it("ナビゲーション項目が5つであること", () => {
+    expect(navItems).toHaveLength(5);
   });
 
   it("受信箱が /inbox であること", () => {
@@ -27,10 +27,16 @@ describe("sidebar-nav 構造", () => {
     expect(inbox!.href).toBe("/inbox");
   });
 
-  it("タスクが /tasks であること", () => {
+  it("タスクが /task-board であること", () => {
     const tasks = navItems.find((item) => item.label === "タスク");
     expect(tasks).toBeDefined();
-    expect(tasks!.href).toBe("/tasks");
+    expect(tasks!.href).toBe("/task-board");
+  });
+
+  it("承認が /tasks であること", () => {
+    const approval = navItems.find((item) => item.label === "承認");
+    expect(approval).toBeDefined();
+    expect(approval!.href).toBe("/tasks");
   });
 
   it("ダッシュボードが /dashboard であること", () => {
@@ -49,6 +55,14 @@ describe("sidebar-nav 構造", () => {
 describe("isNavActive ルーティング判定", () => {
   it("/inbox が /inbox でアクティブ", () => {
     expect(isNavActive("/inbox", "/inbox")).toBe(true);
+  });
+
+  it("/task-board が /task-board でアクティブ", () => {
+    expect(isNavActive("/task-board", "/task-board")).toBe(true);
+  });
+
+  it("/task-board が /task-board?priority=high でもアクティブ", () => {
+    expect(isNavActive("/task-board", "/task-board?priority=high")).toBe(true);
   });
 
   it("/tasks が /tasks でアクティブ", () => {

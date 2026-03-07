@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ClipboardList, Inbox, Settings } from "lucide-react";
+import { BarChart3, ClipboardList, Inbox, ListTodo, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,8 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { href: "/inbox", label: "受信箱", icon: Inbox },
-  { href: "/tasks", label: "タスク", icon: ClipboardList },
+  { href: "/task-board", label: "タスク", icon: ListTodo },
+  { href: "/tasks", label: "承認", icon: ClipboardList },
   { href: "/dashboard", label: "ダッシュボード", icon: BarChart3 },
   { href: "/admin", label: "管理", icon: Settings },
 ];
