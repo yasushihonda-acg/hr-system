@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/access-control";
 import { updateClassificationRule } from "@/lib/api";
 
 export async function updateRuleAction(
@@ -13,6 +14,7 @@ export async function updateRuleAction(
     isActive: boolean;
   },
 ) {
+  await requireAdmin();
   await updateClassificationRule(category, data);
   revalidatePath("/admin/ai-settings");
 }
