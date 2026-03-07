@@ -1,8 +1,8 @@
 "use client";
 
 import type { ResponseStatus } from "@hr-system/shared";
-import { ExternalLink, MessageSquare, X } from "lucide-react";
-import Link from "next/link";
+import { MessageSquare, Paperclip, X } from "lucide-react";
+import { AttachmentList } from "@/components/chat/attachment-list";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPriorityDot, TaskPrioritySelector } from "@/components/task-priority-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -91,6 +91,9 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
                     {(intent.confidenceScore * 100).toFixed(0)}%
                   </span>
                 )}
+                {msg.attachments.length > 0 && (
+                  <Paperclip className="h-3 w-3 text-muted-foreground" />
+                )}
                 {intent?.taskPriority && <TaskPriorityDot priority={intent.taskPriority} />}
               </div>
             </button>
@@ -138,13 +141,6 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
               {formatDateTimeJST(message.createdAt)}
             </span>
           </div>
-          <Link
-            href={`/chat-messages/${message.id}`}
-            className="rounded p-1 text-muted-foreground hover:bg-accent"
-            title="詳細ページ"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Link>
         </div>
 
         {/* メッセージ / スレッド タブ */}
@@ -165,6 +161,13 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
             <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">
               {message.content}
             </div>
+
+            {/* 添付ファイル */}
+            {message.attachments.length > 0 && (
+              <div className="mt-3">
+                <AttachmentList attachments={message.attachments} />
+              </div>
+            )}
 
             {/* 対応ステータス変更 */}
             <div className="mt-4">
