@@ -13,6 +13,7 @@ import type {
 } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import { updateResponseStatusAction, updateWorkflowAction } from "./actions";
+import { HandoverForm } from "./handover-form";
 
 type ResponseStatus = "unresponded" | "in_progress" | "responded" | "not_required";
 
@@ -194,6 +195,18 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
           <div className="mt-4">
             <p className="mb-2 text-xs font-semibold text-muted-foreground">ワークフロー</p>
             <WorkflowPanelWrapper chatMessageId={message.id} steps={intent.workflowSteps ?? null} />
+          </div>
+        )}
+
+        {/* 引き継ぎメモ */}
+        {intent && (
+          <div className="mt-4">
+            <HandoverForm
+              chatMessageId={message.id}
+              taskSummary={intent.taskSummary ?? null}
+              assignees={intent.assignees ?? null}
+              notes={intent.notes ?? null}
+            />
           </div>
         )}
 

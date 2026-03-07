@@ -43,6 +43,15 @@ vi.mock("@/components/workflow-panel", () => ({
   WorkflowPanel: () => React.createElement("div", { "data-testid": "workflow-panel" }),
 }));
 
+vi.mock("../app/(protected)/inbox/handover-form", () => ({
+  HandoverForm: ({ taskSummary, assignees, notes }: Record<string, unknown>) =>
+    React.createElement(
+      "div",
+      { "data-testid": "handover-form" },
+      [taskSummary, assignees, notes].filter(Boolean).join(","),
+    ),
+}));
+
 vi.mock("../app/(protected)/inbox/actions", () => ({
   updateResponseStatusAction: vi.fn(),
   updateWorkflowAction: vi.fn(),
@@ -416,6 +425,45 @@ describe("Inbox3Pane", () => {
         }),
       );
       expect(html).toContain("bg-red-500");
+    });
+
+    it("intentがnullの場合、引き継ぎメモが表示されない", () => {
+      const html = renderToHtml(
+        React.createElement(Inbox3Pane, {
+          messages: [makeSummary({ intent: null })],
+          selectedMessage: makeDetail({ intent: null }),
+          selectedId: "msg-1",
+        }),
+      );
+      expect(html).not.toContain('data-testid="handover-form"');
+    });
+  });
+
+  describe("引き継ぎメモ", () => {
+    it("intentがある場合にHandoverFormが表示される", () => {
+      const html = renderToHtml(
+        React.createElement(Inbox3Pane, {
+          messages: [makeSummary()],
+          selectedMessage: makeDetail(),
+          selectedId: "msg-1",
+        }),
+      );
+      expect(html).toContain('data-testid="handover-form"');
+    });
+
+    it("taskSummaryがHandoverFormに渡される", () => {
+      const base = makeDetail();
+      const detail = makeDetail({
+        intent: base.intent ? { ...base.intent, taskSummary: "給与テーブル更新" } : null,
+      });
+      const text = renderToText(
+        React.createElement(Inbox3Pane, {
+          messages: [makeSummary()],
+          selectedMessage: detail,
+          selectedId: "msg-1",
+        }),
+      );
+      expect(text).toContain("給与テーブル更新");
     });
   });
 });
