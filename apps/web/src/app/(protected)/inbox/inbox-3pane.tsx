@@ -176,15 +176,13 @@ function DetailPane({ message, onClose }: { message: ChatMessageDetail; onClose:
             </div>
 
             {/* タスク優先度 */}
-            {intent && (
-              <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
-                <TaskPrioritySelector
-                  value={intent.taskPriority ?? null}
-                  onChange={(p) => updateTaskPriorityAction(message.id, p)}
-                />
-              </div>
-            )}
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
+              <TaskPrioritySelector
+                value={intent?.taskPriority ?? null}
+                onChange={(p) => updateTaskPriorityAction(message.id, p)}
+              />
+            </div>
 
             {/* ワークフロー */}
             {intent && (
