@@ -146,9 +146,7 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 
 **積み残しタスクはゼロです。**
 
-1. **未追跡ファイル削除**: `layout-refresh-login.png` / `layout-refresh-login-fixed.png` — ルートに残っているスクリーンショット。不要なら削除
-2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-3. **未追跡ファイル**: `packages/db/src/check-rawpayload.ts` — デバッグ用スクリプト。不要なら削除、必要なら `.gitignore` 対象に追加
+1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
 
 ### 完了済みバックログ（参考）
 
