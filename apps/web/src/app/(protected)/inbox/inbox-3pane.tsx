@@ -3,8 +3,8 @@
 import type { ResponseStatus } from "@hr-system/shared";
 import { ExternalLink, MessageSquare, X } from "lucide-react";
 import Link from "next/link";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowPanel } from "@/components/workflow-panel";
 import { CATEGORY_LABELS, RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type {
