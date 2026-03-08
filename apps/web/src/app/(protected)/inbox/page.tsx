@@ -171,7 +171,7 @@ export default async function InboxPage({ searchParams }: Props) {
               >
                 {tab.label}
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${
+                  className={`rounded-full px-1.5 py-0.5 text-[11px] tabular-nums ${
                     isActive ? "bg-white/20" : "bg-slate-100"
                   }`}
                 >

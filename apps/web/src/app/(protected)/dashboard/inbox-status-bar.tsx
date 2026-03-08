@@ -24,7 +24,7 @@ export function InboxStatusBar({ counts }: { counts: InboxCounts }) {
           return (
             <div key={seg.label} className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-muted-foreground">{seg.label}</span>
+                <span className="text-[11px] text-muted-foreground">{seg.label}</span>
                 <span className="text-xs font-semibold tabular-nums">{seg.count}</span>
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">

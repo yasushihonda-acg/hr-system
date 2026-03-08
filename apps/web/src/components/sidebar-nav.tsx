@@ -40,7 +40,7 @@ export function SidebarNav() {
             href={item.href}
             title={item.label}
             className={cn(
-              "relative flex w-10 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[10px] font-medium transition-all duration-150",
+              "relative flex w-10 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[11px] font-medium transition-all duration-150",
               active &&
                 "bg-gradient-accent-soft border border-[var(--gradient-from)]/20 text-[var(--gradient-from)]",
               !active &&
@@ -54,7 +54,7 @@ export function SidebarNav() {
             {item.badge != null && item.badge > 0 && (
               <span
                 className={cn(
-                  "absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[8px] font-bold text-white ring-1.5 ring-card",
+                  "absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-1.5 ring-card",
                   item.badgeVariant === "warn" ? "bg-[var(--status-warn)]" : "bg-destructive",
                 )}
               >

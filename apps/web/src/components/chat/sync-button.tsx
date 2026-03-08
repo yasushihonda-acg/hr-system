@@ -168,7 +168,7 @@ export function ChatSyncButton() {
                   type="button"
                   disabled={isSavingConfig || !config.isEnabled}
                   onClick={() => handleSaveConfig({ intervalMinutes: opt.value })}
-                  className={`rounded px-1.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded px-1.5 py-1 text-xs font-medium transition-colors ${
                     config.intervalMinutes === opt.value
                       ? "bg-slate-900 text-white"
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-40"
@@ -181,7 +181,7 @@ export function ChatSyncButton() {
           </div>
 
           {config.updatedAt && (
-            <p className="mt-3 text-[10px] text-slate-400">
+            <p className="mt-3 text-[11px] text-slate-400">
               更新: {formatDateTimeJST(config.updatedAt)}
             </p>
           )}

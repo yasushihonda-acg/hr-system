@@ -19,7 +19,7 @@ export function Header() {
 
         {/* 右側: 日付 + ユーザーメニュー */}
         <div className="flex items-center gap-3">
-          <span className="text-[11px] text-muted-foreground">{today}</span>
+          <span className="text-xs text-muted-foreground">{today}</span>
           <UserMenu />
         </div>
       </div>

@@ -49,7 +49,7 @@ function FilterPill({ href, label, active }: { href: string; label: string; acti
 function FilterRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-14 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <span className="w-14 shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       {children}

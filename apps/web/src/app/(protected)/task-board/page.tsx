@@ -166,7 +166,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
                 <Link
                   key={tab.value}
                   href={buildUrl({ source: tab.value === "all" ? undefined : tab.value })}
-                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                     isActive ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"
                   }`}
                 >
@@ -183,7 +183,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
                 <Link
                   key={tab.value}
                   href={buildUrl({ status: tab.value === "all" ? undefined : tab.value })}
-                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                     isActive ? "bg-slate-700 text-white" : "text-slate-500 hover:bg-slate-100"
                   }`}
                 >
