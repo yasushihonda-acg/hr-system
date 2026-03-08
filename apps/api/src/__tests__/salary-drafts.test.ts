@@ -370,7 +370,7 @@ describe("PATCH /api/salary-drafts/:id", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("draft ステータス: hr_manager が修正できる (200)", async () => {
-    const updatedDraft = makeDraft({ afterBaseSalary: 270000 });
+    const updatedDraft = makeDraft({ reason: "昇給（修正）" });
     mockDraftGet
       .mockResolvedValueOnce({ exists: true, data: () => makeDraft(), id: "draft-001" })
       .mockResolvedValueOnce({ exists: true, data: () => updatedDraft, id: "draft-001" });
@@ -378,7 +378,7 @@ describe("PATCH /api/salary-drafts/:id", () => {
     const res = await app.request("/api/salary-drafts/draft-001", {
       method: "PATCH",
       headers: { ...AUTH_HEADER, "Content-Type": "application/json" },
-      body: JSON.stringify({ afterBaseSalary: 270000 }),
+      body: JSON.stringify({ reason: "昇給（修正）" }),
     });
 
     expect(res.status).toBe(200);
@@ -391,7 +391,7 @@ describe("PATCH /api/salary-drafts/:id", () => {
     const res = await app.request("/api/salary-drafts/draft-001", {
       method: "PATCH",
       headers: { ...AUTH_HEADER, "Content-Type": "application/json" },
-      body: JSON.stringify({ afterBaseSalary: 270000 }),
+      body: JSON.stringify({ reason: "修正" }),
     });
 
     expect(res.status).toBe(403);
@@ -407,7 +407,7 @@ describe("PATCH /api/salary-drafts/:id", () => {
     const res = await app.request("/api/salary-drafts/draft-001", {
       method: "PATCH",
       headers: { ...AUTH_HEADER, "Content-Type": "application/json" },
-      body: JSON.stringify({ afterBaseSalary: 270000 }),
+      body: JSON.stringify({ reason: "修正" }),
     });
 
     expect(res.status).toBe(409);

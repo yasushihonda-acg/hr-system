@@ -5,10 +5,70 @@
  * Firestore に未保存のメッセージのみ追加する。
  */
 
+import type { ClassificationConfig } from "@hr-system/ai";
+import { classifyIntent } from "@hr-system/ai";
 import type { ChatAnnotation, ChatAttachment, ChatSyncConfig, SyncMetadata } from "@hr-system/db";
-import { collections } from "@hr-system/db";
-import { Timestamp } from "firebase-admin/firestore";
+import { collections, db, loadClassificationConfig } from "@hr-system/db";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { GoogleAuth } from "google-auth-library";
+
+// --- 分類設定キャッシュ（Worker の classification-config.ts と同パターン）---
+const CONFIG_TTL_MS = 5 * 60 * 1000; // 5分
+let configCache: { config: ClassificationConfig; loadedAt: number } | null = null;
+
+async function getClassificationConfig(): Promise<ClassificationConfig> {
+  if (configCache && Date.now() - configCache.loadedAt < CONFIG_TTL_MS) return configCache.config;
+  const loaded = await loadClassificationConfig();
+  const config: ClassificationConfig = {
+    regexRules: loaded.regexRules,
+    systemPrompt: loaded.systemPrompt,
+    fewShotExamples: loaded.fewShotExamples,
+  };
+  configCache = { config, loadedAt: Date.now() };
+  return config;
+}
+
+/** メッセージを分類して IntentRecord を保存し processedAt を更新する（バッチ書き込み） */
+async function classifyAndSaveIntent(
+  docId: string,
+  content: string,
+  config: ClassificationConfig,
+): Promise<void> {
+  if (!content.trim()) return; // 空メッセージはスキップ
+
+  const result = await classifyIntent(content, undefined, config);
+
+  const batch = db.batch();
+  batch.set(collections.intentRecords.doc(), {
+    chatMessageId: docId,
+    category: result.category,
+    confidenceScore: result.confidence,
+    extractedParams: null,
+    classificationMethod: result.classificationMethod,
+    regexPattern: result.regexPattern ?? null,
+    llmInput: result.classificationMethod === "ai" ? content : null,
+    llmOutput: result.classificationMethod === "ai" ? result.reasoning : null,
+    isManualOverride: false,
+    originalCategory: null,
+    overriddenBy: null,
+    overriddenAt: null,
+    responseStatus: "unresponded",
+    responseStatusUpdatedBy: null,
+    responseStatusUpdatedAt: null,
+    taskPriority: null,
+    taskSummary: null,
+    assignees: null,
+    notes: null,
+    workflowSteps: null,
+    workflowUpdatedBy: null,
+    workflowUpdatedAt: null,
+    createdAt: FieldValue.serverTimestamp() as never,
+  });
+  batch.update(collections.chatMessages.doc(docId), {
+    processedAt: FieldValue.serverTimestamp(),
+  });
+  await batch.commit();
+}
 
 const DEFAULT_SPACE_ID = process.env.CHAT_SPACE_ID ?? "AAAA-qf5jX0";
 const CHAT_API_BASE = "https://chat.googleapis.com/v1";
@@ -104,6 +164,7 @@ export async function syncChatMessages(spaceId: string): Promise<SyncResult> {
     : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const authHeaders = await getAuthHeaders();
+  const classificationConfig = await getClassificationConfig();
   const filter = `createTime > "${since.toISOString()}"`;
 
   let newMessages = 0;
@@ -143,9 +204,17 @@ export async function syncChatMessages(spaceId: string): Promise<SyncResult> {
       const googleMessageId = msg.name as string;
       const docId = sanitizeDocId(googleMessageId);
 
-      // 重複チェック
+      // 重複チェック（保存済みだが未分類のメッセージは再分類を試みる）
       const existing = await collections.chatMessages.doc(docId).get();
       if (existing.exists) {
+        const existingData = existing.data();
+        if (existingData && !existingData.processedAt) {
+          try {
+            await classifyAndSaveIntent(docId, existingData.content ?? "", classificationConfig);
+          } catch (e) {
+            console.error(`Re-classification failed for ${docId}:`, e);
+          }
+        }
         duplicateSkipped++;
         continue;
       }
@@ -241,6 +310,13 @@ export async function syncChatMessages(spaceId: string): Promise<SyncResult> {
         processedAt: null,
         createdAt,
       });
+
+      // Intent 分類 + IntentRecord 保存（失敗時は processedAt=null のまま → 次回再分類）
+      try {
+        await classifyAndSaveIntent(docId, content, classificationConfig);
+      } catch (e) {
+        console.error(`Intent classification failed for ${docId}:`, e);
+      }
 
       newMessages++;
     }
