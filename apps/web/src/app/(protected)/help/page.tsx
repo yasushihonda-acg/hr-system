@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { BookOpen, HelpCircle } from "lucide-react";
+import Image from "next/image";
 
 export const metadata = {
   title: "操作マニュアル | HR-AI Agent",
@@ -60,7 +60,7 @@ function Tip({ children }: { children: React.ReactNode }) {
   );
 }
 
-function RoleBadge({ role }: { role: string }) {
+function RoleBadge({ label }: { label: string }) {
   const colors: Record<string, string> = {
     管理者: "bg-purple-100 text-purple-700 border-purple-300",
     HRスタッフ: "bg-blue-100 text-blue-700 border-blue-300",
@@ -68,9 +68,9 @@ function RoleBadge({ role }: { role: string }) {
   };
   return (
     <span
-      className={`inline-block text-xs px-2 py-0.5 rounded-full border ${colors[role] ?? "bg-gray-100 text-gray-600 border-gray-300"}`}
+      className={`inline-block text-xs px-2 py-0.5 rounded-full border ${colors[label] ?? "bg-gray-100 text-gray-600 border-gray-300"}`}
     >
-      {role}
+      {label}
     </span>
   );
 }
@@ -151,8 +151,8 @@ export default function HelpPage() {
             が自動的にカテゴリ分類を行い、対応状況を管理できます。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
-            <RoleBadge role="HRスタッフ" />
+            <RoleBadge label="管理者" />
+            <RoleBadge label="HRスタッフ" />
           </div>
           <Screenshot
             src="/screenshots/help/02-inbox-chat.png"
@@ -182,8 +182,8 @@ export default function HelpPage() {
             対応が必要なメッセージを優先度順にカード表示します。フィルタで絞り込みながら効率的にタスクを処理できます。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
-            <RoleBadge role="HRスタッフ" />
+            <RoleBadge label="管理者" />
+            <RoleBadge label="HRスタッフ" />
           </div>
           <Screenshot
             src="/screenshots/help/04-task-board.png"
@@ -212,8 +212,8 @@ export default function HelpPage() {
             が生成した給与変更ドラフトの承認ワークフローを管理します。ドラフト→レビュー済→社長承認待ち→承認済の流れで処理します。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
-            <RoleBadge role="HRスタッフ" />
+            <RoleBadge label="管理者" />
+            <RoleBadge label="HRスタッフ" />
           </div>
           <Screenshot
             src="/screenshots/help/05-tasks.png"
@@ -235,9 +235,9 @@ export default function HelpPage() {
             メッセージの統計情報を可視化します。総メッセージ数、対応状況、カテゴリ別分布、推移グラフを確認できます。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
-            <RoleBadge role="HRスタッフ" />
-            <RoleBadge role="閲覧者" />
+            <RoleBadge label="管理者" />
+            <RoleBadge label="HRスタッフ" />
+            <RoleBadge label="閲覧者" />
           </div>
           <Screenshot
             src="/screenshots/help/07-dashboard.png"
@@ -267,7 +267,7 @@ export default function HelpPage() {
             ダッシュボードにアクセスできるユーザーを管理します。ロール（管理者・HRスタッフ・閲覧者）を割り当てます。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
+            <RoleBadge label="管理者" />
           </div>
           <Screenshot
             src="/screenshots/help/08-admin-users.png"
@@ -288,7 +288,7 @@ export default function HelpPage() {
             のチャット同期対象スペースを管理します。スペースを追加するには、対象スペースに管理者アカウントが参加している必要があります。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
+            <RoleBadge label="管理者" />
           </div>
           <Screenshot
             src="/screenshots/help/09-admin-spaces.png"
@@ -303,7 +303,7 @@ export default function HelpPage() {
             従業員マスタの一覧を表示します。社員番号、名前、雇用形態、部署、入社日などを確認できます。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
+            <RoleBadge label="管理者" />
           </div>
           <Screenshot
             src="/screenshots/help/11-admin-employees.png"
@@ -318,7 +318,7 @@ export default function HelpPage() {
             システム上の全操作を記録した監査ログを閲覧できます。ユーザーの追加・削除、ドラフトの承認など、重要な操作の履歴を確認できます。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
+            <RoleBadge label="管理者" />
           </div>
           <Screenshot
             src="/screenshots/help/12-admin-audit-logs.png"
@@ -337,7 +337,7 @@ export default function HelpPage() {
             ルール、テスト分類、精度分析の4つのタブで管理します。
           </p>
           <div className="flex items-center gap-2 mb-3">
-            <RoleBadge role="管理者" />
+            <RoleBadge label="管理者" />
           </div>
           <Screenshot
             src="/screenshots/help/10-admin-ai-settings.png"
@@ -370,13 +370,13 @@ export default function HelpPage() {
                 <tr className="border-b border-border">
                   <th className="text-left py-2 pr-4 font-semibold">機能</th>
                   <th className="text-center py-2 px-3 font-semibold">
-                    <RoleBadge role="管理者" />
+                    <RoleBadge label="管理者" />
                   </th>
                   <th className="text-center py-2 px-3 font-semibold">
-                    <RoleBadge role="HRスタッフ" />
+                    <RoleBadge label="HRスタッフ" />
                   </th>
                   <th className="text-center py-2 px-3 font-semibold">
-                    <RoleBadge role="閲覧者" />
+                    <RoleBadge label="閲覧者" />
                   </th>
                 </tr>
               </thead>

@@ -1,7 +1,7 @@
-import { UserMenu } from "@/components/user-menu";
-import { formatDate } from "@/lib/utils";
 import { HelpCircle } from "lucide-react";
 import Link from "next/link";
+import { UserMenu } from "@/components/user-menu";
+import { formatDate } from "@/lib/utils";
 
 export function Header() {
   const today = formatDate(new Date().toISOString());
