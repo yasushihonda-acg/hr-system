@@ -136,6 +136,46 @@ export async function updateSyncMetadata(data: Partial<SyncMetadata>): Promise<v
     .set({ ...data, updatedAt: Timestamp.now() } as SyncMetadata, { merge: true });
 }
 
+/** stale lock とみなす閾値（15 分） */
+const STALE_LOCK_MS = 15 * 60 * 1000;
+
+/**
+ * Firestore トランザクションで排他ロックを取得する。
+ * - status が "running" かつ updatedAt が STALE_LOCK_MS 以内 → ロック取得失敗
+ * - status が "running" でも STALE_LOCK_MS 超過 → stale lock として上書き
+ * @returns true: ロック取得成功, false: 既に実行中
+ */
+export async function acquireSyncLock(): Promise<boolean> {
+  const docRef = collections.syncMetadata.doc("chat_messages");
+  try {
+    return await db.runTransaction(async (tx) => {
+      const snap = await tx.get(docRef);
+      if (snap.exists) {
+        const data = snap.data() as SyncMetadata;
+        if (data.status === "running") {
+          const elapsed = Date.now() - data.updatedAt.toDate().getTime();
+          if (elapsed < STALE_LOCK_MS) {
+            return false; // 正常に稼働中 → ロック取得拒否
+          }
+          // stale lock → 上書き
+          console.warn(
+            `[chat-sync] Stale lock detected (${Math.round(elapsed / 1000)}s ago). Overriding.`,
+          );
+        }
+      }
+      tx.set(
+        docRef,
+        { status: "running", errorMessage: null, updatedAt: Timestamp.now() } as SyncMetadata,
+        { merge: true },
+      );
+      return true;
+    });
+  } catch (e) {
+    console.error("[chat-sync] Failed to acquire lock:", e);
+    return false;
+  }
+}
+
 /** chat_sync_config/default ドキュメントを取得 */
 export async function getChatSyncConfig(): Promise<ChatSyncConfig | null> {
   const doc = await collections.chatSyncConfig.doc("default").get();

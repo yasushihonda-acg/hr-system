@@ -1,6 +1,8 @@
+import { Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import {
+  acquireSyncLock,
   getChatSyncConfig,
   getSyncMetadata,
   syncAllActiveSpaces,
@@ -22,9 +24,10 @@ chatSyncRoutes.use("*", async (c, next) => {
 });
 
 /**
- * POST /api/chat-messages/sync — 同期開始
+ * POST /api/chat-messages/sync — 同期実行
  * ?source=scheduler の場合は intervalMinutes チェックを行い、スキップ可能
- * 409 if already running, 202 accepted
+ * 同期完了まで待機して結果を返す（Cloud Run 途中停止を防止）
+ * 409 if already running
  */
 chatSyncRoutes.post("/", async (c) => {
   const isScheduler = c.req.query("source") === "scheduler";
@@ -47,50 +50,46 @@ chatSyncRoutes.post("/", async (c) => {
     }
   }
 
-  const meta = await getSyncMetadata();
-  if (meta?.status === "running") {
+  // Firestore トランザクションで排他ロック取得（stale lock は 15 分で自動解放）
+  const acquired = await acquireSyncLock();
+  if (!acquired) {
     return c.json({ error: "同期が既に実行中です" }, 409);
   }
 
-  await updateSyncMetadata({
-    status: "running",
-    errorMessage: null,
-  });
-
-  // バックグラウンドで同期実行（全アクティブスペース）
-  const syncPromise = syncAllActiveSpaces();
-  syncPromise
-    .then(async (results) => {
-      const { Timestamp } = await import("firebase-admin/firestore");
-      const totalNew = results.reduce((sum, r) => sum + r.newMessages, 0);
-      const totalDup = results.reduce((sum, r) => sum + r.duplicateSkipped, 0);
-      const totalMs = results.reduce((sum, r) => sum + r.durationMs, 0);
-      await updateSyncMetadata({
-        status: "idle",
-        lastSyncedAt: Timestamp.now(),
-        lastResult: {
-          newMessages: totalNew,
-          duplicateSkipped: totalDup,
-          durationMs: totalMs,
-          syncedAt: Timestamp.now(),
-        },
-        errorMessage: null,
-      });
-    })
-    .catch(async (err: unknown) => {
-      const message = err instanceof Error ? err.message : "不明なエラー";
-      console.error("Chat sync failed:", message);
-      try {
-        await updateSyncMetadata({
-          status: "error",
-          errorMessage: message,
-        });
-      } catch (updateErr) {
-        console.error("Failed to update sync status:", updateErr);
-      }
+  // 同期実行（完了まで待機 — Cloud Run 途中停止を防止）
+  try {
+    const results = await syncAllActiveSpaces();
+    const totalNew = results.reduce((sum, r) => sum + r.newMessages, 0);
+    const totalDup = results.reduce((sum, r) => sum + r.duplicateSkipped, 0);
+    const totalMs = results.reduce((sum, r) => sum + r.durationMs, 0);
+    await updateSyncMetadata({
+      status: "idle",
+      lastSyncedAt: Timestamp.now(),
+      lastResult: {
+        newMessages: totalNew,
+        duplicateSkipped: totalDup,
+        durationMs: totalMs,
+        syncedAt: Timestamp.now(),
+      },
+      errorMessage: null,
     });
-
-  return c.json({ message: "同期を開始しました" }, 202);
+    return c.json({
+      message: "同期が完了しました",
+      result: { newMessages: totalNew, duplicateSkipped: totalDup, durationMs: totalMs },
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "不明なエラー";
+    console.error("Chat sync failed:", message);
+    try {
+      await updateSyncMetadata({
+        status: "error",
+        errorMessage: message,
+      });
+    } catch (updateErr) {
+      console.error("Failed to update sync status:", updateErr);
+    }
+    return c.json({ error: `同期に失敗しました: ${message}` }, 500);
+  }
 });
 
 /**
