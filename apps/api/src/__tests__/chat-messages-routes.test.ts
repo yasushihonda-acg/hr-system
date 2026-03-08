@@ -220,6 +220,151 @@ describe("chat-messages routes", () => {
       expect(body.data).toHaveLength(1);
       expect(body.data[0]!.id).toBe("msg-2");
     });
+
+    it("Intent フィルタ + ページネーション: offset/limit がフィルタ後に適用される", async () => {
+      // 5件のメッセージ、うち3件が salary カテゴリ
+      mockChatMessagesGet.mockResolvedValueOnce({
+        docs: [
+          makeChatDoc("msg-1"),
+          makeChatDoc("msg-2"),
+          makeChatDoc("msg-3"),
+          makeChatDoc("msg-4"),
+          makeChatDoc("msg-5"),
+        ],
+      });
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [
+          ...makeIntentSnap("msg-1", 0.9, "unresponded").docs, // salary
+          {
+            id: "intent-msg-2",
+            data: () => ({
+              chatMessageId: "msg-2",
+              category: "retirement",
+              confidenceScore: 0.8,
+              classificationMethod: "ai",
+              isManualOverride: false,
+              originalCategory: null,
+              regexPattern: null,
+              responseStatus: "unresponded",
+              createdAt: now,
+            }),
+          },
+          ...makeIntentSnap("msg-3", 0.7, "unresponded").docs, // salary
+          {
+            id: "intent-msg-4",
+            data: () => ({
+              chatMessageId: "msg-4",
+              category: "retirement",
+              confidenceScore: 0.8,
+              classificationMethod: "ai",
+              isManualOverride: false,
+              originalCategory: null,
+              regexPattern: null,
+              responseStatus: "unresponded",
+              createdAt: now,
+            }),
+          },
+          ...makeIntentSnap("msg-5", 0.6, "unresponded").docs, // salary
+        ],
+      });
+
+      // limit=2, offset=0 — salary のうち最初の2件（msg-1, msg-3）を返し hasMore=true
+      const res = await app.request("/api/chat-messages?category=salary&limit=2&offset=0");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<{ id: string }>;
+        pagination: { limit: number; offset: number; hasMore: boolean };
+      };
+      expect(body.data).toHaveLength(2);
+      expect(body.data[0]!.id).toBe("msg-1");
+      expect(body.data[1]!.id).toBe("msg-3");
+      expect(body.pagination.hasMore).toBe(true);
+    });
+
+    it("Intent フィルタ + ページネーション: 2ページ目を正しく返す", async () => {
+      // 同じ5件、salary が3件
+      mockChatMessagesGet.mockResolvedValueOnce({
+        docs: [
+          makeChatDoc("msg-1"),
+          makeChatDoc("msg-2"),
+          makeChatDoc("msg-3"),
+          makeChatDoc("msg-4"),
+          makeChatDoc("msg-5"),
+        ],
+      });
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [
+          ...makeIntentSnap("msg-1", 0.9, "unresponded").docs,
+          {
+            id: "intent-msg-2",
+            data: () => ({
+              chatMessageId: "msg-2",
+              category: "retirement",
+              confidenceScore: 0.8,
+              classificationMethod: "ai",
+              isManualOverride: false,
+              originalCategory: null,
+              regexPattern: null,
+              responseStatus: "unresponded",
+              createdAt: now,
+            }),
+          },
+          ...makeIntentSnap("msg-3", 0.7, "unresponded").docs,
+          {
+            id: "intent-msg-4",
+            data: () => ({
+              chatMessageId: "msg-4",
+              category: "retirement",
+              confidenceScore: 0.8,
+              classificationMethod: "ai",
+              isManualOverride: false,
+              originalCategory: null,
+              regexPattern: null,
+              responseStatus: "unresponded",
+              createdAt: now,
+            }),
+          },
+          ...makeIntentSnap("msg-5", 0.6, "unresponded").docs,
+        ],
+      });
+
+      // limit=2, offset=2 — salary の3件目（msg-5）のみ、hasMore=false
+      const res = await app.request("/api/chat-messages?category=salary&limit=2&offset=2");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<{ id: string }>;
+        pagination: { limit: number; offset: number; hasMore: boolean };
+      };
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0]!.id).toBe("msg-5");
+      expect(body.pagination.hasMore).toBe(false);
+    });
+
+    it("Intent フィルタなしでは Firestore レベルのページネーションを使用する", async () => {
+      // limit+1 件取得して hasMore 判定する従来ロジック
+      mockChatMessagesGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2"), makeChatDoc("msg-3")],
+      });
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [
+          ...makeIntentSnap("msg-1", 0.9).docs,
+          ...makeIntentSnap("msg-2", 0.8).docs,
+          // msg-3 は limit+1 の余剰分として切り捨てられる想定だが
+          // モック上は 3件返す → hasMore=true, data は 2件
+          ...makeIntentSnap("msg-3", 0.7).docs,
+        ],
+      });
+
+      const res = await app.request("/api/chat-messages?limit=2&offset=0");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<{ id: string }>;
+        pagination: { limit: number; offset: number; hasMore: boolean };
+      };
+      // 3件返ったので hasMore=true、data は先頭2件
+      expect(body.data).toHaveLength(2);
+      expect(body.pagination.hasMore).toBe(true);
+    });
   });
 
   describe("GET /api/chat-messages/inbox-counts", () => {

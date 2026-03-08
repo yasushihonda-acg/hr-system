@@ -56,6 +56,10 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  // Intent 系フィルタ（別コレクション依存のため Firestore クエリ不可）
+  const hasIntentFilter =
+    category !== undefined || responseStatus !== undefined || maxConfidence !== undefined;
+
   let query = collections.chatMessages.orderBy("createdAt", "desc") as FirebaseFirestore.Query;
 
   if (spaceId) {
@@ -68,12 +72,26 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     query = query.where("threadName", "==", threadName);
   }
 
-  const snapshot = await query
-    .limit(lim + 1)
-    .offset(off)
-    .get();
-  const hasMore = snapshot.docs.length > lim;
-  const docs = snapshot.docs.slice(0, lim);
+  // Intent フィルタあり: 全件取得 → post-filter → アプリ側ページング
+  // Intent フィルタなし: Firestore レベルでページング（従来どおり）
+  let docs: FirebaseFirestore.QueryDocumentSnapshot[];
+  let hasMore: boolean;
+
+  if (hasIntentFilter) {
+    // 上限キャップ（過大なクエリ防止）
+    const MAX_FETCH = 2000;
+    const snapshot = await query.limit(MAX_FETCH).get();
+    docs = snapshot.docs;
+    // hasMore は post-filter 後に再計算するのでここでは仮値
+    hasMore = false;
+  } else {
+    const snapshot = await query
+      .limit(lim + 1)
+      .offset(off)
+      .get();
+    hasMore = snapshot.docs.length > lim;
+    docs = snapshot.docs.slice(0, lim);
+  }
 
   // IntentRecord を一括取得（N+1 → バッチクエリ）
   // Firestore の "in" は最大30件。ページサイズが30超の場合はチャンク処理
@@ -163,6 +181,20 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
   });
 
   const filtered = items.filter(Boolean);
+
+  // Intent フィルタあり: フィルタ後のリストでページング
+  if (hasIntentFilter) {
+    const paged = filtered.slice(off, off + lim);
+    hasMore = off + lim < filtered.length;
+    return c.json({
+      data: paged,
+      pagination: {
+        limit: lim,
+        offset: off,
+        hasMore,
+      },
+    });
+  }
 
   return c.json({
     data: filtered,
