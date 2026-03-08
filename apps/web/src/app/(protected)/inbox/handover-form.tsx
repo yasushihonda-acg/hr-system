@@ -47,7 +47,7 @@ export function HandoverForm({ chatMessageId, taskSummary, assignees, notes }: H
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
           >
             <Pencil className="h-3 w-3" />
             {hasContent ? "編集" : "追加"}
@@ -75,10 +75,10 @@ export function HandoverForm({ chatMessageId, taskSummary, assignees, notes }: H
             )}
           </div>
         ) : (
-          <p className="text-[10px] text-muted-foreground/60 italic">メモなし</p>
+          <p className="text-[11px] text-muted-foreground/60 italic">メモなし</p>
         )}
         {saved && (
-          <p className="flex items-center gap-1 text-[10px] text-[var(--status-ok)]">
+          <p className="flex items-center gap-1 text-[11px] text-[var(--status-ok)]">
             <Check className="h-3 w-3" />
             保存しました
           </p>

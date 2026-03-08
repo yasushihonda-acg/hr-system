@@ -72,7 +72,7 @@ export default function LoginPage() {
           {isDev && (
             <div className="mt-6 rounded-lg border border-dashed border-amber-300 bg-amber-50/50 p-4">
               <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-amber-700">
-                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] text-white font-bold">
+                <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[9px] text-white font-bold">
                   D
                 </span>
                 開発環境専用

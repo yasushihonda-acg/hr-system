@@ -59,11 +59,11 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
                 />
                 <span className="truncate text-xs font-medium">{msg.senderName}</span>
                 {msg.groupName && (
-                  <span className="truncate text-[10px] text-muted-foreground">
+                  <span className="truncate text-[11px] text-muted-foreground">
                     @ {msg.groupName}
                   </span>
                 )}
-                <span className="ml-auto text-[10px] text-muted-foreground">
+                <span className="ml-auto text-[11px] text-muted-foreground">
                   {formatDateTimeJST(msg.createdAt)}
                 </span>
               </div>
@@ -80,11 +80,11 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
               </p>
 
               <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
+                <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700">
                   LINE
                 </span>
                 {msg.lineMessageType !== "text" && (
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                     {msg.lineMessageType}
                   </span>
                 )}

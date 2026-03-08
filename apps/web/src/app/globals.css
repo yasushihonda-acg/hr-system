@@ -160,12 +160,27 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "palt" 1; /* 日本語プロポーショナルメトリクス */
+    font-size: 15px; /* 黄金比スケール基準: 15px (≈ 14 × φ^0.1) */
+    line-height: 1.618; /* 黄金比行間 */
   }
   h1,
   h2,
   h3 {
     letter-spacing: -0.02em;
     font-weight: 700;
+    line-height: 1.25; /* 見出しは詰め気味 */
+  }
+  /* 黄金比タイポグラフィスケール変数
+   * caption: 10px | label: 12px | body: 15px | subhead: 19px | heading: 24px | display: 31px
+   * 各ステップは √φ (≈1.272) の倍率
+   */
+  :root {
+    --type-caption: 0.625rem; /* 10px */
+    --type-label: 0.75rem; /* 12px */
+    --type-body: 0.9375rem; /* 15px */
+    --type-subhead: 1.1875rem; /* 19px */
+    --type-heading: 1.5rem; /* 24px */
+    --type-display: 1.9375rem; /* 31px */
   }
 }
 

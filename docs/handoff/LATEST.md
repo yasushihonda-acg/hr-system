@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-08（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `32e6182` — fix: セキュリティ強化・テスト品質・パフォーマンス改善 (#159)）
+**ブランチ**: `main`（最新コミット: `2f82516` — test: chat-sync 分類パイプラインのテストカバレッジ追加 (#174)）
 
 ---
 
@@ -91,10 +91,31 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 | **#148** | **fix: Google Chat メッセージで Intent なしでもタスク優先度を設定可能にする** | **main (#149)** | **完了** |
 | **#150/#151** | **fix(web): 受信箱の詳細ページ遷移リンク削除 + 添付ファイル表示追加** | **main (#152)** | **完了** |
 | **#153〜#158** | **fix: セキュリティ強化・テスト品質・パフォーマンス改善（Server Actions 認証・PII除去・count()集計・境界値テスト追加）** | **main (#159)** | **完了** |
+| **—** | **fix: CI二重テスト解消 + coverageゲート閾値設定 + Playwright BASE_URL対応** | **main (#165)** | **完了** |
+| **—** | **fix: api/worker の vitest.config.ts にも coverage 閾値を追加** | **main (86a5d86)** | **完了** |
+| **#172** | **fix: viewer ユーザーの業務 API アクセス拒否ガード** | **main (#172)** | **完了** |
+| **#167/#168** | **fix: chat-sync 分類漏れ修正 + salary-drafts PATCH から金額フィールド除去** | **main (#173)** | **完了** |
+| **—** | **test: chat-sync 分類パイプラインのテストカバレッジ追加** | **main (#174)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### test: chat-sync 分類パイプラインのテストカバレッジ追加 (2f82516, PR #174)
+- chat-sync の分類パイプラインに対するテストを追加
+- CI が現在デプロイ中（Deploy to Cloud Run in_progress）
+
+### fix: chat-sync 分類漏れ修正 + salary-drafts PATCH から金額フィールド除去 (87ae27d, PR #173)
+- chat-sync でカテゴリ分類が漏れるバグを修正（#167）
+- salary-drafts PATCH エンドポイントから金額フィールドを除去（#168）
+
+### fix: viewer ユーザーの業務 API アクセス拒否ガード (fab37d0, PR #172)
+- viewer ロールが業務系 API エンドポイントにアクセスできた問題を修正
+
+### fix: CI二重テスト解消 + coverageゲート閾値設定 + Playwright BASE_URL対応 (7621073, PR #165)
+- CI ワークフローでテストが二重実行されていた問題を修正
+- vitest coverage 閾値ゲートを設定（api/worker/web 全サービス対応）
+- Playwright の BASE_URL 設定を追加
 
 ### fix: セキュリティ強化・テスト品質・パフォーマンス改善 (32e6182, PR #159)
 - **セキュリティ**: Server Actions 全7ファイルに `requireAccess()` / `requireAdmin()` 追加（defense-in-depth）

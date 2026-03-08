@@ -103,7 +103,7 @@ function InboxCard({
             </span>
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                "rounded-full px-2 py-0.5 text-[11px] font-medium",
                 RESPONSE_STATUS_BADGE_COLORS[currentStatus],
               )}
             >
