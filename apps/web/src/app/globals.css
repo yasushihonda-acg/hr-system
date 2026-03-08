@@ -117,6 +117,17 @@
   --status-warn: oklch(0.65 0.18 75);
   --status-danger: oklch(0.58 0.22 25);
   --status-info: oklch(0.55 0.16 230);
+
+  /* 黄金比タイポグラフィスケール
+   * caption: 10px | label: 12px | body: 15px | subhead: 19px | heading: 24px | display: 31px
+   * 各ステップは √φ (≈1.272) の倍率
+   */
+  --type-caption: 0.625rem; /* 10px */
+  --type-label: 0.75rem; /* 12px */
+  --type-body: 0.9375rem; /* 15px */
+  --type-subhead: 1.1875rem; /* 19px */
+  --type-heading: 1.5rem; /* 24px */
+  --type-display: 1.9375rem; /* 31px */
 }
 
 .dark {
@@ -169,18 +180,6 @@
     letter-spacing: -0.02em;
     font-weight: 700;
     line-height: 1.25; /* 見出しは詰め気味 */
-  }
-  /* 黄金比タイポグラフィスケール変数
-   * caption: 10px | label: 12px | body: 15px | subhead: 19px | heading: 24px | display: 31px
-   * 各ステップは √φ (≈1.272) の倍率
-   */
-  :root {
-    --type-caption: 0.625rem; /* 10px */
-    --type-label: 0.75rem; /* 12px */
-    --type-body: 0.9375rem; /* 15px */
-    --type-subhead: 1.1875rem; /* 19px */
-    --type-heading: 1.5rem; /* 24px */
-    --type-display: 1.9375rem; /* 31px */
   }
 }
 

@@ -172,7 +172,7 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                   {senderDisplay}
                 </span>
                 {msg.isEdited && (
-                  <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-muted-foreground">
+                  <span className="flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
                     <Pencil size={9} />
                     編集済
                   </span>

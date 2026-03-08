@@ -181,7 +181,7 @@ export function ChatSyncButton() {
           </div>
 
           {config.updatedAt && (
-            <p className="mt-3 text-[11px] text-slate-400">
+            <p className="mt-3 text-xs text-slate-400">
               更新: {formatDateTimeJST(config.updatedAt)}
             </p>
           )}

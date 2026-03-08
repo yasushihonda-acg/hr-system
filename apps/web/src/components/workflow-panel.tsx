@@ -91,12 +91,12 @@ export function WorkflowPanel({ steps, onUpdate, compact = false }: WorkflowPane
               >
                 {step.label}
               </span>
-              <span className={cn("text-[11px]", config.color)}>{config.label}</span>
+              <span className={cn("text-xs", config.color)}>{config.label}</span>
             </button>
           );
         })}
       </div>
-      {saving && <p className="text-[11px] text-muted-foreground">保存中...</p>}
+      {saving && <p className="text-xs text-muted-foreground">保存中...</p>}
     </div>
   );
 }
@@ -128,7 +128,7 @@ export function WorkflowProgressBar({ steps }: { steps: WorkflowSteps | null }) 
           />
         );
       })}
-      <span className="ml-1 text-[11px] tabular-nums text-muted-foreground">
+      <span className="ml-1 text-xs tabular-nums text-muted-foreground">
         {completedCount}/{STEP_LABELS.length}
       </span>
     </div>

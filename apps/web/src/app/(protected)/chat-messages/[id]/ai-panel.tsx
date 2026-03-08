@@ -57,7 +57,7 @@ export function AiPanel({ intent }: AiPanelProps) {
               {conf.label} ({(intent.confidenceScore * 100).toFixed(0)}%)
             </span>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {intent.classificationMethod === "ai"
               ? "Gemini による自動分類"
               : intent.classificationMethod === "regex"
@@ -87,7 +87,7 @@ export function AiPanel({ intent }: AiPanelProps) {
       {/* AI 推論 */}
       {intent.reasoning && (
         <div className="rounded-lg border border-border/60 bg-muted/40 p-3">
-          <p className="mb-1 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          <p className="mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             AI の判断理由
           </p>
           <p className="text-xs leading-relaxed text-foreground/80">{intent.reasoning}</p>
