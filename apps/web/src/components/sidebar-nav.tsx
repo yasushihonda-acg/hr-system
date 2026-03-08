@@ -40,7 +40,7 @@ export function SidebarNav() {
             href={item.href}
             title={item.label}
             className={cn(
-              "relative flex w-10 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-[11px] font-medium transition-all duration-150",
+              "relative flex w-10 flex-col items-center gap-0.5 rounded-lg px-1 py-2 text-xs font-medium transition-all duration-150",
               active &&
                 "bg-gradient-accent-soft border border-[var(--gradient-from)]/20 text-[var(--gradient-from)]",
               !active &&

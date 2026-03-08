@@ -52,7 +52,7 @@ export function AttachmentList({ attachments }: AttachmentListProps) {
               {displayName}
             </button>
             {att.contentType && (
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                 {att.contentType.split("/").pop()}
               </span>
             )}

@@ -73,13 +73,13 @@ export function TaskList({ tasks }: { tasks: TaskItem[] }) {
                 <MessageCircle size={12} className="text-emerald-500" />
               )}
               {task.groupName && (
-                <span className="text-[11px] text-muted-foreground">@ {task.groupName}</span>
+                <span className="text-xs text-muted-foreground">@ {task.groupName}</span>
               )}
               {/* 対応状況 */}
-              <span className="ml-auto text-[11px] text-muted-foreground">
+              <span className="ml-auto text-xs text-muted-foreground">
                 {RESPONSE_STATUS_LABELS[task.responseStatus]}
               </span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {formatDateTimeJST(task.createdAt)}
               </span>
             </div>
@@ -96,7 +96,7 @@ export function TaskList({ tasks }: { tasks: TaskItem[] }) {
 
             {/* 担当者 */}
             {task.assignees && (
-              <p className="mt-1 text-[11px] text-muted-foreground">担当: {task.assignees}</p>
+              <p className="mt-1 text-xs text-muted-foreground">担当: {task.assignees}</p>
             )}
           </Link>
         );

@@ -75,7 +75,7 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
                   )}
                 />
                 <span className="truncate text-xs font-medium">{msg.senderName}</span>
-                <span className="ml-auto text-[11px] text-muted-foreground">
+                <span className="ml-auto text-xs text-muted-foreground">
                   {formatDateTimeJST(msg.createdAt)}
                 </span>
               </div>
@@ -83,11 +83,11 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
               <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{msg.content}</p>
 
               <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                   {CATEGORY_LABELS[category] ?? category}
                 </span>
                 {intent?.confidenceScore != null && (
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
+                  <span className="text-xs tabular-nums text-muted-foreground">
                     {(intent.confidenceScore * 100).toFixed(0)}%
                   </span>
                 )}
