@@ -50,24 +50,6 @@ export function ChatSyncButton() {
     fetchStatus();
   }, [fetchStatus]);
 
-  // ポーリング（同期中のみ）
-  useEffect(() => {
-    if (!isSyncing) return;
-
-    const startTime = Date.now();
-    const maxDuration = 30_000; // 最大30秒
-
-    const interval = setInterval(async () => {
-      const data = await fetchStatus();
-      if (data?.status !== "running" || Date.now() - startTime > maxDuration) {
-        setIsSyncing(false);
-        clearInterval(interval);
-      }
-    }, 2_000);
-
-    return () => clearInterval(interval);
-  }, [isSyncing, fetchStatus]);
-
   const handleSync = async () => {
     setIsSyncing(true);
     try {
@@ -76,10 +58,11 @@ export function ChatSyncButton() {
         // 既に実行中
         return;
       }
-      if (!res.ok) {
-        setIsSyncing(false);
-      }
+      // 同期完了（成功/失敗問わず）→ ステータス再取得
+      await fetchStatus();
     } catch {
+      // ネットワークエラー等
+    } finally {
       setIsSyncing(false);
     }
   };
