@@ -16,6 +16,7 @@ export default defineConfig({
       reporter: ["text", "json-summary"],
       include: ["src/**/*.ts", "src/**/*.tsx"],
       exclude: ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__/**", "src/**/*.d.ts"],
+      thresholds: {}, // UIコンポーネント中心のため閾値なし
     },
   },
 });
