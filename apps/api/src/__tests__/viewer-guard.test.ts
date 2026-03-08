@@ -182,4 +182,11 @@ describe("viewer guard — viewer ユーザーは業務 API で 403 を返す", 
       expect(res.status).toBe(403);
     });
   });
+
+  describe("監査ログ", () => {
+    it("GET /api/audit-logs は 403", async () => {
+      const res = await app.request("/api/audit-logs");
+      expect(res.status).toBe(403);
+    });
+  });
 });

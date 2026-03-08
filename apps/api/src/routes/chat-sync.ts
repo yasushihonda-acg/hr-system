@@ -10,7 +10,7 @@ import {
 
 export const chatSyncRoutes = new Hono();
 
-// 同期操作は admin のみ（サービスアカウントは dashboardRole: null で通過）
+// 同期操作は viewer を除外（admin / hr_staff / hr_manager / ceo は許可、サービスアカウントは dashboardRole: null で通過）
 chatSyncRoutes.use("*", async (c, next) => {
   if (c.req.method !== "GET") {
     const { dashboardRole } = c.get("user");

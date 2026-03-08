@@ -23,7 +23,7 @@ const app = new Hono();
  */
 app.get("/", zValidator("query", listQuerySchema), async (c) => {
   const actorRole = c.get("actorRole");
-  if (actorRole === "hr_staff") {
+  if (!actorRole || actorRole === "hr_staff") {
     return c.json(
       { error: { code: "FORBIDDEN", message: "監査ログの閲覧は管理者以上に限定されています" } },
       403,
