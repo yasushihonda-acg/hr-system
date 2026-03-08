@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { notFound } from "../lib/errors.js";
 import { toISO } from "../lib/serialize.js";
+import { requireRole } from "../middleware/rbac.js";
 
 export const classificationRulesRoutes = new Hono();
 
@@ -82,45 +83,50 @@ classificationRulesRoutes.get("/:category", async (c) => {
   });
 });
 
-// PATCH /api/classification-rules/:category — ルール更新
-classificationRulesRoutes.patch("/:category", zValidator("json", updateRuleSchema), async (c) => {
-  const category = c.req.param("category") as ChatCategory;
-  if (!CHAT_CATEGORIES.includes(category)) {
-    return c.json({ error: "Invalid category" }, 400);
-  }
+// PATCH /api/classification-rules/:category — ルール更新（hr_manager 以上）
+classificationRulesRoutes.patch(
+  "/:category",
+  requireRole("hr_manager", "ceo"),
+  zValidator("json", updateRuleSchema),
+  async (c) => {
+    const category = c.req.param("category") as ChatCategory;
+    if (!CHAT_CATEGORIES.includes(category)) {
+      return c.json({ error: "Invalid category" }, 400);
+    }
 
-  const updates = c.req.valid("json");
-  const actor = c.get("user");
+    const updates = c.req.valid("json");
+    const actor = c.get("user");
 
-  const snapshot = await collections.classificationRules
-    .where("category", "==", category)
-    .limit(1)
-    .get();
+    const snapshot = await collections.classificationRules
+      .where("category", "==", category)
+      .limit(1)
+      .get();
 
-  if (snapshot.empty) {
-    notFound("ClassificationRule", category);
-  }
+    if (snapshot.empty) {
+      notFound("ClassificationRule", category);
+    }
 
-  // biome-ignore lint/style/noNonNullAssertion: snapshot.empty checked above
-  const docRef = snapshot.docs[0]!.ref;
-  await docRef.update({
-    ...updates,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+    // biome-ignore lint/style/noNonNullAssertion: snapshot.empty checked above
+    const docRef = snapshot.docs[0]!.ref;
+    await docRef.update({
+      ...updates,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
 
-  // 監査ログ
-  await collections.auditLogs.add({
-    eventType: "classification_rule_changed",
-    entityType: "classification_rule",
-    entityId: category,
-    actorEmail: actor.email,
-    actorRole: c.get("actorRole"),
-    details: { category, changes: updates },
-    createdAt: FieldValue.serverTimestamp() as never,
-  });
+    // 監査ログ
+    await collections.auditLogs.add({
+      eventType: "classification_rule_changed",
+      entityType: "classification_rule",
+      entityId: category,
+      actorEmail: actor.email,
+      actorRole: c.get("actorRole"),
+      details: { category, changes: updates },
+      createdAt: FieldValue.serverTimestamp() as never,
+    });
 
-  return c.json({ success: true });
-});
+    return c.json({ success: true });
+  },
+);
 
 // POST /api/classification-rules/test — テスト分類
 classificationRulesRoutes.post("/test", zValidator("json", testClassifySchema), async (c) => {

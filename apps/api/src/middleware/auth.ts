@@ -18,7 +18,7 @@ export interface AuthUser {
 declare module "hono" {
   interface ContextVariableMap {
     user: AuthUser;
-    actorRole: import("@hr-system/shared").ActorRole;
+    actorRole: import("@hr-system/shared").ActorRole | null;
   }
 }
 

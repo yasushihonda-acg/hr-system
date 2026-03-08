@@ -13,15 +13,20 @@ function resolveRole(email: string): ActorRole {
 
 export const rbacMiddleware = createMiddleware(async (c, next) => {
   const user = c.get("user");
-  const role = resolveRole(user.email);
-  c.set("actorRole", role);
+
+  // viewer ロールには業務操作権限を付与しない
+  if (user.dashboardRole === "viewer") {
+    c.set("actorRole", null);
+  } else {
+    c.set("actorRole", resolveRole(user.email));
+  }
   await next();
 });
 
 export function requireRole(...roles: ActorRole[]) {
   return createMiddleware(async (c, next) => {
     const actorRole = c.get("actorRole");
-    if (!roles.includes(actorRole)) {
+    if (!actorRole || !roles.includes(actorRole)) {
       throw new HTTPException(403, { message: "Forbidden" });
     }
     await next();

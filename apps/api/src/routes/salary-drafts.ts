@@ -153,9 +153,9 @@ app.get("/:id", async (c) => {
     };
   });
 
-  // 現在のロールで実行可能な次アクションを付与
+  // 現在のロールで実行可能な次アクションを付与（viewer は空）
   const actorRole = c.get("actorRole");
-  const nextActions = getNextActions(draft.status, actorRole, draft.changeType);
+  const nextActions = actorRole ? getNextActions(draft.status, actorRole, draft.changeType) : [];
 
   return c.json({
     ...serializeDraft(id, draft),
@@ -174,6 +174,10 @@ app.patch("/:id", zValidator("json", patchDraftSchema), async (c) => {
   const user = c.get("user");
   const actorRole = c.get("actorRole");
 
+  // 業務操作権限が必要（viewer 拒否）
+  if (!actorRole) {
+    forbidden("閲覧専用ユーザーはドラフトを修正できません");
+  }
   // hr_staff / hr_manager のみ修正可能
   if (actorRole === "ceo") {
     forbidden("CEOはドラフトを直接修正できません");
@@ -245,6 +249,11 @@ app.post("/:id/transition", zValidator("json", transitionSchema), async (c) => {
   const actorRole = c.get("actorRole");
   const { toStatus, comment } = c.req.valid("json");
 
+  // 業務操作権限が必要（viewer 拒否）
+  if (!actorRole) {
+    forbidden("閲覧専用ユーザーはステータスを変更できません");
+  }
+
   const draftRef = collections.salaryDrafts.doc(id);
   const draftSnap = await draftRef.get();
   if (!draftSnap.exists) notFound("SalaryDraft", id);
@@ -306,7 +315,7 @@ app.post("/:id/transition", zValidator("json", transitionSchema), async (c) => {
   // 更新後のドラフトと次アクション一覧を返却
   const updatedSnap = await draftRef.get();
   const updated = updatedSnap.data() as SalaryDraft;
-  const nextActions = getNextActions(toStatus, actorRole, updated.changeType);
+  const nextActions = actorRole ? getNextActions(toStatus, actorRole, updated.changeType) : [];
 
   return c.json({
     ...serializeDraft(id, updated),

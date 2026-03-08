@@ -9,6 +9,17 @@ import { toISO } from "../lib/serialize.js";
 
 export const llmRulesRoutes = new Hono();
 
+// 書き込み系は hr_manager 以上に制限
+llmRulesRoutes.use("*", async (c, next) => {
+  if (c.req.method !== "GET") {
+    const actorRole = c.get("actorRole");
+    if (!actorRole || !["hr_manager", "ceo"].includes(actorRole)) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+  }
+  await next();
+});
+
 const llmRuleTypes = ["system_prompt", "few_shot_example", "category_definition"] as const;
 
 const createLlmRuleSchema = z.object({

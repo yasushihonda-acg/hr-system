@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import {
   getChatSyncConfig,
   getSyncMetadata,
@@ -8,6 +9,17 @@ import {
 } from "../services/chat-sync.js";
 
 export const chatSyncRoutes = new Hono();
+
+// 同期操作は viewer を除外（admin / hr_staff / hr_manager / ceo は許可、サービスアカウントは dashboardRole: null で通過）
+chatSyncRoutes.use("*", async (c, next) => {
+  if (c.req.method !== "GET") {
+    const { dashboardRole } = c.get("user");
+    if (dashboardRole === "viewer") {
+      throw new HTTPException(403, { message: "Admin access required" });
+    }
+  }
+  await next();
+});
 
 /**
  * POST /api/chat-messages/sync — 同期開始
