@@ -50,6 +50,13 @@ describe("sidebar-nav 構造", () => {
     expect(admin).toBeDefined();
     expect(admin!.href).toBe("/admin");
   });
+
+  it("全項目に shortLabel が定義されていること", () => {
+    for (const item of navItems) {
+      expect(item.shortLabel).toBeDefined();
+      expect(item.shortLabel.length).toBeLessThanOrEqual(3);
+    }
+  });
 });
 
 describe("isNavActive ルーティング判定", () => {
