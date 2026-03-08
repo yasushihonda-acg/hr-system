@@ -75,12 +75,15 @@ vi.mock("@hr-system/db", () => ({
   }),
 }));
 
+import { classifyIntent } from "@hr-system/ai";
 import {
   getAuthHeaders,
   getSyncMetadata,
   syncChatMessages,
   updateSyncMetadata,
 } from "../services/chat-sync.js";
+
+const mockClassifyIntent = classifyIntent as ReturnType<typeof vi.fn>;
 
 describe("chat-sync service", () => {
   beforeEach(() => {
@@ -524,6 +527,137 @@ describe("chat-sync service", () => {
       >;
       expect(setArg).toBeDefined();
       expect(setArg.senderName).toBe("不明");
+    });
+
+    it("新規メッセージ保存後に classifyIntent が呼ばれ IntentRecord がバッチ保存される", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-classify1",
+                sender: { displayName: "太郎", name: "users/123", type: "HUMAN" },
+                text: "給与を変更してください",
+                createTime: "2026-02-20T10:00:00Z",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      await syncChatMessages("AAAA-qf5jX0");
+
+      // classifyIntent が呼ばれたことを検証
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        "給与を変更してください",
+        undefined,
+        expect.objectContaining({ regexRules: [], systemPrompt: "" }),
+      );
+
+      // バッチで IntentRecord が保存されたことを検証
+      expect(mockBatchSet).toHaveBeenCalledWith(
+        { id: "intent-new" },
+        expect.objectContaining({
+          category: "salary",
+          confidenceScore: 0.9,
+          classificationMethod: "regex",
+        }),
+      );
+
+      // processedAt がバッチで更新されたことを検証
+      expect(mockBatchUpdate).toHaveBeenCalled();
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("保存済みで processedAt: null のメッセージは再分類される", async () => {
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-reclassify1",
+                sender: { displayName: "太郎", name: "users/123", type: "HUMAN" },
+                text: "未分類メッセージ",
+                createTime: "2026-02-20T10:00:00Z",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在するが processedAt: null（未分類）
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ content: "未分類メッセージ", processedAt: null }),
+      });
+
+      const result = await syncChatMessages("AAAA-qf5jX0");
+
+      // 重複としてカウントされるが、再分類は実行される
+      expect(result.duplicateSkipped).toBe(1);
+      expect(result.newMessages).toBe(0);
+
+      // classifyIntent が再分類のために呼ばれたことを検証
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        "未分類メッセージ",
+        undefined,
+        expect.anything(),
+      );
+      expect(mockBatchCommit).toHaveBeenCalled();
+    });
+
+    it("分類失敗時は processedAt: null のまま保存される（次回再分類）", async () => {
+      // classifyIntent を一時的にエラーにする
+      mockClassifyIntent.mockRejectedValueOnce(new Error("AI service unavailable"));
+
+      // getSyncMetadata → 既存なし
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            messages: [
+              {
+                name: "spaces/AAAA/messages/msg-failclass1",
+                sender: { displayName: "太郎", name: "users/123", type: "HUMAN" },
+                text: "分類失敗テスト",
+                createTime: "2026-02-20T10:00:00Z",
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+
+      // chatMessages.doc(docId).get() → 存在しない
+      mockGet.mockResolvedValueOnce({ exists: false });
+
+      const result = await syncChatMessages("AAAA-qf5jX0");
+
+      // メッセージ自体は保存される
+      expect(result.newMessages).toBe(1);
+
+      // chatMessages.set() で processedAt: null のまま保存されている
+      const setArg = mockSet.mock.calls.find((call) => !call[1]?.merge)?.[0] as Record<
+        string,
+        unknown
+      >;
+      expect(setArg).toBeDefined();
+      expect(setArg.processedAt).toBeNull();
+
+      // バッチの commit は呼ばれない（classifyIntent が失敗したため）
+      expect(mockBatchCommit).not.toHaveBeenCalled();
     });
   });
 });
