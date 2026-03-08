@@ -14,7 +14,6 @@ import {
   type LucideIcon,
   MessageSquare,
   Monitor,
-  Settings,
   Shield,
   Users,
 } from "lucide-react";
