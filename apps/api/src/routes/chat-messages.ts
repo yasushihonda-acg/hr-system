@@ -52,7 +52,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
   const actorRole = c.get("actorRole");
 
   // HR スタッフ以上のみ閲覧可
-  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
   }
 
@@ -179,7 +179,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
 // ---------------------------------------------------------------------------
 chatMessageRoutes.get("/inbox-counts", async (c) => {
   const actorRole = c.get("actorRole");
-  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
   }
 
@@ -204,7 +204,7 @@ chatMessageRoutes.get("/:id", async (c) => {
   const id = c.req.param("id");
   const actorRole = c.get("actorRole");
 
-  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
   }
 
@@ -302,7 +302,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
   const actorRole = c.get("actorRole");
 
   // HR スタッフ以上のみ再分類可
-  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
   }
 
@@ -404,7 +404,7 @@ chatMessageRoutes.patch(
     const actor = c.get("user");
     const actorRole = c.get("actorRole");
 
-    if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+    if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
       return c.json({ error: "Forbidden" }, 403);
     }
 
@@ -500,7 +500,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
   const actor = c.get("user");
   const actorRole = c.get("actorRole");
 
-  if (!["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
   }
 

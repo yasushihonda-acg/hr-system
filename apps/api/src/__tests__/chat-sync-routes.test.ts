@@ -36,13 +36,28 @@ vi.mock("@hr-system/db", () => ({
   },
 }));
 
-// 認証ミドルウェアのモック
+// 認証ミドルウェアのモック（admin ユーザーをセット）
 vi.mock("../middleware/auth.js", () => ({
-  authMiddleware: vi.fn(async (_c: unknown, next: () => Promise<void>) => next()),
+  authMiddleware: vi.fn(
+    async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
+      c.set("user", {
+        email: "admin@test.com",
+        name: "Admin",
+        sub: "sub-1",
+        dashboardRole: "admin",
+      });
+      await next();
+    },
+  ),
 }));
 
 vi.mock("../middleware/rbac.js", () => ({
-  rbacMiddleware: vi.fn(async (_c: unknown, next: () => Promise<void>) => next()),
+  rbacMiddleware: vi.fn(
+    async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
+      c.set("actorRole", "hr_manager");
+      await next();
+    },
+  ),
   requireRole: vi.fn(() => async (_c: unknown, next: () => Promise<void>) => next()),
 }));
 
