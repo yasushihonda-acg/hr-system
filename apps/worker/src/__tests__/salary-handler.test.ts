@@ -383,14 +383,103 @@ describe("handleSalary", () => {
       });
 
       // 両方のクエリで見つからない
-      const mockGet = vi.fn().mockResolvedValue({ empty: true, docs: [] });
-      mockEmployeesWhere.mockReturnValue({
-        where: vi.fn().mockReturnValue({ limit: vi.fn().mockReturnValue({ get: mockGet }) }),
+      const mockEmptyResult = { empty: true, size: 0, docs: [] };
+      const mockGet = vi.fn().mockResolvedValue(mockEmptyResult);
+      mockEmployeesWhere.mockImplementation((field: string) => {
+        if (field === "employeeNumber") {
+          return {
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({ get: mockGet }),
+            }),
+          };
+        }
+        // name 検索: limit なし
+        return { where: vi.fn().mockReturnValue({ get: mockGet }) };
       });
 
       await expect(handleSalary("chat-001", makeEvent(), makeIntentResult())).rejects.toThrow(
         expect.objectContaining({ code: "EMPLOYEE_NOT_FOUND" }),
       );
+    });
+
+    it("同姓同名の従業員が複数いる場合は WorkerError(EMPLOYEE_AMBIGUOUS)", async () => {
+      mockExtractSalaryParams.mockResolvedValue({
+        employeeIdentifier: "山田 花子",
+        changeType: "mechanical",
+        targetSalary: 260000,
+        allowanceType: null,
+        reasoning: "2ピッチアップ",
+      });
+
+      // employeeNumber 検索 → 見つからない
+      const mockEmptyGet = vi.fn().mockResolvedValue({ empty: true, docs: [] });
+      // name 検索 → 2件ヒット（同姓同名）
+      const mockAmbiguousGet = vi.fn().mockResolvedValue({
+        empty: false,
+        size: 2,
+        docs: [
+          {
+            id: "emp-001",
+            data: () => ({
+              employeeNumber: "E001",
+              name: "山田 花子",
+              department: "本社",
+              isActive: true,
+            }),
+          },
+          {
+            id: "emp-002",
+            data: () => ({
+              employeeNumber: "E002",
+              name: "山田 花子",
+              department: "大阪支社",
+              isActive: true,
+            }),
+          },
+        ],
+      });
+
+      mockEmployeesWhere.mockImplementation((field: string) => {
+        if (field === "employeeNumber") {
+          return {
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({ get: mockEmptyGet }),
+            }),
+          };
+        }
+        // name 検索: limit なしで直接 get
+        return {
+          where: vi.fn().mockReturnValue({ get: mockAmbiguousGet }),
+        };
+      });
+
+      await expect(handleSalary("chat-001", makeEvent(), makeIntentResult())).rejects.toThrow(
+        expect.objectContaining({
+          code: "EMPLOYEE_AMBIGUOUS",
+          shouldNack: false,
+        }),
+      );
+    });
+
+    it("同姓同名でも社員番号で指定すれば一意に特定できる", async () => {
+      mockExtractSalaryParams.mockResolvedValue({
+        employeeIdentifier: "E001",
+        changeType: "mechanical",
+        targetSalary: 260000,
+        allowanceType: null,
+        reasoning: "2ピッチアップ",
+      });
+      mockApplyMechanicalChange.mockReturnValue({
+        changeType: "mechanical",
+        before: MOCK_BREAKDOWN,
+        after: MOCK_AFTER_BREAKDOWN,
+        items: [],
+      });
+
+      // employeeNumber 検索 → 1件ヒット（社員番号は一意）
+      await handleSalary("chat-001", makeEvent(), makeIntentResult());
+
+      expect(mockBatchCommit).toHaveBeenCalledOnce();
     });
 
     it("extractSalaryParams が失敗した場合は WorkerError(LLM_ERROR, shouldNack=true)", async () => {
