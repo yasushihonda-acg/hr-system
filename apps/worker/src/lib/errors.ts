@@ -4,6 +4,7 @@ export type WorkerErrorCode =
   | "PARSE_ERROR"
   | "DUPLICATE_MESSAGE"
   | "EMPLOYEE_NOT_FOUND"
+  | "EMPLOYEE_AMBIGUOUS"
   | "SALARY_CALC_ERROR"
   | "LLM_ERROR"
   | "DB_ERROR"

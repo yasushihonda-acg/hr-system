@@ -311,12 +311,25 @@ async function findEmployee(identifier: string | null): Promise<{ id: string } &
     if (doc) return { id: doc.id, ...doc.data() };
   }
 
-  // 2. name で検索
+  // 2. name で検索（同姓同名チェック付き）
   const byName = await collections.employees
     .where("name", "==", identifier)
     .where("isActive", "==", true)
-    .limit(1)
     .get();
+
+  if (byName.size > 1) {
+    const candidates = byName.docs.map((d) => ({
+      id: d.id,
+      employeeNumber: d.data().employeeNumber,
+      department: d.data().department,
+    }));
+    throw new WorkerError(
+      "EMPLOYEE_AMBIGUOUS",
+      `同名の従業員が${byName.size}名見つかりました（${identifier}）。社員番号で指定してください`,
+      false,
+      { identifier, candidates },
+    );
+  }
 
   if (!byName.empty) {
     const doc = byName.docs.at(0);
