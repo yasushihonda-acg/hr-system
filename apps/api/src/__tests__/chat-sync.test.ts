@@ -2,11 +2,22 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted で vi.mock と同時にホイスト） ---
-const { mockGetRequestHeaders, mockGet, mockSet, mockAdd } = vi.hoisted(() => ({
+const {
+  mockGetRequestHeaders,
+  mockGet,
+  mockSet,
+  mockAdd,
+  mockBatchUpdate,
+  mockBatchSet,
+  mockBatchCommit,
+} = vi.hoisted(() => ({
   mockGetRequestHeaders: vi.fn().mockResolvedValue({ Authorization: "Bearer test-token" }),
   mockGet: vi.fn(),
   mockSet: vi.fn().mockResolvedValue(undefined),
   mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
+  mockBatchUpdate: vi.fn(),
+  mockBatchSet: vi.fn(),
+  mockBatchCommit: vi.fn().mockResolvedValue(undefined),
 }));
 
 // GoogleAuth をクラスベースでモック（vi.clearAllMocks() 耐性）
@@ -18,15 +29,35 @@ vi.mock("google-auth-library", () => ({
   },
 }));
 
+// @hr-system/ai モック
+vi.mock("@hr-system/ai", () => ({
+  classifyIntent: vi.fn().mockResolvedValue({
+    category: "salary",
+    confidence: 0.9,
+    classificationMethod: "regex",
+    regexPattern: "給与",
+    reasoning: null,
+  }),
+}));
+
 // Firestore モック
 vi.mock("@hr-system/db", () => ({
-  db: {},
+  db: {
+    batch: vi.fn(() => ({
+      update: mockBatchUpdate,
+      set: mockBatchSet,
+      commit: mockBatchCommit,
+    })),
+  },
   collections: {
     syncMetadata: {
       doc: vi.fn(() => ({ get: mockGet, set: mockSet })),
     },
     chatMessages: {
       doc: vi.fn(() => ({ get: mockGet, set: mockSet })),
+    },
+    intentRecords: {
+      doc: vi.fn(() => ({ id: "intent-new" })),
     },
     auditLogs: {
       add: mockAdd,
@@ -37,6 +68,11 @@ vi.mock("@hr-system/db", () => ({
       })),
     },
   },
+  loadClassificationConfig: vi.fn().mockResolvedValue({
+    regexRules: [],
+    systemPrompt: "",
+    fewShotExamples: [],
+  }),
 }));
 
 import {
@@ -145,8 +181,11 @@ describe("chat-sync service", () => {
         ),
       );
 
-      // chatMessages.doc(docId).get() → 存在する
-      mockGet.mockResolvedValueOnce({ exists: true });
+      // chatMessages.doc(docId).get() → 存在する（分類済み）
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ content: "既存メッセージ", processedAt: Timestamp.now() }),
+      });
 
       const result = await syncChatMessages("AAAA-qf5jX0");
       expect(result.newMessages).toBe(0);

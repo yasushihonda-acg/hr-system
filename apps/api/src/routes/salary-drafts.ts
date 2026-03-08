@@ -29,10 +29,6 @@ const listQuerySchema = z.object({
 
 const patchDraftSchema = z
   .object({
-    beforeBaseSalary: z.number().int().positive().optional(),
-    afterBaseSalary: z.number().int().positive().optional(),
-    beforeTotal: z.number().int().positive().optional(),
-    afterTotal: z.number().int().positive().optional(),
     effectiveDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD 形式で指定してください")
@@ -199,14 +195,10 @@ app.patch("/:id", zValidator("json", patchDraftSchema), async (c) => {
 
   const body = c.req.valid("json");
 
-  // 更新データ構築
+  // 更新データ構築（金額フィールドは明細との整合性のため PATCH 不可）
   const updateData: Record<string, unknown> = {
     updatedAt: FieldValue.serverTimestamp(),
   };
-  if (body.beforeBaseSalary !== undefined) updateData.beforeBaseSalary = body.beforeBaseSalary;
-  if (body.afterBaseSalary !== undefined) updateData.afterBaseSalary = body.afterBaseSalary;
-  if (body.beforeTotal !== undefined) updateData.beforeTotal = body.beforeTotal;
-  if (body.afterTotal !== undefined) updateData.afterTotal = body.afterTotal;
   if (body.reason !== undefined) updateData.reason = body.reason;
   if (body.effectiveDate !== undefined) {
     updateData.effectiveDate = Timestamp.fromDate(new Date(`${body.effectiveDate}T00:00:00Z`));
