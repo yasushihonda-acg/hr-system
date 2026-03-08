@@ -1,9 +1,16 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  esbuild: {
+    jsx: "automatic",
+  },
   test: {
-    // 統合テスト (.integration.test.ts) は test:integration スクリプトで個別実行する
-    exclude: ["**/node_modules/**", "**/dist/**", "**/*.integration.test.ts"],
+    watch: false,
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/e2e/**", // Playwright E2E テストを vitest から除外
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],

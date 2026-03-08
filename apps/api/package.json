@@ -10,6 +10,7 @@
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest",
+    "test:coverage": "vitest run --coverage",
     "test:integration": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
