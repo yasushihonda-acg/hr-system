@@ -27,7 +27,8 @@
     "db:repair": "tsx src/seed/backfill-chat.ts --repair",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@hr-system/shared": "workspace:*",
