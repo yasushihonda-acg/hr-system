@@ -110,18 +110,33 @@ function makeIntentResult(
 }
 
 function setupFirestoreMocks() {
-  // employees: employeeNumber で見つかる
-  const mockEmployeeGet = vi.fn().mockResolvedValue({
+  // employees: employeeNumber で見つかる（デフォルト）
+  const mockEmployeeData = {
+    employeeNumber: "E001",
+    name: "山田 花子",
+    department: "本社",
+    isActive: true,
+  };
+  const mockEmployeeResult = {
     empty: false,
-    docs: [
-      {
-        id: "emp-001",
-        data: () => ({ employeeNumber: "E001", name: "山田 花子", isActive: true }),
-      },
-    ],
-  });
-  mockEmployeesWhere.mockReturnValue({
-    where: vi.fn().mockReturnValue({ limit: vi.fn().mockReturnValue({ get: mockEmployeeGet }) }),
+    size: 1,
+    docs: [{ id: "emp-001", data: () => mockEmployeeData }],
+  };
+  const mockEmployeeGet = vi.fn().mockResolvedValue(mockEmployeeResult);
+  // employeeNumber パス: .where().where().limit().get()
+  // name パス（修正後）: .where().where().get()
+  mockEmployeesWhere.mockImplementation((field: string) => {
+    if (field === "employeeNumber") {
+      return {
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockReturnValue({ get: mockEmployeeGet }),
+        }),
+      };
+    }
+    // name 検索: limit なし
+    return {
+      where: vi.fn().mockReturnValue({ get: mockEmployeeGet }),
+    };
   });
 
   // salaries
@@ -402,6 +417,53 @@ describe("handleSalary", () => {
       );
     });
 
+    it("employeeNumber で見つからず name で1件ヒットした場合は正常にドラフト作成", async () => {
+      mockExtractSalaryParams.mockResolvedValue({
+        employeeIdentifier: "山田 花子",
+        changeType: "mechanical",
+        targetSalary: 260000,
+        allowanceType: null,
+        reasoning: "2ピッチアップ",
+      });
+      mockApplyMechanicalChange.mockReturnValue({
+        changeType: "mechanical",
+        before: MOCK_BREAKDOWN,
+        after: MOCK_AFTER_BREAKDOWN,
+        items: [],
+      });
+
+      // employeeNumber 検索 → 見つからない、name 検索 → 1件ヒット
+      const mockEmptyGet = vi.fn().mockResolvedValue({ empty: true, size: 0, docs: [] });
+      const mockNameGet = vi.fn().mockResolvedValue({
+        empty: false,
+        size: 1,
+        docs: [
+          {
+            id: "emp-001",
+            data: () => ({
+              employeeNumber: "E001",
+              name: "山田 花子",
+              department: "本社",
+              isActive: true,
+            }),
+          },
+        ],
+      });
+      mockEmployeesWhere.mockImplementation((field: string) => {
+        if (field === "employeeNumber") {
+          return {
+            where: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({ get: mockEmptyGet }),
+            }),
+          };
+        }
+        return { where: vi.fn().mockReturnValue({ get: mockNameGet }) };
+      });
+
+      await handleSalary("chat-001", makeEvent(), makeIntentResult());
+      expect(mockBatchCommit).toHaveBeenCalledOnce();
+    });
+
     it("同姓同名の従業員が複数いる場合は WorkerError(EMPLOYEE_AMBIGUOUS)", async () => {
       mockExtractSalaryParams.mockResolvedValue({
         employeeIdentifier: "山田 花子",
@@ -453,12 +515,20 @@ describe("handleSalary", () => {
         };
       });
 
-      await expect(handleSalary("chat-001", makeEvent(), makeIntentResult())).rejects.toThrow(
-        expect.objectContaining({
-          code: "EMPLOYEE_AMBIGUOUS",
-          shouldNack: false,
-        }),
+      const error = await handleSalary("chat-001", makeEvent(), makeIntentResult()).catch(
+        (e: unknown) => e,
       );
+      expect(error).toMatchObject({
+        code: "EMPLOYEE_AMBIGUOUS",
+        shouldNack: false,
+        details: {
+          identifier: "山田 花子",
+          candidates: [
+            { id: "emp-001", employeeNumber: "E001", department: "本社" },
+            { id: "emp-002", employeeNumber: "E002", department: "大阪支社" },
+          ],
+        },
+      });
     });
 
     it("同姓同名でも社員番号で指定すれば一意に特定できる", async () => {
