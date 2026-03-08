@@ -1,3 +1,5 @@
+import { HelpCircle } from "lucide-react";
+import Link from "next/link";
 import { UserMenu } from "@/components/user-menu";
 import { formatDate } from "@/lib/utils";
 
@@ -17,8 +19,15 @@ export function Header() {
           </a>
         </div>
 
-        {/* 右側: 日付 + ユーザーメニュー */}
+        {/* 右側: ヘルプ + 日付 + ユーザーメニュー */}
         <div className="flex items-center gap-3">
+          <Link
+            href="/help"
+            title="操作マニュアル"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <HelpCircle className="h-4.5 w-4.5" />
+          </Link>
           <span className="text-xs text-muted-foreground">{today}</span>
           <UserMenu />
         </div>
