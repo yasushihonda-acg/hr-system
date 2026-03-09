@@ -123,16 +123,24 @@ async function fetchDisplayName(
   }
 }
 
-/** sync_metadata ドキュメントを取得 */
-export async function getSyncMetadata(): Promise<SyncMetadata | null> {
-  const doc = await collections.syncMetadata.doc("chat_messages").get();
+/** sync_metadata ドキュメントIDを生成（スペース別またはグローバル） */
+function syncMetadataDocId(spaceId?: string): string {
+  return spaceId ? `chat_messages_${spaceId}` : "chat_messages";
+}
+
+/** sync_metadata ドキュメントを取得（spaceId 省略時はグローバル） */
+export async function getSyncMetadata(spaceId?: string): Promise<SyncMetadata | null> {
+  const doc = await collections.syncMetadata.doc(syncMetadataDocId(spaceId)).get();
   return doc.exists ? (doc.data() as SyncMetadata) : null;
 }
 
-/** sync_metadata ドキュメントを更新（merge） */
-export async function updateSyncMetadata(data: Partial<SyncMetadata>): Promise<void> {
+/** sync_metadata ドキュメントを更新（merge）（spaceId 省略時はグローバル） */
+export async function updateSyncMetadata(
+  data: Partial<SyncMetadata>,
+  spaceId?: string,
+): Promise<void> {
   await collections.syncMetadata
-    .doc("chat_messages")
+    .doc(syncMetadataDocId(spaceId))
     .set({ ...data, updatedAt: Timestamp.now() } as SyncMetadata, { merge: true });
 }
 
@@ -197,10 +205,10 @@ export async function syncChatMessages(spaceId: string): Promise<SyncResult> {
   const spaceName = `spaces/${spaceId}`;
   const startTime = Date.now();
 
-  // 最終同期日時を取得（なければ24時間前）
-  const meta = await getSyncMetadata();
-  const since = meta?.lastSyncedAt
-    ? meta.lastSyncedAt.toDate()
+  // スペース別の最終同期日時を取得（なければ24時間前）
+  const spaceMeta = await getSyncMetadata(spaceId);
+  const since = spaceMeta?.lastSyncedAt
+    ? spaceMeta.lastSyncedAt.toDate()
     : new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const authHeaders = await getAuthHeaders();
@@ -365,6 +373,9 @@ export async function syncChatMessages(spaceId: string): Promise<SyncResult> {
   } while (pageToken);
 
   const durationMs = Date.now() - startTime;
+
+  // スペース別の最終同期日時を更新
+  await updateSyncMetadata({ lastSyncedAt: Timestamp.now() }, spaceId);
 
   // 監査ログ
   await collections.auditLogs.add({
