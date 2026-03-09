@@ -156,19 +156,16 @@ describe("TaskList", () => {
     expect(html).toContain('data-testid="icon-line"');
   });
 
-  it("タスクをクリックすると router.replace が正しい URL で呼ばれる", () => {
-    // selectTask は source-id を URL パラメータに設定する
-    // selectedId でハイライト検証することで、source-id 形式が正しいことを間接的に検証
+  it("タスクがボタン要素で描画され、選択時にハイライトされる", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask({ id: "msg-42", source: "gchat" })],
         selectedId: "gchat-msg-42",
       }),
     );
-    // ボタンが存在すること
     expect(html).toContain("button");
-    // selectedId が gchat-msg-42 でマッチし、bg-accent が適用されること
     expect(html).toContain("bg-accent");
+    // 注: 実際のクリックイベントテストは task-board-interaction.test.tsx を参照
   });
 
   it("selectedId に一致するタスクがハイライトされる", () => {

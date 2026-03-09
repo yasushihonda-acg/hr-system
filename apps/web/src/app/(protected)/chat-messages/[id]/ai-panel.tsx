@@ -32,6 +32,7 @@ const CONFIDENCE_LABELS: { min: number; label: string; color: string }[] = [
 ];
 
 export function getConfidenceLabel(score: number) {
+  // biome-ignore lint/style/noNonNullAssertion: 配列の固定インデックスアクセス
   return CONFIDENCE_LABELS.find((l) => score >= l.min) ?? CONFIDENCE_LABELS[2]!;
 }
 
@@ -41,6 +42,7 @@ interface AiPanelProps {
 
 export function AiPanel({ intent }: AiPanelProps) {
   const conf = getConfidenceLabel(intent.confidenceScore);
+  // biome-ignore lint/style/noNonNullAssertion: オブジェクトの固定キーアクセス
   const actions = CATEGORY_ACTIONS[intent.category] ?? CATEGORY_ACTIONS.other!;
 
   return (

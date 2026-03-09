@@ -484,11 +484,12 @@ export default function HelpPage() {
             </Callout>
           </Section>
 
-          {/* 03 タスクボード */}
-          <Section id="task-board" num="03" title="タスクボード">
+          {/* 03 タスク一覧 */}
+          <Section id="task-board" num="03" title="タスク一覧">
             <p className="text-sm mb-3 text-muted-foreground leading-relaxed">
-              対応が必要なメッセージを優先度順にカード表示します。
+              対応が必要なメッセージを優先度順にリスト表示します。
               フィルタで絞り込みながら効率的にタスクを処理できます。
+              タスクをクリックすると詳細パネルが開き、受信箱への遷移もできます。
             </p>
             <div className="flex items-center gap-2 mb-4">
               <RoleBadge label="管理者" />
@@ -496,8 +497,8 @@ export default function HelpPage() {
             </div>
             <BrowserFrame
               src="/screenshots/help/04-task-board.png"
-              alt="タスクボード"
-              caption="タスクボード — 優先度別のカード表示"
+              alt="タスク一覧"
+              caption="タスク一覧 — 優先度・ソース・ステータスでフィルタ可能"
             />
             <h3 className="text-sm font-bold mt-6 mb-3">優先度レベル</h3>
             <div className="rounded-lg border border-border/60 overflow-hidden my-4">

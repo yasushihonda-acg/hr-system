@@ -6,6 +6,7 @@ import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { useUrlSelection } from "@/hooks/use-url-selection";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateTimeJST } from "@/lib/utils";
+import { taskCompositeId } from "./task-composite-id";
 
 export interface TaskItem {
   id: string;
@@ -18,10 +19,6 @@ export interface TaskItem {
   assignees: string | null;
   groupName: string | null;
   createdAt: string;
-}
-
-export function taskCompositeId(task: Pick<TaskItem, "source" | "id">): string {
-  return `${task.source}-${task.id}`;
 }
 
 export function TaskList({ tasks, selectedId }: { tasks: TaskItem[]; selectedId: string | null }) {
