@@ -8,6 +8,7 @@ import { db } from "./client.js";
 import type {
   AllowanceMaster,
   AllowedUser,
+  AppConfig,
   ApprovalLog,
   AuditLog,
   ChatMessage,
@@ -55,4 +56,5 @@ export const collections = {
   chatSyncConfig: typedCollection<ChatSyncConfig>("chat_sync_config"),
   chatSpaces: typedCollection<ChatSpaceConfig>("chat_spaces"),
   lineMessages: typedCollection<LineMessage>("line_messages"),
+  appConfig: typedCollection<AppConfig>("app_config"),
 };
