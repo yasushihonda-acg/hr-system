@@ -44,16 +44,18 @@ vi.mock("@hr-system/db", () => ({
   },
 }));
 
-// 認証ミドルウェアのモック（admin ユーザーをセット）
+// 認証ミドルウェアのモック（デフォルト: admin ユーザー。テスト内で上書き可能）
+let mockAuthUser = {
+  email: "admin@test.com",
+  name: "Admin",
+  sub: "sub-1",
+  dashboardRole: "admin" as string | null,
+};
+
 vi.mock("../middleware/auth.js", () => ({
   authMiddleware: vi.fn(
     async (c: { set: (key: string, value: unknown) => void }, next: () => Promise<void>) => {
-      c.set("user", {
-        email: "admin@test.com",
-        name: "Admin",
-        sub: "sub-1",
-        dashboardRole: "admin",
-      });
+      c.set("user", mockAuthUser);
       await next();
     },
   ),
@@ -74,6 +76,13 @@ import { app } from "../app.js";
 describe("chat-sync routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // デフォルト: admin ユーザーに戻す
+    mockAuthUser = {
+      email: "admin@test.com",
+      name: "Admin",
+      sub: "sub-1",
+      dashboardRole: "admin",
+    };
     // syncChatMessages 内の getSyncMetadata() / chatMessages.doc().get() 等のデフォルト
     mockGet.mockResolvedValue({ exists: false });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -237,6 +246,47 @@ describe("chat-sync routes", () => {
       const body = (await res.json()) as { status: string; lastResult: { newMessages: number } };
       expect(body.status).toBe("idle");
       expect(body.lastResult.newMessages).toBe(5);
+    });
+  });
+
+  describe("権限チェック", () => {
+    it("hr_staff は POST /sync を実行できない → 403", async () => {
+      mockAuthUser = {
+        email: "staff@test.com",
+        name: "Staff",
+        sub: "sub-staff",
+        dashboardRole: "hr_staff",
+      };
+
+      const res = await app.request("/api/chat-messages/sync", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("サービスアカウント（dashboardRole: null, name: system）は POST /sync を実行できる", async () => {
+      mockAuthUser = {
+        email: "scheduler@project.iam.gserviceaccount.com",
+        name: "system",
+        sub: "sa-sub",
+        dashboardRole: null,
+      };
+
+      // acquireSyncLock
+      mockRunTransaction.mockImplementationOnce(async (fn: (tx: unknown) => Promise<boolean>) => {
+        const tx = {
+          get: vi.fn().mockResolvedValue({ exists: false }),
+          set: vi.fn(),
+        };
+        return fn(tx);
+      });
+
+      const res = await app.request("/api/chat-messages/sync", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
     });
   });
 });

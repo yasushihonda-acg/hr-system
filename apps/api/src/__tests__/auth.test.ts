@@ -85,6 +85,43 @@ describe("authMiddleware", () => {
     expect(body.user.sub).toBe("12345");
   });
 
+  it("GOOGLE_CLIENT_ID 設定時 → verifyIdToken に audience が渡される", async () => {
+    vi.stubEnv("GOOGLE_CLIENT_ID", "my-client-id.apps.googleusercontent.com");
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "staff@aozora-cg.com",
+        name: "Staff",
+        sub: "sub-1",
+      }),
+    });
+
+    const app = createTestApp();
+    await app.request("/test", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+
+    expect(mockVerifyIdToken).toHaveBeenCalledWith({
+      idToken: "valid-token",
+      audience: "my-client-id.apps.googleusercontent.com",
+    });
+
+    vi.unstubAllEnvs();
+  });
+
+  it("本番環境で GOOGLE_CLIENT_ID 未設定 → 500 (フェイルクローズ)", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    // GOOGLE_CLIENT_ID は設定しない
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer valid-token" },
+    });
+
+    expect(res.status).toBe(500);
+
+    vi.unstubAllEnvs();
+  });
+
   it("Authorization ヘッダーなし → 401", async () => {
     const app = createTestApp();
     const res = await app.request("/test");
@@ -168,6 +205,51 @@ describe("authMiddleware", () => {
     });
 
     expect(res.status).toBe(403);
+  });
+
+  it("複数SAホワイトリスト → 2番目のSAも許可される", async () => {
+    vi.stubEnv(
+      "ALLOWED_SERVICE_ACCOUNTS",
+      "sa1@project.iam.gserviceaccount.com,sa2@project.iam.gserviceaccount.com",
+    );
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "sa2@project.iam.gserviceaccount.com",
+        sub: "sa2-sub",
+      }),
+    });
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer sa2-token" },
+    });
+
+    expect(res.status).toBe(200);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("許可されたSA → actorRole は null（業務操作不可）", async () => {
+    vi.stubEnv("ALLOWED_SERVICE_ACCOUNTS", "scheduler@project.iam.gserviceaccount.com");
+    vi.stubEnv("CEO_EMAIL", "ceo@test.com");
+    vi.stubEnv("HR_MANAGER_EMAILS", "");
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "scheduler@project.iam.gserviceaccount.com",
+        sub: "sa-sub",
+      }),
+    });
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer sa-token" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { actorRole: string | null };
+    expect(body.actorRole).toBeNull();
+
+    vi.unstubAllEnvs();
   });
 });
 

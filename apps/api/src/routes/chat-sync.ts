@@ -12,11 +12,15 @@ import {
 
 export const chatSyncRoutes = new Hono();
 
-// 同期操作は viewer を除外（admin / hr_staff / hr_manager / ceo は許可、サービスアカウントは dashboardRole: null で通過）
+// 同期操作の権限チェック:
+// - GET: 全ロール許可
+// - POST/PUT/DELETE: admin + 許可済みサービスアカウントのみ
 chatSyncRoutes.use("*", async (c, next) => {
   if (c.req.method !== "GET") {
-    const { dashboardRole } = c.get("user");
-    if (dashboardRole === "viewer") {
+    const user = c.get("user");
+    const isServiceAccount = user.dashboardRole === null && user.name === "system";
+    const isAdmin = user.dashboardRole === "admin";
+    if (!isServiceAccount && !isAdmin) {
       throw new HTTPException(403, { message: "Admin access required" });
     }
   }

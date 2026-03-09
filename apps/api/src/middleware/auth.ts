@@ -59,7 +59,12 @@ export const authMiddleware = createMiddleware(async (c, next) => {
 
   try {
     // audience: Web の OAuth Client ID を指定し、他アプリ向けトークンを拒否
+    // 本番環境では必須（フェイルクローズ）。開発環境では未設定時に audience 検証をスキップ
     const audience = process.env.GOOGLE_CLIENT_ID;
+    if (!audience && process.env.NODE_ENV === "production") {
+      logger.error("GOOGLE_CLIENT_ID is not configured in production");
+      throw new HTTPException(500, { message: "Server misconfiguration" });
+    }
     const ticket = await client.verifyIdToken({
       idToken: token,
       ...(audience ? { audience } : {}),
