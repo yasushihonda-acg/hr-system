@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
@@ -161,16 +161,6 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
               />
             ) : null}
-          </div>
-        )}
-
-        {/* 未選択時のプレースホルダー（デスクトップのみ） */}
-        {!selectedTask && (
-          <div className="hidden flex-1 items-center justify-center md:flex">
-            <div className="text-center">
-              <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground/30" />
-              <p className="mt-2 text-sm text-muted-foreground">タスクを選択してください</p>
-            </div>
           </div>
         )}
       </div>
