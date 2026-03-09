@@ -2,8 +2,14 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted でホイスト） ---
-const { mockChatMessagesGet, mockIntentRecordsGet, mockIntentRecordsCountGet } = vi.hoisted(() => ({
+const {
+  mockChatMessagesGet,
+  mockChatMessagesByIdGet,
+  mockIntentRecordsGet,
+  mockIntentRecordsCountGet,
+} = vi.hoisted(() => ({
   mockChatMessagesGet: vi.fn(),
+  mockChatMessagesByIdGet: vi.fn(),
   mockIntentRecordsGet: vi.fn(),
   mockIntentRecordsCountGet: vi.fn(),
 }));
@@ -21,8 +27,12 @@ vi.mock("@hr-system/db", () => {
     collections: {
       chatMessages: {
         orderBy: vi.fn(() => chatMessagesQuery),
+        where: vi.fn(() => ({
+          get: vi.fn(() => mockChatMessagesByIdGet()),
+        })),
       },
       intentRecords: {
+        get: vi.fn(() => mockIntentRecordsGet()),
         where: vi.fn(() => {
           const q: Record<string, unknown> = {
             get: vi.fn(() => mockIntentRecordsGet()),
@@ -131,17 +141,17 @@ describe("chat-messages routes", () => {
     });
 
     it("maxConfidence=0.7 で信頼度 >= 0.7 のメッセージを除外する", async () => {
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2"), makeChatDoc("msg-3")],
-      });
-      // msg-1: confidence=0.5（通過）, msg-2: confidence=0.7（除外: ちょうど境界）, msg-3: confidence=0.9（除外）
-      // バッチクエリ (in) で一括取得
+      // IntentRecords 逆引き: 全件取得 → maxConfidence post-filter
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [
           ...makeIntentSnap("msg-1", 0.5).docs,
           ...makeIntentSnap("msg-2", 0.7).docs,
           ...makeIntentSnap("msg-3", 0.9).docs,
         ],
+      });
+      // msg-1 のみ通過（0.5 < 0.7）→ ChatMessage バッチフェッチ
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1")],
       });
 
       const res = await app.request("/api/chat-messages?maxConfidence=0.7");
@@ -152,13 +162,13 @@ describe("chat-messages routes", () => {
     });
 
     it("maxConfidence=0.7 で intent が null のメッセージを除外する", async () => {
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
-      });
-      // msg-1: intent なし（除外）, msg-2: confidence=0.5（通過）
-      // バッチクエリ (in) でmsg-1のintentは存在しないためdocsに含まれない
+      // IntentRecords 逆引き: msg-1 は IntentRecord なし → 結果に含まれない
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [...makeIntentSnap("msg-2", 0.5).docs],
+      });
+      // msg-2 のみ通過（0.5 < 0.7）→ ChatMessage バッチフェッチ
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-2")],
       });
 
       const res = await app.request("/api/chat-messages?maxConfidence=0.7");
@@ -169,15 +179,12 @@ describe("chat-messages routes", () => {
     });
 
     it("responseStatus=in_progress で対応中のメッセージのみ返す", async () => {
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2"), makeChatDoc("msg-3")],
-      });
+      // IntentRecords 逆引き: Firestore where("responseStatus","==","in_progress") → msg-2 のみ
       mockIntentRecordsGet.mockResolvedValueOnce({
-        docs: [
-          ...makeIntentSnap("msg-1", 0.8, "unresponded").docs,
-          ...makeIntentSnap("msg-2", 0.8, "in_progress").docs,
-          ...makeIntentSnap("msg-3", 0.8, "responded").docs,
-        ],
+        docs: [...makeIntentSnap("msg-2", 0.8, "in_progress").docs],
+      });
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-2")],
       });
 
       const res = await app.request("/api/chat-messages?responseStatus=in_progress");
@@ -188,12 +195,12 @@ describe("chat-messages routes", () => {
     });
 
     it("responseStatus フィルタで intent が null のメッセージを除外する", async () => {
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
-      });
-      // msg-1 の intent は存在しない
+      // IntentRecords 逆引き: msg-1 は IntentRecord なし → 結果に含まれない
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [...makeIntentSnap("msg-2", 0.8, "responded").docs],
+      });
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-2")],
       });
 
       const res = await app.request("/api/chat-messages?responseStatus=responded");
@@ -204,13 +211,12 @@ describe("chat-messages routes", () => {
     });
 
     it("responseStatus=unresponded で intent が null のメッセージも除外する", async () => {
-      // intent が null の場合、responseStatus のデフォルトは "unresponded" だが
-      // 実装上は intent == null のときフィルタ外となる
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-2")],
-      });
+      // IntentRecords 逆引き: msg-1 は IntentRecord なし → 結果に含まれない
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [...makeIntentSnap("msg-2", 0.8, "unresponded").docs],
+      });
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-2")],
       });
 
       const res = await app.request("/api/chat-messages?responseStatus=unresponded");
@@ -222,50 +228,17 @@ describe("chat-messages routes", () => {
     });
 
     it("Intent フィルタ + ページネーション: offset/limit がフィルタ後に適用される", async () => {
-      // 5件のメッセージ、うち3件が salary カテゴリ
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [
-          makeChatDoc("msg-1"),
-          makeChatDoc("msg-2"),
-          makeChatDoc("msg-3"),
-          makeChatDoc("msg-4"),
-          makeChatDoc("msg-5"),
-        ],
-      });
+      // IntentRecords 逆引き: where("category","==","salary") → salary の3件のみ
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [
-          ...makeIntentSnap("msg-1", 0.9, "unresponded").docs, // salary
-          {
-            id: "intent-msg-2",
-            data: () => ({
-              chatMessageId: "msg-2",
-              category: "retirement",
-              confidenceScore: 0.8,
-              classificationMethod: "ai",
-              isManualOverride: false,
-              originalCategory: null,
-              regexPattern: null,
-              responseStatus: "unresponded",
-              createdAt: now,
-            }),
-          },
-          ...makeIntentSnap("msg-3", 0.7, "unresponded").docs, // salary
-          {
-            id: "intent-msg-4",
-            data: () => ({
-              chatMessageId: "msg-4",
-              category: "retirement",
-              confidenceScore: 0.8,
-              classificationMethod: "ai",
-              isManualOverride: false,
-              originalCategory: null,
-              regexPattern: null,
-              responseStatus: "unresponded",
-              createdAt: now,
-            }),
-          },
-          ...makeIntentSnap("msg-5", 0.6, "unresponded").docs, // salary
+          ...makeIntentSnap("msg-1", 0.9, "unresponded").docs,
+          ...makeIntentSnap("msg-3", 0.7, "unresponded").docs,
+          ...makeIntentSnap("msg-5", 0.6, "unresponded").docs,
         ],
+      });
+      // ChatMessages バッチフェッチ: 対応する3件
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-3"), makeChatDoc("msg-5")],
       });
 
       // limit=2, offset=0 — salary のうち最初の2件（msg-1, msg-3）を返し hasMore=true
@@ -282,50 +255,16 @@ describe("chat-messages routes", () => {
     });
 
     it("Intent フィルタ + ページネーション: 2ページ目を正しく返す", async () => {
-      // 同じ5件、salary が3件
-      mockChatMessagesGet.mockResolvedValueOnce({
-        docs: [
-          makeChatDoc("msg-1"),
-          makeChatDoc("msg-2"),
-          makeChatDoc("msg-3"),
-          makeChatDoc("msg-4"),
-          makeChatDoc("msg-5"),
-        ],
-      });
+      // IntentRecords 逆引き: salary の3件
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [
           ...makeIntentSnap("msg-1", 0.9, "unresponded").docs,
-          {
-            id: "intent-msg-2",
-            data: () => ({
-              chatMessageId: "msg-2",
-              category: "retirement",
-              confidenceScore: 0.8,
-              classificationMethod: "ai",
-              isManualOverride: false,
-              originalCategory: null,
-              regexPattern: null,
-              responseStatus: "unresponded",
-              createdAt: now,
-            }),
-          },
           ...makeIntentSnap("msg-3", 0.7, "unresponded").docs,
-          {
-            id: "intent-msg-4",
-            data: () => ({
-              chatMessageId: "msg-4",
-              category: "retirement",
-              confidenceScore: 0.8,
-              classificationMethod: "ai",
-              isManualOverride: false,
-              originalCategory: null,
-              regexPattern: null,
-              responseStatus: "unresponded",
-              createdAt: now,
-            }),
-          },
           ...makeIntentSnap("msg-5", 0.6, "unresponded").docs,
         ],
+      });
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-3"), makeChatDoc("msg-5")],
       });
 
       // limit=2, offset=2 — salary の3件目（msg-5）のみ、hasMore=false
