@@ -1,8 +1,8 @@
 "use client";
 
-import { BookOpen, CheckCircle2, Monitor } from "lucide-react";
+import { BookOpen, CheckCircle2, List, Monitor, X } from "lucide-react";
 import Image from "next/image";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { permissionData, tocItems, useActiveSection } from "./help-data";
 
 /* ─────────────────────────── Atoms ─────────────────────────── */
@@ -164,6 +164,108 @@ function PermissionDot({ allowed }: { allowed: boolean }) {
   );
 }
 
+/* ─────────────────────────── Mobile Floating TOC ─────────────────────────── */
+
+function FloatingToc({ active }: { active: string }) {
+  const [open, setOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  // 300px 以上スクロールしたら FAB を表示
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 300);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // open 時に背景スクロールを抑制
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  if (!visible) return null;
+
+  return (
+    <>
+      {/* FAB */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-accent text-white shadow-[0_4px_16px_oklch(0.55_0.2_264/0.35)] hover:shadow-[0_6px_24px_oklch(0.55_0.2_264/0.45)] transition-all duration-200 active:scale-95"
+        aria-label="目次を開く"
+      >
+        <List className="h-5 w-5" />
+      </button>
+
+      {/* Overlay + Drawer */}
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-[fade-in_150ms_ease] cursor-default"
+            onClick={() => setOpen(false)}
+            aria-label="目次を閉じる"
+          />
+          {/* Sheet */}
+          <div className="absolute bottom-0 left-0 right-0 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-card border-t border-border shadow-[0_-8px_32px_oklch(0.15_0.03_252/0.12)] animate-[slide-up_200ms_ease]">
+            <div className="sticky top-0 flex items-center justify-between px-5 py-3 border-b border-border/40 bg-card/95 backdrop-blur-sm">
+              <p className="text-sm font-semibold">目次</p>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-accent/50 transition-colors"
+                aria-label="閉じる"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <nav className="p-4 space-y-1">
+              {tocItems.map((item) => {
+                const isActive = active === item.id;
+                const Icon = item.icon;
+                return (
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    onClick={() => setOpen(false)}
+                    className={`
+                      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all
+                      ${
+                        isActive
+                          ? "bg-gradient-accent-soft text-foreground font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                      }
+                    `}
+                  >
+                    <Icon
+                      className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-[var(--gradient-from)]" : "text-muted-foreground/50"}`}
+                    />
+                    <span className="text-[0.6rem] font-mono text-muted-foreground/40 w-5">
+                      {item.num}
+                    </span>
+                    {item.label}
+                    {isActive && (
+                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-gradient-accent flex-shrink-0" />
+                    )}
+                  </a>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ─────────────────────────── Sidebar TOC ─────────────────────────── */
 
 function TableOfContents({ active }: { active: string }) {
@@ -217,7 +319,18 @@ export default function HelpPage() {
           from { opacity: 0; transform: translateY(12px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slide-up {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
       `}</style>
+
+      {/* Mobile: フローティング目次ボタン + ドロワー */}
+      <FloatingToc active={activeSection} />
 
       <div className="flex gap-10 max-w-6xl mx-auto">
         {/* ───── Sticky Sidebar TOC ───── */}
