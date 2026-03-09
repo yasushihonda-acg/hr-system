@@ -147,6 +147,30 @@ describe("admin-config routes", () => {
       expect(body.data.dataRetentionDays).toBe(730);
     });
 
+    it("既存ドキュメントにフィールド欠損があればデフォルト値でマージされる", async () => {
+      const now = Timestamp.now();
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          appName: "カスタム名",
+          updatedAt: now,
+          updatedBy: "admin@test.com",
+          // companyName, defaultTimezone, notificationEnabled, dataRetentionDays 欠損
+        }),
+      });
+
+      const res = await app.request("/api/admin/config");
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as { data: Record<string, unknown> };
+      expect(body.data.appName).toBe("カスタム名");
+      // デフォルト値でマージされる
+      expect(body.data.companyName).toBe("");
+      expect(body.data.defaultTimezone).toBe("Asia/Tokyo");
+      expect(body.data.notificationEnabled).toBe(false);
+      expect(body.data.dataRetentionDays).toBe(365);
+    });
+
     it("viewer は 403", async () => {
       currentDashboardRole = "viewer";
       const res = await app.request("/api/admin/config");
@@ -220,11 +244,59 @@ describe("admin-config routes", () => {
       expect(res.status).toBe(400);
     });
 
-    it("バリデーションエラー: dataRetentionDays が範囲外", async () => {
+    it("有効なタイムゾーンは受理される", async () => {
+      mockGet.mockResolvedValueOnce({ exists: true });
+
       const res = await app.request("/api/admin/config", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dataRetentionDays: 5 }), // min 30
+        body: JSON.stringify({ defaultTimezone: "America/New_York" }),
+      });
+
+      expect(res.status).toBe(200);
+      const updateArg = mockBatchUpdate.mock.calls[0]![1] as Record<string, unknown>;
+      expect(updateArg.defaultTimezone).toBe("America/New_York");
+    });
+
+    it("dataRetentionDays 境界値: 29 は 400", async () => {
+      const res = await app.request("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataRetentionDays: 29 }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("dataRetentionDays 境界値: 30 は受理される", async () => {
+      mockGet.mockResolvedValueOnce({ exists: true });
+
+      const res = await app.request("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataRetentionDays: 30 }),
+      });
+
+      expect(res.status).toBe(200);
+    });
+
+    it("dataRetentionDays 境界値: 3650 は受理される", async () => {
+      mockGet.mockResolvedValueOnce({ exists: true });
+
+      const res = await app.request("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataRetentionDays: 3650 }),
+      });
+
+      expect(res.status).toBe(200);
+    });
+
+    it("dataRetentionDays 境界値: 3651 は 400", async () => {
+      const res = await app.request("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dataRetentionDays: 3651 }),
       });
 
       expect(res.status).toBe(400);
