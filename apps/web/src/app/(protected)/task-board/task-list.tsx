@@ -2,9 +2,9 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { MessageCircle, MessageSquareText } from "lucide-react";
-import Link from "next/link";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
-import { RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
+import { useUrlSelection } from "@/hooks/use-url-selection";
+import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 
 export interface TaskItem {
@@ -20,14 +20,13 @@ export interface TaskItem {
   createdAt: string;
 }
 
-const RESPONSE_STATUS_LABELS: Record<ResponseStatus, string> = {
-  unresponded: "未対応",
-  in_progress: "対応中",
-  responded: "対応済",
-  not_required: "対応不要",
-};
+export function taskCompositeId(task: Pick<TaskItem, "source" | "id">): string {
+  return `${task.source}-${task.id}`;
+}
 
-export function TaskList({ tasks }: { tasks: TaskItem[] }) {
+export function TaskList({ tasks, selectedId }: { tasks: TaskItem[]; selectedId: string | null }) {
+  const selectTask = useUrlSelection("/task-board");
+
   if (tasks.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -40,16 +39,19 @@ export function TaskList({ tasks }: { tasks: TaskItem[] }) {
     <div className="divide-y divide-border/40">
       {tasks.map((task) => {
         const isCritical = task.taskPriority === "critical";
-        const inboxUrl =
-          task.source === "gchat" ? `/inbox?id=${task.id}` : `/inbox?source=line&id=${task.id}`;
+        const compositeId = taskCompositeId(task);
+        const isSelected = compositeId === selectedId;
 
         return (
-          <Link
-            key={`${task.source}-${task.id}`}
-            href={inboxUrl}
+          <button
+            key={compositeId}
+            type="button"
+            onClick={() => selectTask(compositeId)}
             className={cn(
-              "block px-5 py-3 transition-colors hover:bg-accent/50",
+              "block w-full text-left px-5 py-3 transition-colors hover:bg-accent/50",
               isCritical && "border-l-4 border-l-red-500 bg-red-50/50 hover:bg-red-50",
+              isSelected && !isCritical && "bg-accent",
+              isSelected && isCritical && "bg-red-100/70",
             )}
           >
             <div className="flex items-center gap-2">
@@ -98,7 +100,7 @@ export function TaskList({ tasks }: { tasks: TaskItem[] }) {
             {task.assignees && (
               <p className="mt-1 text-xs text-muted-foreground">担当: {task.assignees}</p>
             )}
-          </Link>
+          </button>
         );
       })}
     </div>

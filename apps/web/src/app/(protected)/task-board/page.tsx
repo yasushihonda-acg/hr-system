@@ -1,8 +1,10 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import Link from "next/link";
 import { getChatMessages, getLineMessages } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { TaskDetailPanel } from "./task-detail-panel";
 import type { TaskItem } from "./task-list";
-import { TaskList } from "./task-list";
+import { TaskList, taskCompositeId } from "./task-list";
 
 type Source = "all" | "gchat" | "line";
 
@@ -39,6 +41,7 @@ interface Props {
     priority?: string;
     source?: string;
     status?: string;
+    id?: string;
   }>;
 }
 
@@ -47,6 +50,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const priorityFilter = (params.priority as TaskPriority | undefined) ?? undefined;
   const sourceFilter: Source = (params.source as Source) ?? "all";
   const statusFilter = (params.status as ResponseStatus | undefined) ?? undefined;
+  const selectedId = params.id ?? null;
 
   // 両ソースを並列取得
   const [chatResult, lineResult] = await Promise.all([
@@ -112,6 +116,11 @@ export default async function TaskBoardPage({ searchParams }: Props) {
 
   const criticalCount = filtered.filter((t) => t.taskPriority === "critical").length;
 
+  // 選択されたタスクを検索
+  const selectedTask = selectedId
+    ? (filtered.find((t) => taskCompositeId(t) === selectedId) ?? null)
+    : null;
+
   function buildUrl(overrides: { priority?: string; source?: string; status?: string }) {
     const sp = new URLSearchParams();
     const p = "priority" in overrides ? overrides.priority : params.priority;
@@ -120,14 +129,21 @@ export default async function TaskBoardPage({ searchParams }: Props) {
     if (p && p !== "all") sp.set("priority", p);
     if (src && src !== "all") sp.set("source", src);
     if (s && s !== "all") sp.set("status", s);
+    // フィルター切替時は選択を維持
+    if (params.id) sp.set("id", params.id);
     const qs = sp.toString();
     return `/task-board${qs ? `?${qs}` : ""}`;
   }
 
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
-      {/* ヘッダー */}
-      <div className="flex-shrink-0 border-b border-border/60 bg-white px-5 py-3">
+      {/* ヘッダー（選択中はモバイルで非表示） */}
+      <div
+        className={cn(
+          "flex-shrink-0 border-b border-border/60 bg-white px-5 py-3",
+          selectedTask && "hidden lg:block",
+        )}
+      >
         <div className="mb-2 flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-tight">タスク</h1>
           <span className="text-xs text-muted-foreground">
@@ -195,9 +211,23 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         </div>
       </div>
 
-      {/* タスク一覧 */}
-      <div className="flex-1 overflow-y-auto">
-        <TaskList tasks={filtered} />
+      {/* メインエリア: リスト + 詳細パネル */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* 左: タスク一覧 (選択中はモバイルで非表示) */}
+        <div className={cn("flex-1 overflow-y-auto", selectedTask && "hidden lg:block")}>
+          <TaskList tasks={filtered} selectedId={selectedTask ? selectedId : null} />
+        </div>
+
+        {/* 右: 詳細パネル */}
+        {selectedTask ? (
+          <div className="w-full lg:w-[420px] flex-shrink-0 overflow-hidden">
+            <TaskDetailPanel task={selectedTask} />
+          </div>
+        ) : (
+          <div className="hidden w-[420px] flex-shrink-0 items-center justify-center border-l border-border/60 bg-muted/10 lg:flex">
+            <p className="text-sm text-muted-foreground">タスクを選択してください</p>
+          </div>
+        )}
       </div>
     </div>
   );
