@@ -1,20 +1,20 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-10（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `1a0a16f` — fix(web): サイドメニューに sticky を追加しスクロール追随を修正 (#220)）
+**ブランチ**: `main`（最新コミット: `121415d` — fix(web): タスクボードで選択中タスクの再クリックで選択解除）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 6 — タスクボード クライアント化 + サイドメニュー sticky 修正**
+**Phase 6 — タスクボード UX 改善 完了**
 
-タスクボードの選択状態を `useState` で管理する `TaskBoardContent` Client Component に切り出し（Issue #214 パフォーマンス問題対応、**未コミット**）。
-サイドメニューに sticky を追加しスクロール追随を修正（#220、コミット済み）。
+タスクボードの選択状態を `useState` で管理する `TaskBoardContent` Client Component に切り出し（Issue #214 対応、コミット済み）。
+選択中タスクの再クリックで選択解除・ブレークポイント修正・未選択時プレースホルダー削除も完了。
 
-**未コミット変更あり**: `task-board-content.tsx`（新規）+ `page.tsx` / `task-list.tsx` / `task-detail-panel.tsx` / テスト2件 — PR 化が必要。
+**未コミット変更**: `apps/web/e2e/.auth/`（gitignore 推奨、機密情報の可能性あり）
 
-**CI: 全ステップ成功**（最新コミット `1a0a16f` で確認済み）
+**CI: 全ステップ成功**（最新コミット `121415d` で確認済み）
 
 ---
 
@@ -128,21 +128,28 @@
 | **—** | **ci: Build ステップを CI に追加（本番ビルドエラーの早期検出）** | **main (fd7a267)** | **完了** |
 | **—** | **fix(worker): vitest exclude に dist/ を追加（CI build 後のテスト失敗修正）** | **main (2114c61)** | **完了** |
 | **—** | **fix(web): サイドメニューに sticky を追加しスクロール追随を修正 (#220)** | **main (1a0a16f)** | **完了** |
-| **#214** | **perf(web): タスクボード選択状態を useState に移行 — サーバー再フェッチを回避（TaskBoardContent 分離）** | **未コミット** | **作業中** |
+| **#214** | **perf(web): タスクボード選択状態を useState に移行 — サーバー再フェッチを回避（TaskBoardContent 分離）** | **main (#227 + 121415d, d653609, 93e02ff)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
-### perf(web): タスクボード選択状態を useState に移行（未コミット・Issue #214 対応）
-- `TaskBoardContent` Client Component を新設（`task-board-content.tsx`）
-- 選択状態を `useState` で管理し、URL 同期は `history.replaceState` で行う（ナビゲーションなし）
-- タスク選択時のサーバー再フェッチ（毎クリック API 200件×2ソース）を回避
-- `TaskList` に `onSelect` コールバック props を追加、`useRouter` 依存を除去
-- テスト: `task-board.test.tsx` / `task-board-interaction.test.tsx` を props ベースに更新
-- **次のステップ**: PR 作成（Closes #214）
+### fix(web): タスクボードで選択中タスクの再クリックで選択解除 (121415d)
+- 選択中のタスクを再クリックすると選択解除されるよう修正
 
-### fix(web): サイドメニューに sticky を追加しスクロール追随を修正 (#220, 1a0a16f)
+### fix(web): タスクボード未選択時のプレースホルダーを削除 (d653609)
+- 未選択状態でのプレースホルダー表示を削除してUIを整理
+
+### fix(web): タスクボードのブレークポイントを受信箱と統一 (93e02ff)
+- ブレークポイントを lg→md に変更し受信箱との一貫性を確保
+
+### feat(web): タスクボードに受信箱同等の詳細ビューを統合 (PR #227)
+- `TaskBoardContent` Client Component を新設（task-board-content.tsx）
+- 選択状態を `useState` で管理し URL 同期は `history.replaceState`（ナビゲーションなし）
+- Closes #214
+
+### fix(web): ヘルプページのスクリーンショットを全撮り直し — Nマーク除去 (PR #225)
+- ヘルプページの画像を最新UIで撮り直し、Nマーク（新規バッジ）を除去
 - サイドナビゲーションに `sticky` を追加しスクロール時に追随するよう修正
 
 ### fix(worker): vitest exclude に dist/ を追加（CI build 後のテスト失敗修正）(2114c61)
@@ -250,11 +257,9 @@
 
 ## 次のアクション候補
 
-1. **[P1] #214 タスクボード クライアント化 PR を作成** — 未コミット変更（`task-board-content.tsx` 新規 + 4ファイル修正）を PR 化。`Closes #214` を記載。
-2. **[P2] #218 ヘルプページ スクリーンショット差し替え** — ルートに `help-*.png` 8件が残存。`apps/web/public/screenshots/help/` に移動後、ヘルプページ内容を最新化。
-3. **[P2] 未追跡ファイル整理** — `firestore-debug.log` を `.gitignore` に追加。
-4. **[P2] #200**: Chat 同期操作の権限を admin に限定する（未対応）
-5. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+1. **[P2] `apps/web/e2e/.auth/` を `.gitignore` に追加** — E2E 認証キャッシュが未追跡状態。機密情報の可能性あるため gitignore 推奨。
+2. **[P2] #200**: Chat 同期操作の権限を admin に限定する（未対応）
+3. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
 
 ### 完了済みバックログ（参考）
 
@@ -303,10 +308,8 @@
 | Issue | タイトル | ラベル |
 |-------|---------|-------|
 | **#200** | fix: Chat 同期操作の権限を admin に限定する | enhancement, P2 |
-| **#214** | fix(web): タスクボード詳細パネルのブラウザ動作確認 + 既知の問題修正 | enhancement, P1 |
-| **#218** | docs(web): ヘルプページのスクリーンショット差し替え・内容アップデート | enhancement, P2 |
 
-（#96/#97/#132/#133/#196/#197/#198/#199/#201/#202 は対応完了・クローズ済み）
+（#96/#97/#132/#133/#196/#197/#198/#199/#201/#202/#214/#218 は対応完了・クローズ済み）
 
 ---
 
