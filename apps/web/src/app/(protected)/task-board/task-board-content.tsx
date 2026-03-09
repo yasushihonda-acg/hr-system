@@ -99,7 +99,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
       <div
         className={cn(
           "flex-shrink-0 border-b border-border/60 bg-white px-5 py-3",
-          selectedTask && "hidden lg:block",
+          selectedTask && "hidden md:block",
         )}
       >
         {children}
@@ -112,7 +112,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
           className={cn(
             "overflow-y-auto",
             selectedTask
-              ? "hidden lg:block lg:w-[320px] lg:flex-shrink-0 lg:border-r lg:border-border/60"
+              ? "hidden md:block md:w-[320px] md:flex-shrink-0 md:border-r md:border-border/60"
               : "flex-1",
           )}
         >
@@ -166,7 +166,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
 
         {/* 未選択時のプレースホルダー（デスクトップのみ） */}
         {!selectedTask && (
-          <div className="hidden flex-1 items-center justify-center lg:flex">
+          <div className="hidden flex-1 items-center justify-center md:flex">
             <div className="text-center">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground/30" />
               <p className="mt-2 text-sm text-muted-foreground">タスクを選択してください</p>
