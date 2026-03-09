@@ -8,10 +8,16 @@ import { notFound } from "../lib/errors.js";
 import { toISO } from "../lib/serialize.js";
 
 const createDocSchema = z.object({
-  title: z.string().min(1).max(200),
-  description: z.string().max(1000).default(""),
-  category: z.string().max(100).default(""),
-  fileUrl: z.string().url().max(2000).nullable().default(null),
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(1000).default(""),
+  category: z.string().trim().max(100).default(""),
+  fileUrl: z
+    .string()
+    .url()
+    .max(2000)
+    .refine((url) => /^https?:\/\//i.test(url), { message: "Only http/https URLs allowed" })
+    .nullable()
+    .default(null),
 });
 
 export const adminDocRoutes = new Hono();

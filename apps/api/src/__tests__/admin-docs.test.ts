@@ -201,6 +201,16 @@ describe("admin-docs routes", () => {
       expect(res.status).toBe(400);
     });
 
+    it("fileUrl が javascript: スキームは 400", async () => {
+      const res = await app.request("/api/admin/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "テスト", fileUrl: "javascript:alert(1)" }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
     it("viewer は 403", async () => {
       currentDashboardRole = "viewer";
       const res = await app.request("/api/admin/docs", {
