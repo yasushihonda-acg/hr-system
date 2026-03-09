@@ -3,6 +3,7 @@
 import { BookOpen, CheckCircle2, List, Monitor, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { CATEGORY_LABELS } from "@/lib/constants";
 import { permissionData, tocItems, useActiveSection } from "./help-data";
 
 /* ─────────────────────────── Atoms ─────────────────────────── */
@@ -469,18 +470,7 @@ export default function HelpPage() {
               正規表現によるプレ分類と LLM による高精度分類の2段階で処理されます。
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 my-4">
-              {[
-                "給与・社保",
-                "退職・休職",
-                "入社・採用",
-                "契約変更",
-                "施設・異動",
-                "外国人・ビザ",
-                "研修・監査",
-                "健康診断",
-                "勤怠・休暇",
-                "その他",
-              ].map((cat) => (
+              {Object.values(CATEGORY_LABELS).map((cat) => (
                 <span
                   key={cat}
                   className="text-xs text-center px-2 py-1.5 rounded-md border border-border/60 bg-card text-muted-foreground"
