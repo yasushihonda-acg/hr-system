@@ -3,8 +3,9 @@ import Link from "next/link";
 import { getChatMessages, getLineMessages } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { TaskDetailPanel } from "./task-detail-panel";
+import { taskCompositeId } from "./task-composite-id";
 import type { TaskItem } from "./task-list";
-import { TaskList, taskCompositeId } from "./task-list";
+import { TaskList } from "./task-list";
 
 type Source = "all" | "gchat" | "line";
 
@@ -145,7 +146,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         )}
       >
         <div className="mb-2 flex items-center justify-between">
-          <h1 className="text-lg font-bold tracking-tight">タスク</h1>
+          <h1 className="text-lg font-bold tracking-tight">タスク一覧</h1>
           <span className="text-xs text-muted-foreground">
             {filtered.length}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
           </span>
@@ -218,14 +219,10 @@ export default async function TaskBoardPage({ searchParams }: Props) {
           <TaskList tasks={filtered} selectedId={selectedTask ? selectedId : null} />
         </div>
 
-        {/* 右: 詳細パネル */}
-        {selectedTask ? (
+        {/* 右: 詳細パネル（タスク選択時のみ表示） */}
+        {selectedTask && (
           <div className="w-full lg:w-[420px] flex-shrink-0 overflow-hidden">
             <TaskDetailPanel task={selectedTask} />
-          </div>
-        ) : (
-          <div className="hidden w-[420px] flex-shrink-0 items-center justify-center border-l border-border/60 bg-muted/10 lg:flex">
-            <p className="text-sm text-muted-foreground">タスクを選択してください</p>
           </div>
         )}
       </div>
