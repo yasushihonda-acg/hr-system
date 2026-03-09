@@ -10,8 +10,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック設定 ---
 
-const mockReplace = vi.fn();
-const mockSearchParams = new URLSearchParams();
+const mockOnSelect = vi.fn();
+const mockOnClose = vi.fn();
 
 vi.mock("@/lib/constants", () => ({
   RESPONSE_STATUS_DOT_COLORS: {
@@ -40,11 +40,6 @@ vi.mock("next/link", () => ({
     ...props
   }: { children: React.ReactNode; href: string } & Record<string, unknown>) =>
     React.createElement("a", { href, ...props }, children),
-}));
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockReplace }),
-  useSearchParams: () => mockSearchParams,
 }));
 
 vi.mock("lucide-react", () => ({
@@ -106,11 +101,13 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
 
 describe("TaskList", () => {
   beforeEach(() => {
-    mockReplace.mockClear();
+    mockOnSelect.mockClear();
   });
 
   it("タスクが0件の場合「タスクはありません」が表示される", () => {
-    const text = renderToText(React.createElement(TaskList, { tasks: [], selectedId: null }));
+    const text = renderToText(
+      React.createElement(TaskList, { tasks: [], selectedId: null, onSelect: mockOnSelect }),
+    );
     expect(text).toContain("タスクはありません");
   });
 
@@ -119,6 +116,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ senderName: "田中太郎", content: "給与変更をお願いします" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(text).toContain("田中太郎");
@@ -130,6 +128,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ taskPriority: "high" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(html).toContain('data-testid="task-priority-dot"');
@@ -141,6 +140,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ source: "gchat" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(html).toContain('data-testid="icon-gchat"');
@@ -151,6 +151,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ source: "line" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(html).toContain('data-testid="icon-line"');
@@ -161,6 +162,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ id: "msg-42", source: "gchat" })],
         selectedId: "gchat-msg-42",
+        onSelect: mockOnSelect,
       }),
     );
     expect(html).toContain("button");
@@ -173,6 +175,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ id: "msg-1", source: "gchat", taskPriority: "medium" })],
         selectedId: "gchat-msg-1",
+        onSelect: mockOnSelect,
       }),
     );
     expect(html).toContain("bg-accent");
@@ -183,6 +186,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ taskPriority: "critical" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(html).toContain("border-l-4");
@@ -194,6 +198,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ source: "line", groupName: "有川チーム" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(text).toContain("有川チーム");
@@ -204,6 +209,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ taskSummary: "給与テーブル更新依頼", content: "元のメッセージ" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(text).toContain("給与テーブル更新依頼");
@@ -215,6 +221,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ assignees: "佐藤花子" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(text).toContain("担当: 佐藤花子");
@@ -225,6 +232,7 @@ describe("TaskList", () => {
       React.createElement(TaskList, {
         tasks: [makeTask({ responseStatus: "in_progress" })],
         selectedId: null,
+        onSelect: mockOnSelect,
       }),
     );
     expect(text).toContain("対応中");
@@ -233,7 +241,7 @@ describe("TaskList", () => {
 
 describe("TaskDetailPanel", () => {
   beforeEach(() => {
-    mockReplace.mockClear();
+    mockOnClose.mockClear();
   });
 
   it("タスク詳細が正しく表示される（priority badge, status, sender, source）", () => {
@@ -243,7 +251,7 @@ describe("TaskDetailPanel", () => {
       senderName: "田中太郎",
       source: "gchat",
     });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("高");
     expect(text).toContain("未対応");
@@ -253,7 +261,7 @@ describe("TaskDetailPanel", () => {
 
   it("タスク概要がある場合は表示される", () => {
     const task = makeTask({ taskSummary: "給与テーブル更新依頼" });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("タスク概要");
     expect(text).toContain("給与テーブル更新依頼");
@@ -261,14 +269,14 @@ describe("TaskDetailPanel", () => {
 
   it("タスク概要がない場合は概要セクションが表示されない", () => {
     const task = makeTask({ taskSummary: null });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).not.toContain("タスク概要");
   });
 
   it("メッセージ本文が表示される", () => {
     const task = makeTask({ content: "給与変更をお願いします" });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("メッセージ");
     expect(text).toContain("給与変更をお願いします");
@@ -276,21 +284,21 @@ describe("TaskDetailPanel", () => {
 
   it("gchat タスクの「受信箱で開く」リンクが /inbox?id=xxx を持つ", () => {
     const task = makeTask({ id: "msg-42", source: "gchat" });
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task }));
+    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(html).toContain('href="/inbox?id=msg-42"');
   });
 
   it("LINE タスクの「受信箱で開く」リンクが /inbox?source=line&id=xxx を持つ", () => {
     const task = makeTask({ id: "msg-99", source: "line" });
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task }));
+    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(html).toContain('href="/inbox?source=line&amp;id=msg-99"');
   });
 
   it("閉じるボタンが存在する", () => {
     const task = makeTask();
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task }));
+    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     // モバイル戻るボタン + デスクトップ閉じるボタン
     expect(html).toContain('data-testid="icon-arrow-left"');
@@ -299,7 +307,7 @@ describe("TaskDetailPanel", () => {
 
   it("担当者がある場合は表示される", () => {
     const task = makeTask({ assignees: "佐藤花子, 鈴木一郎" });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("担当者");
     expect(text).toContain("佐藤花子, 鈴木一郎");
@@ -307,14 +315,14 @@ describe("TaskDetailPanel", () => {
 
   it("担当者がない場合は担当者行が表示されない", () => {
     const task = makeTask({ assignees: null });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).not.toContain("担当者");
   });
 
   it("グループ名がある場合は表示される", () => {
     const task = makeTask({ groupName: "有川チーム" });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("グループ");
     expect(text).toContain("有川チーム");
@@ -322,21 +330,21 @@ describe("TaskDetailPanel", () => {
 
   it("グループ名がない場合はグループ行が表示されない", () => {
     const task = makeTask({ groupName: null });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).not.toContain("グループ");
   });
 
   it("LINE ソースの場合に LINE と表示される", () => {
     const task = makeTask({ source: "line" });
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("LINE");
   });
 
   it("critical タスクのヘッダーに赤い背景が適用される", () => {
     const task = makeTask({ taskPriority: "critical" });
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task }));
+    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(html).toContain("bg-red-50/80");
   });
@@ -349,14 +357,16 @@ describe("TaskDetailPanel", () => {
       ["low", "bg-slate-50"],
     ] as const) {
       const task = makeTask({ taskPriority: priority });
-      const html = renderToHtml(React.createElement(TaskDetailPanel, { task }));
+      const html = renderToHtml(
+        React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }),
+      );
       expect(html).toContain(colorFragment);
     }
   });
 
   it("受信箱リンクのテキストが正しい", () => {
     const task = makeTask();
-    const text = renderToText(React.createElement(TaskDetailPanel, { task }));
+    const text = renderToText(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
 
     expect(text).toContain("受信箱で開く");
   });

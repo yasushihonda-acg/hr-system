@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
-import { useUrlSelection } from "@/hooks/use-url-selection";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import type { TaskItem } from "./task-list";
@@ -32,10 +31,7 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
   low: "bg-slate-50 text-slate-600 border-slate-200",
 };
 
-export function TaskDetailPanel({ task }: { task: TaskItem }) {
-  const select = useUrlSelection("/task-board");
-  const close = () => select(null);
-
+export function TaskDetailPanel({ task, onClose }: { task: TaskItem; onClose: () => void }) {
   const inboxUrl =
     task.source === "gchat" ? `/inbox?id=${task.id}` : `/inbox?source=line&id=${task.id}`;
 
@@ -54,7 +50,7 @@ export function TaskDetailPanel({ task }: { task: TaskItem }) {
           {/* モバイル: 戻るボタン */}
           <button
             type="button"
-            onClick={close}
+            onClick={onClose}
             className="rounded p-1 text-muted-foreground hover:bg-accent lg:hidden"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -72,7 +68,7 @@ export function TaskDetailPanel({ task }: { task: TaskItem }) {
           {/* デスクトップ: 閉じるボタン */}
           <button
             type="button"
-            onClick={close}
+            onClick={onClose}
             className="hidden rounded p-1.5 text-muted-foreground hover:bg-accent lg:block"
           >
             <X className="h-4 w-4" />
