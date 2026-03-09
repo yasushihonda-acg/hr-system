@@ -30,6 +30,7 @@ RUN pnpm install --frozen-lockfile
 COPY apps/web/src ./apps/web/src
 COPY apps/web/tsconfig.json ./apps/web/
 COPY apps/web/next.config.ts ./apps/web/
+COPY apps/web/public ./apps/web/public
 COPY apps/web/postcss.config.mjs ./apps/web/
 COPY apps/web/components.json ./apps/web/
 COPY packages/db/src ./packages/db/src
@@ -58,8 +59,7 @@ ENV PORT=3000
 # monorepo の standalone は apps/web/.next/standalone/ 配下にパス構造が再現される
 COPY --from=builder /app/apps/web/.next/standalone ./
 COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
-# public/ は現在未使用のためスキップ
-# COPY --from=builder /app/apps/web/public ./apps/web/public
+COPY --from=builder /app/apps/web/public ./apps/web/public
 
 EXPOSE 3000
 
