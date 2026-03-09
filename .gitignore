@@ -62,3 +62,4 @@ packages/db/src/generated/
 *.tfstate.backup
 .terraform/
 .terraform.lock.hcl
+apps/web/e2e/.auth/
