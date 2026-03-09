@@ -250,7 +250,7 @@ app.post("/:id/transition", zValidator("json", transitionSchema), async (c) => {
   const draftRef = collections.salaryDrafts.doc(id);
 
   // トランザクションで read→validate→write を一括実行（同時操作による後勝ち更新を防止）
-  const transactionResult = await db.runTransaction(async (tx) => {
+  await db.runTransaction(async (tx) => {
     const draftSnap = await tx.get(draftRef);
     if (!draftSnap.exists) notFound("SalaryDraft", id);
 
@@ -305,8 +305,6 @@ app.post("/:id/transition", zValidator("json", transitionSchema), async (c) => {
     tx.update(draftRef, draftUpdate);
     tx.set(collections.approvalLogs.doc(), approvalLogData);
     tx.set(collections.auditLogs.doc(), auditLogData);
-
-    return { fromStatus, changeType: draft.changeType };
   });
 
   // トランザクション成功後、更新済みドラフトを取得して返却

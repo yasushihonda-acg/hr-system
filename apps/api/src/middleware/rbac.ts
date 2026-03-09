@@ -17,6 +17,9 @@ export const rbacMiddleware = createMiddleware(async (c, next) => {
   // viewer ロールには業務操作権限を付与しない
   if (user.dashboardRole === "viewer") {
     c.set("actorRole", null);
+  } else if (user.dashboardRole === null && user.name === "system") {
+    // サービスアカウント: 業務操作権限を付与しない（chat-sync 等は独自の権限チェックで許可）
+    c.set("actorRole", null);
   } else {
     c.set("actorRole", resolveRole(user.email));
   }
