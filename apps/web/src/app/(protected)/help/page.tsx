@@ -384,7 +384,7 @@ export default function HelpPage() {
           </Section>
 
           {/* 04 承認 */}
-          <Section id="tasks" num="04" title="承認（タスク一覧）">
+          <Section id="tasks" num="04" title="承認（承認一覧）">
             <p className="text-sm mb-3 text-muted-foreground leading-relaxed">
               AI が生成した給与変更ドラフトの承認ワークフローを管理します。 ドラフト → レビュー済 →
               社長承認待ち → 承認済の流れで処理します。
