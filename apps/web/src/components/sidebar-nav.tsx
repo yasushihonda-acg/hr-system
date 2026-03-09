@@ -30,7 +30,7 @@ export function SidebarNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="relative flex w-[60px] flex-col items-center border-r border-border/50 bg-card">
+    <nav className="sticky top-13 flex h-[calc(100vh-3.25rem)] w-[60px] flex-col items-center border-r border-border/50 bg-card">
       {/* メインナビ（上部） */}
       <div className="flex flex-1 flex-col items-center gap-1 pt-4">
         {navItems.slice(0, 4).map((item) => (

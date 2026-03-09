@@ -14,7 +14,9 @@ vi.mock("@/lib/utils", () => ({
 vi.mock("next/link", () => ({ default: "a" }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
-import { isNavActive, navItems } from "../components/sidebar-nav";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { isNavActive, navItems, SidebarNav } from "../components/sidebar-nav";
 
 describe("sidebar-nav 構造", () => {
   it("ナビゲーション項目が5つであること", () => {
@@ -56,6 +58,20 @@ describe("sidebar-nav 構造", () => {
       expect(item.shortLabel).toBeDefined();
       expect(item.shortLabel.length).toBeLessThanOrEqual(3);
     }
+  });
+});
+
+describe("SidebarNav レンダリング", () => {
+  it("nav 要素に sticky と高さ制約のクラスが含まれる", () => {
+    const html = renderToStaticMarkup(React.createElement(SidebarNav));
+    expect(html).toContain("sticky");
+    expect(html).toContain("top-13");
+    expect(html).toContain("h-[calc(100vh-3.25rem)]");
+  });
+
+  it("nav 要素に幅 w-[60px] が設定されている", () => {
+    const html = renderToStaticMarkup(React.createElement(SidebarNav));
+    expect(html).toContain("w-[60px]");
   });
 });
 
