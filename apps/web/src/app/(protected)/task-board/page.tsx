@@ -2,8 +2,8 @@ import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import Link from "next/link";
 import { getChatMessages, getLineMessages } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { TaskDetailPanel } from "./task-detail-panel";
 import { taskCompositeId } from "./task-composite-id";
+import { TaskDetailPanel } from "./task-detail-panel";
 import type { TaskItem } from "./task-list";
 import { TaskList } from "./task-list";
 
