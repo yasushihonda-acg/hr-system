@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-09（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `c78fda7` — test(worker): findEmployee のテストカバレッジ強化 (#183)）
+**ブランチ**: `main`（最新コミット: `dd9d954` — test: Worker 統合テスト追加 — Firestore Emulator で重複排除・書き込みを検証 (#188)）
 
 ---
 
@@ -103,10 +103,31 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 | **#181** | **feat(web): /help ページをエディトリアルUIにリデザイン** | **main (#181)** | **完了** |
 | **#182** | **fix(worker): 同姓同名の従業員がいる場合にドラフト作成を保留する** | **main (#182)** | **完了** |
 | **#183** | **test(worker): findEmployee のテストカバレッジ強化** | **main (#183)** | **完了** |
+| **—** | **fix: chat-sync の fire-and-forget を同期実行に変更し二重起動を防止 (#184)** | **main (#184)** | **完了** |
+| **—** | **fix: Intent フィルタ使用時のページネーションをフィルタ後に適用 (#185)** | **main (#185)** | **完了** |
+| **—** | **test(web): ヘルプページのコンポーネントテスト追加 (#180) (#186)** | **main (#186)** | **完了** |
+| **—** | **test: 認証・認可の統合テスト追加 (#163) (#187)** | **main (#187)** | **完了** |
+| **—** | **test: Worker 統合テスト追加 — Firestore Emulator で重複排除・書き込みを検証 (#188)** | **main (#188)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### test: Worker 統合テスト追加 — Firestore Emulator で重複排除・書き込みを検証 (dd9d954, PR #188)
+- Firestore Emulator を使った Worker 統合テストを追加
+- 重複排除ロジックと書き込み動作を検証
+
+### test: 認証・認可の統合テスト追加 (#163) (b64e6d7, PR #187)
+- 認証・認可フローの統合テストを追加
+
+### test(web): ヘルプページのコンポーネントテスト追加 (#180) (b4ab11d, PR #186)
+- /help ページのコンポーネントテストを追加
+
+### fix: Intent フィルタ使用時のページネーションをフィルタ後に適用 (6073a54, PR #185)
+- Intent フィルタ適用後にページネーションを適用するよう修正し、フィルタ結果のページング崩れを解消
+
+### fix: chat-sync の fire-and-forget を同期実行に変更し二重起動を防止 (9dc01ac, PR #184)
+- chat-sync を非同期 fire-and-forget から同期実行に変更し、二重起動によるレース条件を防止
 
 ### test(worker): findEmployee のテストカバレッジ強化 (c78fda7, PR #183)
 - findEmployee 関数に対する単体テストを追加・強化
@@ -182,7 +203,8 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 
 **積み残しタスクはゼロです。**
 
-1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+1. **bug #189: ヘルプページの画像が一部表示されない** — `public/` 配下の画像パスを確認・修正（P1）
+2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
 
 ### 完了済みバックログ（参考）
 
@@ -215,15 +237,20 @@ CLAUDE.md を現状に合わせて更新（worker/LINE/salary/ai 追記）。
 | packages/shared | approval.test.ts + status-transitions.test.ts | |
 | apps/api | auth.test.ts + health.test.ts + salary-drafts.test.ts + intent-stats.test.ts | 22+ |
 | apps/api (integration) | firestore-queries.integration.test.ts | 17 |
-| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts | 41 |
-| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx 等 | 92 |
-| **合計** | | **297+** |
+| apps/api (integration) | auth-authz.integration.test.ts | 追加済み |
+| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts + worker.integration.test.ts | 41+ |
+| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx + help.test.tsx 等 | 92+ |
+| **合計** | | **297+（統合テスト追加後）** |
 
 ---
 
 ## オープン GitHub Issues
 
-**なし — 積み残しタスクはゼロです。**
+| Issue | タイトル | ラベル |
+|-------|---------|-------|
+| **#189** | bug: ヘルプページの画像が一部表示されない | bug, P1 |
+| **#133** | feat: 資料管理 API の実装 | enhancement, P2 |
+| **#132** | feat: アプリ設定 API の実装 | enhancement, P2 |
 
 （#96/#97 は調査・対応完了。詳細は「次のアクション候補」の完了済みバックログを参照）
 
