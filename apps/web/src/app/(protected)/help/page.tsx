@@ -58,7 +58,7 @@ function Section({
 
 function BrowserFrame({ src, alt, caption }: { src: string; alt: string; caption?: string }) {
   return (
-    <figure className="my-6 max-w-lg">
+    <figure className="my-6">
       <div className="rounded-xl border border-border/80 bg-card shadow-[0_8px_32px_oklch(0.15_0.03_252/0.08),0_2px_8px_oklch(0.15_0.03_252/0.04)] overflow-hidden">
         {/* Browser dots bar */}
         <div className="flex items-center gap-1.5 px-3.5 py-2 bg-[oklch(0.96_0.006_240)] border-b border-border/40">
@@ -67,7 +67,7 @@ function BrowserFrame({ src, alt, caption }: { src: string; alt: string; caption
           <span className="w-2.5 h-2.5 rounded-full bg-[oklch(0.7_0.16_145/0.7)]" />
           <span className="ml-2 flex-1 h-5 rounded-md bg-[oklch(0.92_0.01_240)] border border-border/30" />
         </div>
-        <Image src={src} alt={alt} width={540} height={960} className="w-full" priority={false} />
+        <Image src={src} alt={alt} width={1280} height={800} className="w-full" priority={false} />
       </div>
       {caption && (
         <figcaption className="text-[0.7rem] text-muted-foreground/70 mt-2.5 text-center tracking-wide">
@@ -329,18 +329,16 @@ export default function HelpPage() {
               <RoleBadge label="管理者" />
               <RoleBadge label="HRスタッフ" />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <BrowserFrame
-                src="/screenshots/help/02-inbox-chat.png"
-                alt="受信箱 - Google Chat"
-                caption="Google Chat メッセージ一覧"
-              />
-              <BrowserFrame
-                src="/screenshots/help/03-inbox-line.png"
-                alt="受信箱 - LINE"
-                caption="LINE メッセージ一覧"
-              />
-            </div>
+            <BrowserFrame
+              src="/screenshots/help/02-inbox-chat.png"
+              alt="受信箱 - Google Chat"
+              caption="Google Chat メッセージ一覧"
+            />
+            <BrowserFrame
+              src="/screenshots/help/03-inbox-line.png"
+              alt="受信箱 - LINE"
+              caption="LINE メッセージ一覧（画像メッセージはサムネイル表示）"
+            />
             <h3 className="text-sm font-bold mt-6 mb-3">主な操作</h3>
             <Timeline>
               <TimelineStep num={1}>
@@ -352,6 +350,32 @@ export default function HelpPage() {
               </TimelineStep>
               <TimelineStep num={4}>AI が自動分類したカテゴリでフィルタできます</TimelineStep>
             </Timeline>
+            <h3 className="text-sm font-bold mt-6 mb-3">AI 自動カテゴリ分類（10カテゴリ）</h3>
+            <p className="text-sm text-muted-foreground mb-3">
+              AI がメッセージ内容を分析し、以下の10カテゴリに自動分類します。
+              正規表現によるプレ分類と LLM による高精度分類の2段階で処理されます。
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 my-4">
+              {[
+                "給与・社保",
+                "退職・休職",
+                "入社・採用",
+                "契約変更",
+                "施設・異動",
+                "外国人・ビザ",
+                "研修・監査",
+                "健康診断",
+                "勤怠・休暇",
+                "その他",
+              ].map((cat) => (
+                <span
+                  key={cat}
+                  className="text-xs text-center px-2 py-1.5 rounded-md border border-border/60 bg-card text-muted-foreground"
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
             <Callout>
               LINE タブでは画像メッセージもサムネイル表示されます。クリックで拡大表示できます。
             </Callout>
@@ -372,6 +396,45 @@ export default function HelpPage() {
               alt="タスクボード"
               caption="タスクボード — 優先度別のカード表示"
             />
+            <h3 className="text-sm font-bold mt-6 mb-3">優先度レベル</h3>
+            <div className="rounded-lg border border-border/60 overflow-hidden my-4">
+              <div className="divide-y divide-border/30">
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors">
+                  <span className="inline-flex items-center gap-1 rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-700 animate-pulse">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                    極高
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    緊急対応が必要。赤く点滅するバッジで強調されます
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors">
+                  <span className="inline-flex items-center gap-1 rounded bg-orange-50 border border-orange-300 px-1.5 py-0.5 text-xs font-medium text-orange-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-400" />高
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    早めに対応が望ましい。オレンジのドットで表示
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors">
+                  <span className="inline-flex items-center gap-1 rounded bg-blue-50 border border-blue-300 px-1.5 py-0.5 text-xs font-medium text-blue-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />中
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    通常の優先度。青のドットで表示
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-accent/30 transition-colors">
+                  <span className="inline-flex items-center gap-1 rounded bg-slate-50 border border-slate-300 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />低
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    急ぎではない。グレーのドットで表示
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <h3 className="text-sm font-bold mt-6 mb-3">フィルタ機能</h3>
             <FeatureList>
               <Feature label="優先度">極高・高・中・低の4段階で絞り込み</Feature>
@@ -379,12 +442,12 @@ export default function HelpPage() {
               <Feature label="ステータス">未対応・対応中・対応済で切り替え</Feature>
             </FeatureList>
             <Callout variant="warn">
-              「極高」優先度のタスクは赤いバッジで強調表示されます。早急に対応してください。
+              「極高」優先度のタスクは赤いバッジで点滅表示されます。見落とさないよう早急に対応してください。
             </Callout>
           </Section>
 
           {/* 04 承認 */}
-          <Section id="tasks" num="04" title="承認（承認一覧）">
+          <Section id="tasks" num="04" title="承認一覧">
             <p className="text-sm mb-3 text-muted-foreground leading-relaxed">
               AI が生成した給与変更ドラフトの承認ワークフローを管理します。 ドラフト → レビュー済 →
               社長承認待ち → 承認済の流れで処理します。
@@ -398,6 +461,16 @@ export default function HelpPage() {
               alt="承認一覧"
               caption="承認一覧 — ステータスタブで絞り込み"
             />
+            <h3 className="text-sm font-bold mt-6 mb-3">変更種別</h3>
+            <FeatureList>
+              <Feature label="機械的変更">
+                定期昇給・等級変更など、ルールに基づく変更。HR スタッフのダブルチェックのみで承認
+              </Feature>
+              <Feature label="裁量的変更">
+                特別昇給・手当追加など、判断を伴う変更。HR チェック＋社長承認の2段階が必要
+              </Feature>
+            </FeatureList>
+
             <h3 className="text-sm font-bold mt-6 mb-3">承認フロー</h3>
             <Timeline>
               <TimelineStep num={1}>

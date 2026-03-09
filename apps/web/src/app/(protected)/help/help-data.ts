@@ -39,7 +39,7 @@ export const tocItems: TocEntry[] = [
   { id: "login", num: "01", label: "ログイン", icon: LogIn },
   { id: "inbox", num: "02", label: "受信箱", icon: Inbox },
   { id: "task-board", num: "03", label: "タスクボード", icon: ListTodo },
-  { id: "tasks", num: "04", label: "承認", icon: ClipboardList },
+  { id: "tasks", num: "04", label: "承認一覧", icon: ClipboardList },
   { id: "dashboard", num: "05", label: "ダッシュボード", icon: BarChart3 },
   { id: "admin-users", num: "06", label: "ユーザー管理", icon: Users },
   { id: "admin-spaces", num: "07", label: "スペース管理", icon: MessageSquare },
