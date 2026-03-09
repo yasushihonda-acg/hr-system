@@ -179,52 +179,53 @@ app.patch("/:id", zValidator("json", patchDraftSchema), async (c) => {
     forbidden("CEOはドラフトを直接修正できません");
   }
 
-  const draftRef = collections.salaryDrafts.doc(id);
-  const draftSnap = await draftRef.get();
-  if (!draftSnap.exists) notFound("SalaryDraft", id);
-
-  const draft = draftSnap.data() as SalaryDraft;
-  if (draft.status !== "draft" && draft.status !== "reviewed") {
-    throw new AppError(
-      "INVALID_STATUS_TRANSITION",
-      "draft または reviewed のステータスのみ修正できます",
-      409,
-      { current_status: draft.status },
-    );
-  }
-
   const body = c.req.valid("json");
+  const draftRef = collections.salaryDrafts.doc(id);
 
-  // 更新データ構築（金額フィールドは明細との整合性のため PATCH 不可）
-  const updateData: Record<string, unknown> = {
-    updatedAt: FieldValue.serverTimestamp(),
-  };
-  if (body.reason !== undefined) updateData.reason = body.reason;
-  if (body.effectiveDate !== undefined) {
-    updateData.effectiveDate = Timestamp.fromDate(new Date(`${body.effectiveDate}T00:00:00Z`));
-  }
+  // トランザクションで read→validate→write を一括実行
+  await db.runTransaction(async (tx) => {
+    const draftSnap = await tx.get(draftRef);
+    if (!draftSnap.exists) notFound("SalaryDraft", id);
 
-  // 変更前フィールドを記録
-  const modifiedFields: Record<string, unknown> = {};
-  for (const key of Object.keys(body) as (keyof typeof body)[]) {
-    const before = draft[key as keyof typeof draft];
-    const after = body[key];
-    if (before !== undefined) modifiedFields[key] = { before, after };
-  }
+    const draft = draftSnap.data() as SalaryDraft;
+    if (draft.status !== "draft" && draft.status !== "reviewed") {
+      throw new AppError(
+        "INVALID_STATUS_TRANSITION",
+        "draft または reviewed のステータスのみ修正できます",
+        409,
+        { current_status: draft.status },
+      );
+    }
 
-  // バッチ書き込み（ドラフト更新 + 監査ログ）
-  const batch = db.batch();
-  batch.update(draftRef, updateData);
-  batch.set(collections.auditLogs.doc(), {
-    eventType: "draft_modified" as AuditEventType,
-    entityType: "SalaryDraft",
-    entityId: id,
-    actorEmail: user.email,
-    actorRole,
-    details: { modifiedFields },
-    createdAt: FieldValue.serverTimestamp(),
+    // 更新データ構築（金額フィールドは明細との整合性のため PATCH 不可）
+    const updateData: Record<string, unknown> = {
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (body.reason !== undefined) updateData.reason = body.reason;
+    if (body.effectiveDate !== undefined) {
+      updateData.effectiveDate = Timestamp.fromDate(new Date(`${body.effectiveDate}T00:00:00Z`));
+    }
+
+    // 変更前フィールドを記録
+    const modifiedFields: Record<string, unknown> = {};
+    for (const key of Object.keys(body) as (keyof typeof body)[]) {
+      const before = draft[key as keyof typeof draft];
+      const after = body[key];
+      if (before !== undefined) modifiedFields[key] = { before, after };
+    }
+
+    // トランザクション内で書き込み（ドラフト更新 + 監査ログ）
+    tx.update(draftRef, updateData);
+    tx.set(collections.auditLogs.doc(), {
+      eventType: "draft_modified" as AuditEventType,
+      entityType: "SalaryDraft",
+      entityId: id,
+      actorEmail: user.email,
+      actorRole,
+      details: { modifiedFields },
+      createdAt: FieldValue.serverTimestamp(),
+    });
   });
-  await batch.commit();
 
   // 更新後のドラフトを返却
   const updatedSnap = await draftRef.get();
@@ -247,64 +248,68 @@ app.post("/:id/transition", zValidator("json", transitionSchema), async (c) => {
   }
 
   const draftRef = collections.salaryDrafts.doc(id);
-  const draftSnap = await draftRef.get();
-  if (!draftSnap.exists) notFound("SalaryDraft", id);
 
-  const draft = draftSnap.data() as SalaryDraft;
-  const fromStatus = draft.status;
+  // トランザクションで read→validate→write を一括実行（同時操作による後勝ち更新を防止）
+  const transactionResult = await db.runTransaction(async (tx) => {
+    const draftSnap = await tx.get(draftRef);
+    if (!draftSnap.exists) notFound("SalaryDraft", id);
 
-  // 遷移バリデーション（状態 + ロール + 変更タイプをチェック）
-  const result = validateTransition(fromStatus, toStatus, actorRole, draft.changeType);
-  if (!result.valid) {
-    const allowed = getNextActions(fromStatus, actorRole, draft.changeType);
-    invalidTransition(fromStatus, toStatus, allowed);
-  }
+    const draft = draftSnap.data() as SalaryDraft;
+    const fromStatus = draft.status;
 
-  // ドラフト更新データ
-  const draftUpdate: Record<string, unknown> = {
-    status: toStatus,
-    updatedAt: FieldValue.serverTimestamp(),
-  };
-  if (toStatus === "reviewed") {
-    draftUpdate.reviewedBy = user.email;
-    draftUpdate.reviewedAt = FieldValue.serverTimestamp();
-  } else if (toStatus === "approved") {
-    draftUpdate.approvedBy = user.email;
-    draftUpdate.approvedAt = FieldValue.serverTimestamp();
-  }
+    // 遷移バリデーション（状態 + ロール + 変更タイプをチェック）
+    const result = validateTransition(fromStatus, toStatus, actorRole, draft.changeType);
+    if (!result.valid) {
+      const allowed = getNextActions(fromStatus, actorRole, draft.changeType);
+      invalidTransition(fromStatus, toStatus, allowed);
+    }
 
-  // 承認ログ
-  const approvalLogData = {
-    draftId: id,
-    action: toApprovalAction(toStatus) as ApprovalAction,
-    fromStatus,
-    toStatus,
-    actorEmail: user.email,
-    actorRole,
-    comment: comment ?? null,
-    modifiedFields: null,
-    createdAt: FieldValue.serverTimestamp(),
-  };
+    // ドラフト更新データ
+    const draftUpdate: Record<string, unknown> = {
+      status: toStatus,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (toStatus === "reviewed") {
+      draftUpdate.reviewedBy = user.email;
+      draftUpdate.reviewedAt = FieldValue.serverTimestamp();
+    } else if (toStatus === "approved") {
+      draftUpdate.approvedBy = user.email;
+      draftUpdate.approvedAt = FieldValue.serverTimestamp();
+    }
 
-  // 監査ログ
-  const auditLogData = {
-    eventType: "status_changed" as AuditEventType,
-    entityType: "SalaryDraft",
-    entityId: id,
-    actorEmail: user.email,
-    actorRole,
-    details: { fromStatus, toStatus, comment: comment ?? null },
-    createdAt: FieldValue.serverTimestamp(),
-  };
+    // 承認ログ
+    const approvalLogData = {
+      draftId: id,
+      action: toApprovalAction(toStatus) as ApprovalAction,
+      fromStatus,
+      toStatus,
+      actorEmail: user.email,
+      actorRole,
+      comment: comment ?? null,
+      modifiedFields: null,
+      createdAt: FieldValue.serverTimestamp(),
+    };
 
-  // バッチ書き込み（ドラフト更新 + 承認ログ + 監査ログ）
-  const batch = db.batch();
-  batch.update(draftRef, draftUpdate);
-  batch.set(collections.approvalLogs.doc(), approvalLogData);
-  batch.set(collections.auditLogs.doc(), auditLogData);
-  await batch.commit();
+    // 監査ログ
+    const auditLogData = {
+      eventType: "status_changed" as AuditEventType,
+      entityType: "SalaryDraft",
+      entityId: id,
+      actorEmail: user.email,
+      actorRole,
+      details: { fromStatus, toStatus, comment: comment ?? null },
+      createdAt: FieldValue.serverTimestamp(),
+    };
 
-  // 更新後のドラフトと次アクション一覧を返却
+    // トランザクション内で書き込み（ドラフト更新 + 承認ログ + 監査ログ）
+    tx.update(draftRef, draftUpdate);
+    tx.set(collections.approvalLogs.doc(), approvalLogData);
+    tx.set(collections.auditLogs.doc(), auditLogData);
+
+    return { fromStatus, changeType: draft.changeType };
+  });
+
+  // トランザクション成功後、更新済みドラフトを取得して返却
   const updatedSnap = await draftRef.get();
   const updated = updatedSnap.data() as SalaryDraft;
   const nextActions = actorRole ? getNextActions(toStatus, actorRole, updated.changeType) : [];
