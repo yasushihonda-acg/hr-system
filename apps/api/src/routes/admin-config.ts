@@ -1,10 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
-import { collections } from "@hr-system/db";
+import { collections, db } from "@hr-system/db";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { toISO } from "../lib/serialize.js";
+
+/** IANA タイムゾーン検証 */
+function isValidTimezone(tz: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const DOC_ID = "default";
 
@@ -20,7 +30,12 @@ const DEFAULT_CONFIG = {
 const updateConfigSchema = z.object({
   appName: z.string().min(1).max(100).optional(),
   companyName: z.string().max(200).optional(),
-  defaultTimezone: z.string().min(1).max(50).optional(),
+  defaultTimezone: z
+    .string()
+    .min(1)
+    .max(50)
+    .refine(isValidTimezone, { message: "Invalid IANA timezone" })
+    .optional(),
   notificationEnabled: z.boolean().optional(),
   dataRetentionDays: z.number().int().min(30).max(3650).optional(),
 });
@@ -48,7 +63,8 @@ adminConfigRoutes.get("/", async (c) => {
     });
   }
 
-  const data = doc.data()!;
+  const raw = doc.data()!;
+  const data = { ...DEFAULT_CONFIG, ...raw };
   return c.json({
     data: {
       appName: data.appName,
@@ -56,8 +72,8 @@ adminConfigRoutes.get("/", async (c) => {
       defaultTimezone: data.defaultTimezone,
       notificationEnabled: data.notificationEnabled,
       dataRetentionDays: data.dataRetentionDays,
-      updatedAt: toISO(data.updatedAt),
-      updatedBy: data.updatedBy,
+      updatedAt: toISO(raw.updatedAt),
+      updatedBy: raw.updatedBy ?? null,
     },
   });
 });
@@ -74,32 +90,36 @@ adminConfigRoutes.patch("/", zValidator("json", updateConfigSchema), async (c) =
 
   const docRef = collections.appConfig.doc(DOC_ID);
   const existing = await docRef.get();
+  const batch = db.batch();
 
   if (!existing.exists) {
     // 初回: デフォルト値 + updates で作成
-    await docRef.set({
+    batch.set(docRef, {
       ...DEFAULT_CONFIG,
       ...updates,
       updatedAt: Timestamp.now(),
       updatedBy: actor.email,
     });
   } else {
-    await docRef.update({
+    batch.update(docRef, {
       ...updates,
       updatedAt: FieldValue.serverTimestamp(),
       updatedBy: actor.email,
     });
   }
 
-  await collections.auditLogs.add({
+  const auditRef = collections.auditLogs.doc();
+  batch.set(auditRef, {
     eventType: "config_updated",
     entityType: "app_config",
     entityId: DOC_ID,
     actorEmail: actor.email,
     actorRole: c.get("actorRole"),
     details: updates,
-    createdAt: FieldValue.serverTimestamp() as never,
+    createdAt: FieldValue.serverTimestamp(),
   });
+
+  await batch.commit();
 
   return c.json({ success: true });
 });

@@ -2,11 +2,11 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted でホイスト） ---
-const { mockGet, mockSet, mockUpdate, mockAdd } = vi.hoisted(() => ({
+const { mockGet, mockBatchSet, mockBatchUpdate, mockBatchCommit } = vi.hoisted(() => ({
   mockGet: vi.fn(),
-  mockSet: vi.fn().mockResolvedValue(undefined),
-  mockUpdate: vi.fn().mockResolvedValue(undefined),
-  mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
+  mockBatchSet: vi.fn(),
+  mockBatchUpdate: vi.fn(),
+  mockBatchCommit: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("google-auth-library", () => ({
@@ -23,16 +23,16 @@ let currentDashboardRole: "admin" | "viewer" = "admin";
 vi.mock("@hr-system/db", () => ({
   db: {
     batch: vi.fn(() => ({
-      update: vi.fn(),
-      set: vi.fn(),
-      commit: vi.fn().mockResolvedValue(undefined),
+      set: mockBatchSet,
+      update: mockBatchUpdate,
+      commit: mockBatchCommit,
     })),
   },
   collections: {
     appConfig: {
-      doc: vi.fn(() => ({ get: mockGet, set: mockSet, update: mockUpdate })),
+      doc: vi.fn(() => ({ get: mockGet })),
     },
-    auditLogs: { add: mockAdd },
+    auditLogs: { doc: vi.fn(() => ({ id: "audit-1" })) },
     // 他ルートが必要とするコレクション（app.ts のインポートで参照される）
     chatMessages: {
       orderBy: vi.fn().mockReturnThis(),
@@ -51,7 +51,7 @@ vi.mock("@hr-system/db", () => ({
       })),
       get: vi.fn().mockResolvedValue({ docs: [] }),
     },
-    syncMetadata: { doc: vi.fn(() => ({ get: mockGet, set: mockSet })) },
+    syncMetadata: { doc: vi.fn(() => ({ get: mockGet, set: vi.fn() })) },
     chatSpaces: {
       where: vi.fn(() => ({
         get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
@@ -168,16 +168,17 @@ describe("admin-config routes", () => {
       const body = (await res.json()) as { success: boolean };
       expect(body.success).toBe(true);
 
-      // set が呼ばれる（初回作成）
-      expect(mockSet).toHaveBeenCalledOnce();
-      const setArg = mockSet.mock.calls[0]![0] as Record<string, unknown>;
-      expect(setArg.appName).toBe("カスタム名");
-      expect(setArg.companyName).toBe(""); // デフォルト値
-      expect(setArg.notificationEnabled).toBe(false); // デフォルト値
+      // batch.set が2回呼ばれる（config作成 + 監査ログ）
+      expect(mockBatchSet).toHaveBeenCalledTimes(2);
+      expect(mockBatchCommit).toHaveBeenCalledOnce();
+
+      const configArg = mockBatchSet.mock.calls[0]![1] as Record<string, unknown>;
+      expect(configArg.appName).toBe("カスタム名");
+      expect(configArg.companyName).toBe(""); // デフォルト値
+      expect(configArg.notificationEnabled).toBe(false); // デフォルト値
 
       // 監査ログ
-      expect(mockAdd).toHaveBeenCalledOnce();
-      const auditArg = mockAdd.mock.calls[0]![0] as Record<string, unknown>;
+      const auditArg = mockBatchSet.mock.calls[1]![1] as Record<string, unknown>;
       expect(auditArg.eventType).toBe("config_updated");
     });
 
@@ -191,8 +192,10 @@ describe("admin-config routes", () => {
       });
 
       expect(res.status).toBe(200);
-      expect(mockUpdate).toHaveBeenCalledOnce();
-      const updateArg = mockUpdate.mock.calls[0]![0] as Record<string, unknown>;
+      expect(mockBatchUpdate).toHaveBeenCalledOnce();
+      expect(mockBatchCommit).toHaveBeenCalledOnce();
+
+      const updateArg = mockBatchUpdate.mock.calls[0]![1] as Record<string, unknown>;
       expect(updateArg.notificationEnabled).toBe(true);
       expect(updateArg.dataRetentionDays).toBe(180);
     });
@@ -202,6 +205,16 @@ describe("admin-config routes", () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("バリデーションエラー: 無効なタイムゾーン", async () => {
+      const res = await app.request("/api/admin/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultTimezone: "Invalid/Zone" }),
       });
 
       expect(res.status).toBe(400);
