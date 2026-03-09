@@ -54,3 +54,21 @@ export async function requireAdmin(): Promise<AccessInfo> {
   }
   return access;
 }
+
+/**
+ * API Route 用: セッションユーザーのロールを取得する。
+ * redirect せず null を返すため、Route Handler (GET/POST/PATCH) で使用可能。
+ */
+export async function getSessionRole(): Promise<UserRole | null> {
+  const session = await auth();
+  if (!session?.user?.email) return null;
+
+  const snapshot = await collections.allowedUsers
+    .where("email", "==", session.user.email)
+    .where("isActive", "==", true)
+    .limit(1)
+    .get();
+
+  const doc = snapshot.docs[0];
+  return doc?.data().role ?? null;
+}
