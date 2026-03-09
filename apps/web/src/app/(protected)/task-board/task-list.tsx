@@ -27,7 +27,7 @@ export function TaskList({
 }: {
   tasks: TaskItem[];
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
 }) {
   if (tasks.length === 0) {
     return (
@@ -48,7 +48,7 @@ export function TaskList({
           <button
             key={compositeId}
             type="button"
-            onClick={() => onSelect(compositeId)}
+            onClick={() => onSelect(isSelected ? null : compositeId)}
             className={cn(
               "block w-full text-left px-5 py-3 transition-colors hover:bg-accent/50",
               isCritical && "border-l-4 border-l-red-500 bg-red-50/50 hover:bg-red-50",
