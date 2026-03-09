@@ -150,7 +150,9 @@ describe("TaskList クリックインタラクション", () => {
     expect(buttons).toHaveLength(2);
 
     // 2番目のタスクをクリック
-    fireEvent.click(buttons[1]);
+    const secondButton = buttons.at(1);
+    if (!secondButton) throw new Error("button not found");
+    fireEvent.click(secondButton);
 
     expect(mockReplace).toHaveBeenCalledOnce();
     expect(mockReplace).toHaveBeenCalledWith("/task-board?id=gchat-msg-2", { scroll: false });
@@ -173,7 +175,9 @@ describe("TaskDetailPanel クリックインタラクション", () => {
     // 閉じるボタンは2つ（モバイル戻る + デスクトップX）
     const buttons = screen.getAllByRole("button");
     // デスクトップ閉じるボタン（2番目）をクリック
-    fireEvent.click(buttons[1]);
+    const closeButton = buttons.at(1);
+    if (!closeButton) throw new Error("button not found");
+    fireEvent.click(closeButton);
 
     expect(mockReplace).toHaveBeenCalledOnce();
     expect(mockReplace).toHaveBeenCalledWith("/task-board?", { scroll: false });
@@ -185,7 +189,9 @@ describe("TaskDetailPanel クリックインタラクション", () => {
 
     // モバイル戻るボタン（1番目）をクリック
     const buttons = screen.getAllByRole("button");
-    fireEvent.click(buttons[0]);
+    const backButton = buttons.at(0);
+    if (!backButton) throw new Error("button not found");
+    fireEvent.click(backButton);
 
     expect(mockReplace).toHaveBeenCalledOnce();
     expect(mockReplace).toHaveBeenCalledWith("/task-board?", { scroll: false });
