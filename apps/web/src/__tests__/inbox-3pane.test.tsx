@@ -117,6 +117,7 @@ vi.mock("../app/(protected)/inbox/use-select-message", () => ({
 
 vi.mock("../app/(protected)/inbox/actions", () => ({
   updateResponseStatusAction: vi.fn(),
+  updateTaskPriorityAction: vi.fn(),
   updateWorkflowAction: vi.fn(),
 }));
 
