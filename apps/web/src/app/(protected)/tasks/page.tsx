@@ -62,7 +62,7 @@ export default async function TasksPage({ searchParams }: Props) {
       <div className={cn("flex-1 overflow-y-auto p-6", selectedDraft && "hidden lg:block")}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">タスク一覧</h1>
+            <h1 className="text-2xl font-bold">承認一覧</h1>
             <p className="text-sm text-muted-foreground">全{total}件</p>
           </div>
 
@@ -113,7 +113,7 @@ export default async function TasksPage({ searchParams }: Props) {
                 {drafts.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                      タスクがありません
+                      承認ドラフトがありません
                     </TableCell>
                   </TableRow>
                 ) : (
