@@ -49,16 +49,23 @@ const mockRunTransaction = vi.fn();
 
 // クエリ用の get モック（スレッドコンテキスト取得で使用）
 const mockChatMessagesQueryGet = vi.fn();
+const mockChatMessagesCountGet = vi.fn();
 const mockIntentRecordsQueryGet = vi.fn();
 
 vi.mock("@hr-system/db", () => {
-  // chatMessages のクエリチェーン: .where().orderBy().limit().get()
-  // vi.fn().mockReturnThis() は vi.mock ファクトリ内では this が未定義になるため
-  // 明示的なチェーンオブジェクトを使用する
+  // chatMessages のクエリチェーン:
+  //   .where().orderBy().limit(1).get()  → 親メッセージ取得
+  //   .where().orderBy().count().get()   → スレッド内メッセージ数
+  const limitChain: Record<string, unknown> = {};
+  limitChain.get = mockChatMessagesQueryGet;
+
+  const countChain: Record<string, unknown> = {};
+  countChain.get = mockChatMessagesCountGet;
+
   const chatMsgsChain: Record<string, unknown> = {};
   chatMsgsChain.orderBy = vi.fn(() => chatMsgsChain);
-  chatMsgsChain.limit = vi.fn(() => chatMsgsChain);
-  chatMsgsChain.get = mockChatMessagesQueryGet;
+  chatMsgsChain.limit = vi.fn(() => limitChain);
+  chatMsgsChain.count = vi.fn(() => countChain);
 
   // intentRecords のクエリチェーン: .where().limit().get()
   const intentChain: Record<string, unknown> = {};
@@ -157,6 +164,7 @@ describe("processMessage", () => {
     );
     // デフォルト: スレッドコンテキストなし（空のクエリ結果）
     mockChatMessagesQueryGet.mockResolvedValue(makeQuerySnapshot([]));
+    mockChatMessagesCountGet.mockResolvedValue({ data: () => ({ count: 0 }) });
     mockIntentRecordsQueryGet.mockResolvedValue(makeQuerySnapshot([]));
   });
 
@@ -260,19 +268,17 @@ describe("processMessage", () => {
       const THREAD_NAME = "spaces/AAAA-qf5jX0/threads/thread-001";
       const PARENT_DOC_ID = "parent-chat-msg-001";
 
-      // 親メッセージのクエリ結果
+      // 親メッセージのクエリ結果（limit(1) で親のみ）
       mockChatMessagesQueryGet.mockResolvedValue(
         makeQuerySnapshot([
           makeDocSnapshot(PARENT_DOC_ID, {
             content: "田中さんの給与変更をお願いします",
             threadName: THREAD_NAME,
           }),
-          makeDocSnapshot("chat-msg-001", {
-            content: "承知しました",
-            threadName: THREAD_NAME,
-          }),
         ]),
       );
+      // スレッド内メッセージ数: 親 + 返信1件 = 2
+      mockChatMessagesCountGet.mockResolvedValue({ data: () => ({ count: 2 }) });
 
       // 親の IntentRecord
       mockIntentRecordsQueryGet.mockResolvedValue(
@@ -329,6 +335,53 @@ describe("processMessage", () => {
       );
     });
 
+    it("スレッド返信: 返信が5件ある場合、replyCount が正確に 5 を返す", async () => {
+      const THREAD_NAME = "spaces/AAAA-qf5jX0/threads/thread-many";
+      const PARENT_DOC_ID = "parent-chat-msg-many";
+
+      // 親メッセージのクエリ結果（limit(1) で親のみ）
+      mockChatMessagesQueryGet.mockResolvedValue(
+        makeQuerySnapshot([
+          makeDocSnapshot(PARENT_DOC_ID, {
+            content: "全員の給与を見直してください",
+            threadName: THREAD_NAME,
+          }),
+        ]),
+      );
+      // スレッド内メッセージ数: 親 + 返信5件 = 6
+      mockChatMessagesCountGet.mockResolvedValue({ data: () => ({ count: 6 }) });
+
+      // 親の IntentRecord
+      mockIntentRecordsQueryGet.mockResolvedValue(
+        makeQuerySnapshot([
+          makeDocSnapshot("intent-parent-many", {
+            chatMessageId: PARENT_DOC_ID,
+            category: "salary",
+            confidenceScore: 0.9,
+          }),
+        ]),
+      );
+
+      await processMessage(
+        makeEvent({
+          threadName: THREAD_NAME,
+          messageType: "THREAD_REPLY",
+          text: "6件目の返信です",
+        }),
+      );
+
+      expect(mockClassifyIntent).toHaveBeenCalledWith(
+        "6件目の返信です",
+        expect.objectContaining({
+          parentCategory: "salary",
+          parentConfidence: 0.9,
+          parentSnippet: "全員の給与を見直してください",
+          replyCount: 5,
+        }),
+        expect.any(Object),
+      );
+    });
+
     it("スレッド返信: 親 IntentRecord が存在しない場合、デフォルト値（category: other, confidence: 0）を使用", async () => {
       const THREAD_NAME = "spaces/AAAA-qf5jX0/threads/thread-003";
       const PARENT_DOC_ID = "parent-chat-msg-003";
@@ -342,6 +395,8 @@ describe("processMessage", () => {
           }),
         ]),
       );
+      // スレッド内メッセージ数: 親のみ = 1
+      mockChatMessagesCountGet.mockResolvedValue({ data: () => ({ count: 1 }) });
       mockIntentRecordsQueryGet.mockResolvedValue(makeQuerySnapshot([]));
 
       await processMessage(
