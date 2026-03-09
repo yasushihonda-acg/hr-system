@@ -156,17 +156,20 @@ async function getThreadContext(
   threadName: string,
   currentMessageId: string,
 ): Promise<ThreadContext | undefined> {
-  // スレッド内の全メッセージを createdAt 昇順で取得（先頭が親）
-  const snapshot = await collections.chatMessages
+  // スレッド内の親メッセージを取得（createdAt 昇順の先頭）
+  const threadQuery = collections.chatMessages
     .where("threadName", "==", threadName)
-    .orderBy("createdAt", "asc")
-    .limit(2)
-    .get();
+    .orderBy("createdAt", "asc");
 
-  if (snapshot.empty) return undefined;
+  const [parentSnapshot, countSnapshot] = await Promise.all([
+    threadQuery.limit(1).get(),
+    threadQuery.count().get(),
+  ]);
+
+  if (parentSnapshot.empty) return undefined;
 
   // 先頭メッセージが親（現在処理中のメッセージと同一の場合は親なし）
-  const parentDoc = snapshot.docs[0];
+  const parentDoc = parentSnapshot.docs[0];
   if (!parentDoc || parentDoc.id === currentMessageId) return undefined;
 
   const parentData = parentDoc.data();
@@ -179,8 +182,9 @@ async function getThreadContext(
 
   const parentIntent = intentSnapshot.empty ? null : intentSnapshot.docs[0]?.data();
 
-  // スレッドの返信数（親を除く）
-  const replyCount = snapshot.size > 1 ? snapshot.size - 1 : 0;
+  // スレッドの返信数（親を除く）— count() で正確な値を取得
+  const totalInThread = countSnapshot.data().count;
+  const replyCount = Math.max(0, totalInThread - 1);
 
   return {
     parentCategory: parentIntent?.category ?? "other",
