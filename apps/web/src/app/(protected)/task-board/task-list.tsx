@@ -3,7 +3,6 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
-import { useUrlSelection } from "@/hooks/use-url-selection";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import { taskCompositeId } from "./task-composite-id";
@@ -21,9 +20,15 @@ export interface TaskItem {
   createdAt: string;
 }
 
-export function TaskList({ tasks, selectedId }: { tasks: TaskItem[]; selectedId: string | null }) {
-  const selectTask = useUrlSelection("/task-board");
-
+export function TaskList({
+  tasks,
+  selectedId,
+  onSelect,
+}: {
+  tasks: TaskItem[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
   if (tasks.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -43,7 +48,7 @@ export function TaskList({ tasks, selectedId }: { tasks: TaskItem[]; selectedId:
           <button
             key={compositeId}
             type="button"
-            onClick={() => selectTask(compositeId)}
+            onClick={() => onSelect(compositeId)}
             className={cn(
               "block w-full text-left px-5 py-3 transition-colors hover:bg-accent/50",
               isCritical && "border-l-4 border-l-red-500 bg-red-50/50 hover:bg-red-50",
