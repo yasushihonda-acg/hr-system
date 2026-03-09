@@ -2,10 +2,11 @@
 
 import { Loader2, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { ChatMessageDetailPane } from "@/components/message-detail-pane";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
+import { ChatMessageDetailPane } from "@/components/message-detail-pane";
 import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { HandoverForm } from "../inbox/handover-form";
 import {
   fetchChatMessageDetailAction,
   fetchLineMessageDetailAction,
@@ -15,7 +16,6 @@ import {
   updateTaskPriorityFromTaskBoard,
   updateWorkflowFromTaskBoard,
 } from "./actions";
-import { HandoverForm } from "../inbox/handover-form";
 import { taskCompositeId } from "./task-composite-id";
 import type { TaskItem } from "./task-list";
 import { TaskList } from "./task-list";
@@ -60,6 +60,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
   }, [selectedId]);
 
   // タスク選択時に詳細データを取得
+  // biome-ignore lint/correctness/useExhaustiveDependencies: selectedTask 全体を依存にすると参照が毎レンダー変わり無限ループになるため id+source で制御
   useEffect(() => {
     if (!selectedTask) {
       setChatDetail(null);
@@ -84,7 +85,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
         setLineDetail(null);
       }
     });
-  }, [selectedTask?.id, selectedTask?.source]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTask?.id, selectedTask?.source]);
 
   const handleClose = useCallback(() => {
     setSelectedId(null);

@@ -1,11 +1,11 @@
 "use client";
 
+import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import type { LineMessageDetail } from "@/lib/types";
 import { formatDateTimeJST } from "@/lib/utils";
-import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 
 interface LineMessageDetailPaneProps {
   message: LineMessageDetail;
@@ -48,6 +48,7 @@ export function LineMessageDetailPane({
         {/* メッセージ本文 */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">
           {message.lineMessageType === "image" && message.contentUrl ? (
+            // biome-ignore lint/performance/noImgElement: 外部GCS signed URLのため next/image は不適
             <img
               src={message.contentUrl}
               alt="LINE画像メッセージ"
