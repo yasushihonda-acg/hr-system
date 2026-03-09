@@ -7,6 +7,7 @@ export type {
 } from "./services/load-classification-config.js";
 export { loadClassificationConfig } from "./services/load-classification-config.js";
 export type {
+  AdminDocument,
   AllowanceMaster,
   AllowedUser,
   AppConfig,

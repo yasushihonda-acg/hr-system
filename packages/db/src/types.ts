@@ -323,6 +323,22 @@ export interface AppConfig {
   updatedBy: string;
 }
 
+/** 管理資料メタデータ */
+export interface AdminDocument {
+  /** 資料タイトル */
+  title: string;
+  /** 説明 */
+  description: string;
+  /** カテゴリ（任意ラベル） */
+  category: string;
+  /** ファイル URL（Cloud Storage 等の外部リンク） */
+  fileUrl: string | null;
+  /** 作成者 */
+  createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** LLM分類ルール（システムプロンプト・Few-shot例） */
 export interface LlmClassificationRule {
   type: "system_prompt" | "few_shot_example" | "category_definition";
