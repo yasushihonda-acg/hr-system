@@ -1,8 +1,8 @@
 "use client";
 
-import { Image as ImageIcon, MessageSquare, X } from "lucide-react";
-import { ResponseStatusButtons } from "@/components/response-status-buttons";
-import { TaskPriorityDot, TaskPrioritySelector } from "@/components/task-priority-selector";
+import { Image as ImageIcon, MessageSquare } from "lucide-react";
+import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
+import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type { LineMessageDetail, LineMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
@@ -95,7 +95,12 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
 
       {/* 中央ペイン: 詳細 */}
       {selectedMessage ? (
-        <LineDetailPane message={selectedMessage} onClose={() => selectMessage(null)} />
+        <LineMessageDetailPane
+          message={selectedMessage}
+          onClose={() => selectMessage(null)}
+          onUpdateResponseStatus={updateLineResponseStatusAction}
+          onUpdateTaskPriority={updateLineTaskPriorityAction}
+        />
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">
           <div className="text-center">
@@ -104,94 +109,6 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// --- 詳細ペイン ---
-
-function LineDetailPane({ message, onClose }: { message: LineMessageDetail; onClose: () => void }) {
-  const responseStatus = message.responseStatus;
-
-  return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-5">
-        {/* ヘッダー */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded p-1 text-muted-foreground hover:bg-accent md:hidden"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <h2 className="text-base font-bold">{message.senderName}</h2>
-            {message.groupName && (
-              <span className="text-xs text-muted-foreground">@ {message.groupName}</span>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {formatDateTimeJST(message.createdAt)}
-            </span>
-          </div>
-        </div>
-
-        {/* メッセージ本文 */}
-        <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">
-          {message.lineMessageType === "image" && message.contentUrl ? (
-            <img
-              src={message.contentUrl}
-              alt="LINE画像メッセージ"
-              className="max-w-full rounded-lg"
-            />
-          ) : (
-            message.content
-          )}
-        </div>
-
-        {/* 対応ステータス変更 */}
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
-          <ResponseStatusButtons
-            currentStatus={responseStatus}
-            onChangeStatus={(s) => updateLineResponseStatusAction(message.id, s)}
-          />
-        </div>
-
-        {/* タスク優先度 */}
-        <div className="mt-4">
-          <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
-          <TaskPrioritySelector
-            value={message.taskPriority}
-            onChange={(p) => updateLineTaskPriorityAction(message.id, p)}
-          />
-        </div>
-
-        {/* メタ情報 */}
-        <div className="mt-6 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-          <h3 className="text-xs font-bold text-muted-foreground">メッセージ情報</h3>
-          <InfoRow label="グループ" value={message.groupName ?? "不明"} />
-          <InfoRow label="送信者" value={message.senderName} />
-          <InfoRow label="タイプ" value={message.lineMessageType} />
-          {message.responseStatusUpdatedBy && (
-            <InfoRow
-              label="最終更新"
-              value={`${message.responseStatusUpdatedBy} (${message.responseStatusUpdatedAt ? formatDateTimeJST(message.responseStatusUpdatedAt) : ""})`}
-            />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- 情報行 ---
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium">{value}</span>
     </div>
   );
 }
