@@ -6,6 +6,7 @@ import type {
 } from "firebase-admin/firestore";
 import { db } from "./client.js";
 import type {
+  AdminDocument,
   AllowanceMaster,
   AllowedUser,
   AppConfig,
@@ -57,4 +58,5 @@ export const collections = {
   chatSpaces: typedCollection<ChatSpaceConfig>("chat_spaces"),
   lineMessages: typedCollection<LineMessage>("line_messages"),
   appConfig: typedCollection<AppConfig>("app_config"),
+  adminDocuments: typedCollection<AdminDocument>("admin_documents"),
 };
