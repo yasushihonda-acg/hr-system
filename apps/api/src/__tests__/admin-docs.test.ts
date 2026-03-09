@@ -211,6 +211,70 @@ describe("admin-docs routes", () => {
       expect(res.status).toBe(400);
     });
 
+    it("fileUrl が data: スキームは 400", async () => {
+      const res = await app.request("/api/admin/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "テスト",
+          fileUrl: "data:text/html,<script>alert(1)</script>",
+        }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("trim で前後空白が除去される", async () => {
+      const res = await app.request("/api/admin/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "  タイトル  ",
+          description: " 説明 ",
+          category: " カテゴリ ",
+        }),
+      });
+
+      expect(res.status).toBe(201);
+
+      const docArg = mockBatchSet.mock.calls[0]![1] as Record<string, unknown>;
+      expect(docArg.title).toBe("タイトル");
+      expect(docArg.description).toBe("説明");
+      expect(docArg.category).toBe("カテゴリ");
+    });
+
+    it("空白のみのタイトルは trim 後に min(1) で 400", async () => {
+      const res = await app.request("/api/admin/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "   " }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("title 200文字は受理される", async () => {
+      const title200 = "あ".repeat(200);
+      const res = await app.request("/api/admin/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title200 }),
+      });
+
+      expect(res.status).toBe(201);
+    });
+
+    it("title 201文字は 400", async () => {
+      const title201 = "あ".repeat(201);
+      const res = await app.request("/api/admin/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title201 }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
     it("viewer は 403", async () => {
       currentDashboardRole = "viewer";
       const res = await app.request("/api/admin/docs", {
