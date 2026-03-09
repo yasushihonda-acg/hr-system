@@ -9,6 +9,7 @@ export { loadClassificationConfig } from "./services/load-classification-config.
 export type {
   AllowanceMaster,
   AllowedUser,
+  AppConfig,
   ApprovalLog,
   AuditLog,
   ChatAnnotation,

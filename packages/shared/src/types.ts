@@ -93,6 +93,7 @@ export const AUDIT_EVENT_TYPES = [
   "classification_rule_changed",
   "llm_rule_changed",
   "response_status_updated",
+  "config_updated",
 ] as const;
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 

@@ -307,6 +307,22 @@ export interface LineMessage {
   createdAt: Timestamp;
 }
 
+/** アプリ設定（シングルドキュメント） */
+export interface AppConfig {
+  /** アプリケーション表示名 */
+  appName: string;
+  /** 会社名 */
+  companyName: string;
+  /** デフォルトタイムゾーン */
+  defaultTimezone: string;
+  /** メール通知の有効/無効 */
+  notificationEnabled: boolean;
+  /** データ保持日数 */
+  dataRetentionDays: number;
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
 /** LLM分類ルール（システムプロンプト・Few-shot例） */
 export interface LlmClassificationRule {
   type: "system_prompt" | "few_shot_example" | "category_definition";
