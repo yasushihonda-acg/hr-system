@@ -129,6 +129,14 @@
       ]
     },
     {
+      "collectionGroup": "intent_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "category", "order": "ASCENDING" },
+        { "fieldPath": "responseStatus", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "chat_spaces",
       "queryScope": "COLLECTION",
       "fields": [
