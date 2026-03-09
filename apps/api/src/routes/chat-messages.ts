@@ -128,11 +128,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       filteredDocs = filteredDocs.filter((d) => d.data().threadName === threadName);
     }
 
-    // 5. createdAt desc でソート
+    // 5. createdAt desc でソート（同一時刻は documentId で安定ソート）
     filteredDocs.sort((a, b) => {
       const aTime = a.data().createdAt?.toMillis?.() ?? 0;
       const bTime = b.data().createdAt?.toMillis?.() ?? 0;
-      return bTime - aTime;
+      if (bTime !== aTime) return bTime - aTime;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
 
     // 6. ページネーション + レスポンス構築
