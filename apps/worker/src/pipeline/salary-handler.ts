@@ -344,17 +344,21 @@ async function getCurrentSalary(employeeId: string): Promise<{ id: string } & Sa
   const snap = await collections.salaries
     .where("employeeId", "==", employeeId)
     .where("effectiveTo", "==", null)
-    .limit(1)
     .get();
 
   if (snap.empty) {
     throw new WorkerError("SALARY_CALC_ERROR", "現行給与が見つかりません", false);
   }
 
-  const doc = snap.docs.at(0);
-  if (!doc) {
-    throw new WorkerError("SALARY_CALC_ERROR", "現行給与が見つかりません", false);
+  if (snap.docs.length > 1) {
+    throw new WorkerError(
+      "SALARY_CALC_ERROR",
+      `現行給与が${snap.docs.length}件存在します（effectiveTo=null が重複）。データを修正してください`,
+      false,
+    );
   }
+
+  const doc = snap.docs[0]!;
   return { id: doc.id, ...doc.data() };
 }
 

@@ -159,7 +159,7 @@ function setupFirestoreMocks() {
     ],
   });
   mockSalariesWhere.mockReturnValue({
-    where: vi.fn().mockReturnValue({ limit: vi.fn().mockReturnValue({ get: mockSalaryGet }) }),
+    where: vi.fn().mockReturnValue({ get: mockSalaryGet }),
   });
 
   // pitchTables
@@ -578,6 +578,48 @@ describe("handleSalary", () => {
 
       await expect(handleSalary("chat-001", makeEvent(), makeIntentResult())).rejects.toThrow(
         expect.objectContaining({ code: "DB_ERROR", shouldNack: true }),
+      );
+    });
+
+    it("現行給与が重複(effectiveTo=null が2件以上)している場合は WorkerError(SALARY_CALC_ERROR)", async () => {
+      mockExtractSalaryParams.mockResolvedValue({
+        employeeIdentifier: "E001",
+        changeType: "mechanical",
+        targetSalary: 260000,
+        allowanceType: null,
+        reasoning: "2ピッチアップ",
+      });
+
+      // salaries: effectiveTo=null が2件
+      const mockDuplicateSalaryGet = vi.fn().mockResolvedValue({
+        empty: false,
+        docs: [
+          {
+            id: "salary-001",
+            data: () => ({
+              employeeId: "emp-001",
+              baseSalary: 247000,
+              totalSalary: 267000,
+              effectiveTo: null,
+            }),
+          },
+          {
+            id: "salary-002",
+            data: () => ({
+              employeeId: "emp-001",
+              baseSalary: 260000,
+              totalSalary: 280000,
+              effectiveTo: null,
+            }),
+          },
+        ],
+      });
+      mockSalariesWhere.mockReturnValue({
+        where: vi.fn().mockReturnValue({ get: mockDuplicateSalaryGet }),
+      });
+
+      await expect(handleSalary("chat-001", makeEvent(), makeIntentResult())).rejects.toThrow(
+        expect.objectContaining({ code: "SALARY_CALC_ERROR", shouldNack: false }),
       );
     });
   });
