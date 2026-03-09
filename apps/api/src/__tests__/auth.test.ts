@@ -111,6 +111,64 @@ describe("authMiddleware", () => {
 
     expect(res.status).toBe(401);
   });
+
+  it("許可されたサービスアカウント → 200 (dashboardRole: null)", async () => {
+    vi.stubEnv("ALLOWED_SERVICE_ACCOUNTS", "scheduler@hr-system-487809.iam.gserviceaccount.com");
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "scheduler@hr-system-487809.iam.gserviceaccount.com",
+        sub: "sa-sub",
+      }),
+    });
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer sa-token" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { user: { email: string; dashboardRole: null } };
+    expect(body.user.email).toBe("scheduler@hr-system-487809.iam.gserviceaccount.com");
+    expect(body.user.dashboardRole).toBeNull();
+
+    vi.unstubAllEnvs();
+  });
+
+  it("未許可のサービスアカウント → 403", async () => {
+    vi.stubEnv("ALLOWED_SERVICE_ACCOUNTS", "scheduler@hr-system-487809.iam.gserviceaccount.com");
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "attacker@evil-project.iam.gserviceaccount.com",
+        sub: "evil-sub",
+      }),
+    });
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer evil-sa-token" },
+    });
+
+    expect(res.status).toBe(403);
+
+    vi.unstubAllEnvs();
+  });
+
+  it("ALLOWED_SERVICE_ACCOUNTS 未設定 → SA は全拒否 (403)", async () => {
+    // 環境変数を設定しない（デフォルト）
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({
+        email: "any@project.iam.gserviceaccount.com",
+        sub: "sa-sub",
+      }),
+    });
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer sa-token" },
+    });
+
+    expect(res.status).toBe(403);
+  });
 });
 
 describe("rbacMiddleware", () => {

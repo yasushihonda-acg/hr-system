@@ -21,6 +21,9 @@ vi.mock("google-auth-library", () => {
 // Firestore モック
 const mockDraftGet = vi.fn();
 const mockDraftUpdate = vi.fn();
+const mockTxGet = vi.fn();
+const mockTxUpdate = vi.fn();
+const mockTxSet = vi.fn();
 const mockBatchUpdate = vi.fn();
 const mockBatchSet = vi.fn();
 const mockBatchCommit = vi.fn();
@@ -36,6 +39,13 @@ vi.mock("@hr-system/db", () => {
         set: mockBatchSet,
         commit: mockBatchCommit,
       })),
+      runTransaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        return fn({
+          get: mockTxGet,
+          update: mockTxUpdate,
+          set: mockTxSet,
+        });
+      }),
     },
     collections: {
       salaryDrafts: {
@@ -233,16 +243,19 @@ describe("POST /api/salary-drafts/:id/transition", () => {
     vi.clearAllMocks();
     vi.stubEnv("CEO_EMAIL", "ceo@aozora-cg.com");
     vi.stubEnv("HR_MANAGER_EMAILS", "manager@aozora-cg.com");
-    mockBatchCommit.mockResolvedValue(undefined);
     stubAsHrManager();
   });
   afterEach(() => vi.unstubAllEnvs());
 
   it("draft → reviewed: hr_manager が遷移できる (200)", async () => {
     const reviewedDraft = makeDraft({ status: "reviewed" });
-    mockDraftGet
-      .mockResolvedValueOnce({ exists: true, data: () => makeDraft(), id: "draft-001" })
-      .mockResolvedValueOnce({ exists: true, data: () => reviewedDraft, id: "draft-001" });
+    // tx.get → トランザクション内読み取り、mockDraftGet → トランザクション後読み取り
+    mockTxGet.mockResolvedValueOnce({ exists: true, data: () => makeDraft(), id: "draft-001" });
+    mockDraftGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => reviewedDraft,
+      id: "draft-001",
+    });
 
     const res = await app.request("/api/salary-drafts/draft-001/transition", {
       method: "POST",
@@ -253,18 +266,22 @@ describe("POST /api/salary-drafts/:id/transition", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { status: string };
     expect(body.status).toBe("reviewed");
-    expect(mockBatchCommit).toHaveBeenCalledOnce();
+    expect(mockTxUpdate).toHaveBeenCalledOnce();
+    expect(mockTxSet).toHaveBeenCalledTimes(2); // approvalLog + auditLog
   });
 
   it("reviewed → approved: 機械的変更 + hr_manager (200)", async () => {
     const approvedDraft = makeDraft({ status: "approved", changeType: "mechanical" });
-    mockDraftGet
-      .mockResolvedValueOnce({
-        exists: true,
-        data: () => makeDraft({ status: "reviewed", changeType: "mechanical" }),
-        id: "draft-001",
-      })
-      .mockResolvedValueOnce({ exists: true, data: () => approvedDraft, id: "draft-001" });
+    mockTxGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => makeDraft({ status: "reviewed", changeType: "mechanical" }),
+      id: "draft-001",
+    });
+    mockDraftGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => approvedDraft,
+      id: "draft-001",
+    });
 
     const res = await app.request("/api/salary-drafts/draft-001/transition", {
       method: "POST",
@@ -278,7 +295,7 @@ describe("POST /api/salary-drafts/:id/transition", () => {
   });
 
   it("reviewed → approved: 裁量的変更 + hr_manager → 409 (変更タイプ制約違反)", async () => {
-    mockDraftGet.mockResolvedValue({
+    mockTxGet.mockResolvedValue({
       exists: true,
       data: () => makeDraft({ status: "reviewed", changeType: "discretionary" }),
       id: "draft-001",
@@ -299,13 +316,16 @@ describe("POST /api/salary-drafts/:id/transition", () => {
     stubAsCeo(); // CEO に切り替え
 
     const approvedDraft = makeDraft({ status: "approved", changeType: "discretionary" });
-    mockDraftGet
-      .mockResolvedValueOnce({
-        exists: true,
-        data: () => makeDraft({ status: "pending_ceo_approval", changeType: "discretionary" }),
-        id: "draft-001",
-      })
-      .mockResolvedValueOnce({ exists: true, data: () => approvedDraft, id: "draft-001" });
+    mockTxGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => makeDraft({ status: "pending_ceo_approval", changeType: "discretionary" }),
+      id: "draft-001",
+    });
+    mockDraftGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => approvedDraft,
+      id: "draft-001",
+    });
 
     const res = await app.request("/api/salary-drafts/draft-001/transition", {
       method: "POST",
@@ -317,7 +337,7 @@ describe("POST /api/salary-drafts/:id/transition", () => {
   });
 
   it("pending_ceo_approval → approved: hr_manager は承認不可 → 409", async () => {
-    mockDraftGet.mockResolvedValue({
+    mockTxGet.mockResolvedValue({
       exists: true,
       data: () => makeDraft({ status: "pending_ceo_approval", changeType: "discretionary" }),
       id: "draft-001",
@@ -333,7 +353,7 @@ describe("POST /api/salary-drafts/:id/transition", () => {
   });
 
   it("completed → reviewed: 遷移不可 → 409", async () => {
-    mockDraftGet.mockResolvedValue({
+    mockTxGet.mockResolvedValue({
       exists: true,
       data: () => makeDraft({ status: "completed" }),
       id: "draft-001",
@@ -364,16 +384,18 @@ describe("PATCH /api/salary-drafts/:id", () => {
     vi.clearAllMocks();
     vi.stubEnv("CEO_EMAIL", "ceo@aozora-cg.com");
     vi.stubEnv("HR_MANAGER_EMAILS", "manager@aozora-cg.com");
-    mockBatchCommit.mockResolvedValue(undefined);
     stubAsHrManager();
   });
   afterEach(() => vi.unstubAllEnvs());
 
   it("draft ステータス: hr_manager が修正できる (200)", async () => {
     const updatedDraft = makeDraft({ reason: "昇給（修正）" });
-    mockDraftGet
-      .mockResolvedValueOnce({ exists: true, data: () => makeDraft(), id: "draft-001" })
-      .mockResolvedValueOnce({ exists: true, data: () => updatedDraft, id: "draft-001" });
+    mockTxGet.mockResolvedValueOnce({ exists: true, data: () => makeDraft(), id: "draft-001" });
+    mockDraftGet.mockResolvedValueOnce({
+      exists: true,
+      data: () => updatedDraft,
+      id: "draft-001",
+    });
 
     const res = await app.request("/api/salary-drafts/draft-001", {
       method: "PATCH",
@@ -382,7 +404,8 @@ describe("PATCH /api/salary-drafts/:id", () => {
     });
 
     expect(res.status).toBe(200);
-    expect(mockBatchCommit).toHaveBeenCalledOnce();
+    expect(mockTxUpdate).toHaveBeenCalledOnce();
+    expect(mockTxSet).toHaveBeenCalledOnce(); // auditLog
   });
 
   it("CEO は修正不可 → 403", async () => {
@@ -398,7 +421,7 @@ describe("PATCH /api/salary-drafts/:id", () => {
   });
 
   it("approved ステータス: 修正不可 → 409", async () => {
-    mockDraftGet.mockResolvedValue({
+    mockTxGet.mockResolvedValue({
       exists: true,
       data: () => makeDraft({ status: "approved" }),
       id: "draft-001",

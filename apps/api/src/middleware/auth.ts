@@ -58,12 +58,22 @@ export const authMiddleware = createMiddleware(async (c, next) => {
   }
 
   try {
-    const ticket = await client.verifyIdToken({ idToken: token });
+    // audience: Web の OAuth Client ID を指定し、他アプリ向けトークンを拒否
+    const audience = process.env.GOOGLE_CLIENT_ID;
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      ...(audience ? { audience } : {}),
+    });
     const payload = ticket.getPayload();
     if (!payload?.email) throw new Error("No email in token");
 
-    // サービスアカウント（Cloud Scheduler 等）は allowed_users チェックをスキップ
+    // サービスアカウント: ホワイトリストで明示的に許可されたSAのみ通過
     if (payload.email.endsWith(".iam.gserviceaccount.com")) {
+      const allowedSAs = (process.env.ALLOWED_SERVICE_ACCOUNTS ?? "").split(",").filter(Boolean);
+      if (allowedSAs.length === 0 || !allowedSAs.includes(payload.email)) {
+        logger.warn("Unauthorized service account", { email: payload.email });
+        throw new HTTPException(403, { message: "Service account not allowed" });
+      }
       logger.info("Service account authenticated", { email: payload.email });
       c.set("user", {
         email: payload.email,
