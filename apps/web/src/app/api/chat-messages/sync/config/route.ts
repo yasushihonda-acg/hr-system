@@ -22,6 +22,12 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "認証されていません" }, { status: 401 });
   }
 
+  const { getSessionRole } = await import("@/lib/access-control");
+  const role = await getSessionRole();
+  if (role !== "admin") {
+    return Response.json({ error: "管理者のみ実行可能です" }, { status: 403 });
+  }
+
   const body = await request.json();
   const res = await fetch(`${API_BASE_URL}/api/chat-messages/sync/config`, {
     method: "PATCH",

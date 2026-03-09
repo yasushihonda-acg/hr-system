@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { ChatSyncButton } from "@/components/chat/sync-button";
+import { requireAccess } from "@/lib/access-control";
 import {
   getChatMessages,
   getChatSpaces,
@@ -58,6 +59,8 @@ function FilterRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 export default async function ChatMessagesPage({ searchParams }: Props) {
+  const access = await requireAccess();
+  const isAdmin = access.role === "admin";
   const params = await searchParams;
   const source = params.source === "line" ? "line" : "gchat";
   const page = Math.max(1, Number(params.page) || 1);
@@ -233,7 +236,7 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
         </div>
         <div className="flex items-center gap-2">
           {sourceTabsHtml}
-          <ChatSyncButton />
+          {isAdmin && <ChatSyncButton />}
         </div>
       </div>
 

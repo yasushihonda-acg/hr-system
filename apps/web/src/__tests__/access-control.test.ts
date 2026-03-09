@@ -187,4 +187,53 @@ describe("access-control", () => {
       expect(mockRedirect).toHaveBeenCalledWith("/login");
     });
   });
+
+  describe("getSessionRole", () => {
+    it("未認証 → null を返す", async () => {
+      mockAuth.mockResolvedValue(null);
+
+      const { getSessionRole } = await import("../lib/access-control");
+      const role = await getSessionRole();
+      expect(role).toBeNull();
+    });
+
+    it("ホワイトリストに存在しない → null を返す", async () => {
+      mockAuth.mockResolvedValue({
+        user: { email: "unknown@example.com" },
+      });
+      mockFirestoreGet.mockResolvedValue({ empty: true, docs: [] });
+
+      const { getSessionRole } = await import("../lib/access-control");
+      const role = await getSessionRole();
+      expect(role).toBeNull();
+    });
+
+    it("admin ユーザー → 'admin' を返す", async () => {
+      mockAuth.mockResolvedValue({
+        user: { email: "admin@aozora-cg.com" },
+      });
+      mockFirestoreGet.mockResolvedValue({
+        empty: false,
+        docs: [{ data: () => ({ role: "admin" }) }],
+      });
+
+      const { getSessionRole } = await import("../lib/access-control");
+      const role = await getSessionRole();
+      expect(role).toBe("admin");
+    });
+
+    it("viewer ユーザー → 'viewer' を返す", async () => {
+      mockAuth.mockResolvedValue({
+        user: { email: "viewer@aozora-cg.com" },
+      });
+      mockFirestoreGet.mockResolvedValue({
+        empty: false,
+        docs: [{ data: () => ({ role: "viewer" }) }],
+      });
+
+      const { getSessionRole } = await import("../lib/access-control");
+      const role = await getSessionRole();
+      expect(role).toBe("viewer");
+    });
+  });
 });
