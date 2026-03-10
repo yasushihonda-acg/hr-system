@@ -21,6 +21,12 @@ const CATEGORY_LABELS: Record<ChatCategory, string> = {
 
 // GET /api/stats/summary — サマリー（Google Chat + LINE）
 statsRoutes.get("/summary", async (c) => {
+  const CACHE_KEY = "stats:summary";
+  const cached = getCached<{ total: number; today: number; thisWeek: number; thisMonth: number }>(
+    CACHE_KEY,
+  );
+  if (cached) return c.json(cached);
+
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart);
@@ -57,12 +63,14 @@ statsRoutes.get("/summary", async (c) => {
         .get(),
     ]);
 
-  return c.json({
+  const result = {
     total: chatTotal.data().count + lineTotal.data().count,
     today: chatToday.data().count + lineToday.data().count,
     thisWeek: chatWeek.data().count + lineWeek.data().count,
     thisMonth: chatMonth.data().count + lineMonth.data().count,
-  });
+  };
+  setCache(CACHE_KEY, result, TTL.STATS);
+  return c.json(result);
 });
 
 // GET /api/stats/categories — カテゴリ別集計
@@ -104,6 +112,10 @@ statsRoutes.get("/timeline", async (c) => {
   const fromParam = c.req.query("from");
   const toParam = c.req.query("to");
 
+  const CACHE_KEY = `stats:timeline:${granularity}:${fromParam ?? ""}:${toParam ?? ""}`;
+  const cached = getCached<unknown>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
   const now = new Date();
   const defaultFrom = new Date(now);
   defaultFrom.setDate(defaultFrom.getDate() - 30);
@@ -144,7 +156,9 @@ statsRoutes.get("/timeline", async (c) => {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }));
 
-  return c.json({ timeline, granularity, from: from.toISOString(), to: to.toISOString() });
+  const result = { timeline, granularity, from: from.toISOString(), to: to.toISOString() };
+  setCache(CACHE_KEY, result, TTL.STATS);
+  return c.json(result);
 });
 
 // GET /api/stats/spaces — ソース別集計（Google Chat スペース + LINE グループ）
