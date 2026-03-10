@@ -29,6 +29,7 @@ jobs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
       worker: ${{ steps.filter.outputs.worker }}
+      firestore-indexes: ${{ steps.filter.outputs.firestore-indexes }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +56,8 @@ jobs:
               - 'packages/shared/**'
               - 'packages/ai/**'
               - 'pnpm-lock.yaml'
+            firestore-indexes:
+              - 'firestore.indexes.json'
 
   # API サービスのデプロイ
   deploy-api:
@@ -97,3 +100,27 @@ jobs:
     secrets:
       WIF_PROVIDER: ${{ secrets.WIF_PROVIDER }}
       WIF_SERVICE_ACCOUNT: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+  # Firestore インデックスのデプロイ
+  deploy-firestore-indexes:
+    name: Deploy Firestore Indexes
+    needs: detect-changes
+    if: needs.detect-changes.outputs.firestore-indexes == 'true' || inputs.force_deploy_all == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Deploy Firestore indexes
+        run: firebase deploy --only firestore:indexes -P hr-system-487809
