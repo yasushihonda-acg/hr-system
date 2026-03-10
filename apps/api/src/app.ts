@@ -16,6 +16,7 @@ import { employeeRoutes } from "./routes/employees.js";
 import { intentStatsRoutes } from "./routes/intent-stats.js";
 import { lineMessageRoutes } from "./routes/line-messages.js";
 import { llmRulesRoutes } from "./routes/llm-rules.js";
+import { manualTaskRoutes } from "./routes/manual-tasks.js";
 import { salaryDraftRoutes } from "./routes/salary-drafts.js";
 import { statsRoutes } from "./routes/stats.js";
 
@@ -52,6 +53,7 @@ app.route("/api/classification-rules", classificationRulesRoutes);
 app.route("/api/llm-rules", llmRulesRoutes);
 app.route("/api/chat-spaces", chatSpaceRoutes);
 app.route("/api/line-messages", lineMessageRoutes);
+app.route("/api/manual-tasks", manualTaskRoutes);
 
 // グローバルエラーハンドラ
 app.onError(appErrorHandler);

@@ -20,6 +20,7 @@ import type {
   IntentRecord,
   LineMessage,
   LlmClassificationRule,
+  ManualTask,
   PitchTable,
   Salary,
   SalaryDraft,
@@ -57,6 +58,7 @@ export const collections = {
   chatSyncConfig: typedCollection<ChatSyncConfig>("chat_sync_config"),
   chatSpaces: typedCollection<ChatSpaceConfig>("chat_spaces"),
   lineMessages: typedCollection<LineMessage>("line_messages"),
+  manualTasks: typedCollection<ManualTask>("manual_tasks"),
   appConfig: typedCollection<AppConfig>("app_config"),
   adminDocuments: typedCollection<AdminDocument>("admin_documents"),
 };

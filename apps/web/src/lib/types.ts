@@ -372,6 +372,20 @@ export interface LineGroupStat {
   count: number;
 }
 
+/** GET /api/manual-tasks の1件 */
+export interface ManualTaskSummary {
+  id: string;
+  title: string;
+  content: string;
+  taskPriority: TaskPriority;
+  responseStatus: ResponseStatus;
+  assignees: string | null;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 /** GET /api/chat-messages/:id */
 export interface ChatMessageDetail extends ChatMessageSummary {
   rawPayload: Record<string, unknown> | null;

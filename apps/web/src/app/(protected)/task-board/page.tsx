@@ -1,11 +1,12 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { getChatMessages, getLineMessages } from "@/lib/api";
+import { getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
+import { ManualTaskCreateButton } from "./manual-task-form";
 import { TaskBoardContent } from "./task-board-content";
 import type { TaskItem } from "./task-list";
 
-type Source = "all" | "gchat" | "line";
+type Source = "all" | "gchat" | "line" | "manual";
 
 const PRIORITY_TABS: { value: TaskPriority | "all"; label: string }[] = [
   { value: "all", label: "すべて" },
@@ -19,6 +20,7 @@ const SOURCE_TABS: { value: Source; label: string }[] = [
   { value: "all", label: "すべて" },
   { value: "gchat", label: "Google Chat" },
   { value: "line", label: "LINE" },
+  { value: "manual", label: "手入力" },
 ];
 
 const STATUS_TABS: { value: ResponseStatus | "all"; label: string }[] = [
@@ -55,10 +57,11 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page) || 1);
   const selectedId = params.id ?? null;
 
-  // 両ソースを並列取得
-  const [chatResult, lineResult] = await Promise.all([
-    sourceFilter !== "line" ? getChatMessages({ limit: 200 }) : null,
-    sourceFilter !== "gchat" ? getLineMessages({ limit: 200 }) : null,
+  // 全ソースを並列取得
+  const [chatResult, lineResult, manualResult] = await Promise.all([
+    sourceFilter === "all" || sourceFilter === "gchat" ? getChatMessages({ limit: 200 }) : null,
+    sourceFilter === "all" || sourceFilter === "line" ? getLineMessages({ limit: 200 }) : null,
+    sourceFilter === "all" || sourceFilter === "manual" ? getManualTasks({ limit: 200 }) : null,
   ]);
 
   // タスク優先度付きメッセージを抽出・統合
@@ -97,6 +100,23 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: null,
         groupName: msg.groupName,
         createdAt: msg.createdAt,
+      });
+    }
+  }
+
+  if (manualResult) {
+    for (const task of manualResult.data) {
+      tasks.push({
+        id: task.id,
+        source: "manual",
+        senderName: task.createdByName,
+        content: task.content || task.title,
+        taskPriority: task.taskPriority,
+        responseStatus: task.responseStatus,
+        taskSummary: task.title,
+        assignees: task.assignees,
+        groupName: null,
+        createdAt: task.createdAt,
       });
     }
   }
@@ -150,7 +170,10 @@ export default async function TaskBoardPage({ searchParams }: Props) {
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
       <TaskBoardContent tasks={paged} initialSelectedId={selectedId}>
         <div className="mb-2 flex items-center justify-between">
-          <h1 className="text-lg font-bold tracking-tight">タスク一覧</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold tracking-tight">タスク一覧</h1>
+            <ManualTaskCreateButton />
+          </div>
           <span className="text-xs text-muted-foreground">
             {totalCount}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
           </span>

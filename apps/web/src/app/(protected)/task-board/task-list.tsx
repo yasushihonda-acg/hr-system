@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
-import { MessageCircle, MessageSquareText } from "lucide-react";
+import { ClipboardEdit, MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateTimeJST } from "@/lib/utils";
@@ -9,7 +9,7 @@ import { taskCompositeId } from "./task-composite-id";
 
 export interface TaskItem {
   id: string;
-  source: "gchat" | "line";
+  source: "gchat" | "line" | "manual";
   senderName: string;
   content: string;
   taskPriority: TaskPriority;
@@ -73,8 +73,10 @@ export function TaskList({
               {/* ソースアイコン */}
               {task.source === "gchat" ? (
                 <MessageSquareText size={12} className="text-muted-foreground" />
-              ) : (
+              ) : task.source === "line" ? (
                 <MessageCircle size={12} className="text-emerald-500" />
+              ) : (
+                <ClipboardEdit size={12} className="text-blue-500" />
               )}
               {task.groupName && (
                 <span className="text-xs text-muted-foreground">@ {task.groupName}</span>

@@ -4,14 +4,22 @@ import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { revalidatePath } from "next/cache";
 import { requireAccess } from "@/lib/access-control";
 import {
+  createManualTask,
+  deleteManualTask,
   getChatMessage,
   getLineMessage,
   updateLineResponseStatus,
   updateLineTaskPriority,
+  updateManualTask,
   updateResponseStatus,
   updateWorkflow,
 } from "@/lib/api";
-import type { ChatMessageDetail, LineMessageDetail, WorkflowUpdateRequest } from "@/lib/types";
+import type {
+  ChatMessageDetail,
+  LineMessageDetail,
+  ManualTaskSummary,
+  WorkflowUpdateRequest,
+} from "@/lib/types";
 
 /** Chat メッセージの詳細を取得 */
 export async function fetchChatMessageDetailAction(id: string): Promise<ChatMessageDetail> {
@@ -68,6 +76,48 @@ export async function updateLineResponseStatusFromTaskBoard(
   await updateLineResponseStatus(messageId, responseStatus);
   revalidatePath("/inbox");
   revalidatePath("/task-board");
+}
+
+// --- 手動タスク CRUD アクション ---
+
+export async function createManualTaskAction(body: {
+  title: string;
+  content?: string;
+  taskPriority: TaskPriority;
+  responseStatus?: ResponseStatus;
+  assignees?: string | null;
+}): Promise<ManualTaskSummary> {
+  await requireAccess();
+  const result = await createManualTask(body);
+  revalidatePath("/task-board");
+  return result;
+}
+
+export async function updateManualTaskAction(
+  id: string,
+  body: {
+    title?: string;
+    content?: string;
+    taskPriority?: TaskPriority;
+    responseStatus?: ResponseStatus;
+    assignees?: string | null;
+  },
+): Promise<ManualTaskSummary> {
+  await requireAccess();
+  const result = await updateManualTask(id, body);
+  revalidatePath("/task-board");
+  return result;
+}
+
+export async function deleteManualTaskAction(id: string): Promise<void> {
+  await requireAccess();
+  await deleteManualTask(id);
+  revalidatePath("/task-board");
+}
+
+export async function fetchManualTaskDetailAction(id: string): Promise<ManualTaskSummary> {
+  await requireAccess();
+  return (await import("@/lib/api")).getManualTask(id);
 }
 
 export async function updateLineTaskPriorityFromTaskBoard(

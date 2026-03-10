@@ -23,6 +23,7 @@ export type {
   IntentRecord,
   LineMessage,
   LlmClassificationRule,
+  ManualTask,
   PitchTable,
   Salary,
   SalaryDraft,

@@ -96,6 +96,9 @@ export const AUDIT_EVENT_TYPES = [
   "config_updated",
   "doc_added",
   "doc_removed",
+  "manual_task_created",
+  "manual_task_updated",
+  "manual_task_deleted",
 ] as const;
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 
