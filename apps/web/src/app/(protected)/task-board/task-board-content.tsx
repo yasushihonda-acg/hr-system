@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
-import { Loader2, X } from "lucide-react";
+import { Calendar, Loader2, Pencil, Users, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
@@ -161,6 +161,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                         chatMessageId={chatDetail.id}
                         taskSummary={chatDetail.intent.taskSummary ?? null}
                         assignees={chatDetail.intent.assignees ?? null}
+                        deadline={chatDetail.intent.deadline ?? null}
                         notes={chatDetail.intent.notes ?? null}
                       />
                     </div>
@@ -187,6 +188,12 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
 /** 手動タスクの詳細ペイン */
 function ManualTaskDetailPane({ task, onClose }: { task: TaskItem; onClose: () => void }) {
   const [isUpdating, startUpdate] = useTransition();
+  const [editingAssignees, setEditingAssignees] = useState(false);
+  const [localAssignees, setLocalAssignees] = useState(task.assignees ?? "");
+  const [editingDeadline, setEditingDeadline] = useState(false);
+  const [localDeadline, setLocalDeadline] = useState(
+    task.deadline ? task.deadline.slice(0, 10) : "",
+  );
 
   const handleResponseStatusChange = (status: ResponseStatus) => {
     startUpdate(async () => {
@@ -242,12 +249,115 @@ function ManualTaskDetailPane({ task, onClose }: { task: TaskItem; onClose: () =
             <span className="w-16 text-muted-foreground">作成日</span>
             <span>{formatDateTimeJST(task.createdAt)}</span>
           </div>
-          {task.assignees && (
-            <div className="flex items-center gap-2">
-              <span className="w-16 text-muted-foreground">担当者</span>
-              <span>{task.assignees}</span>
-            </div>
-          )}
+          {/* 担当者（インライン編集） */}
+          <div className="flex items-center gap-2">
+            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="w-16 text-muted-foreground">担当者</span>
+            {editingAssignees ? (
+              <form
+                className="ml-auto flex items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setEditingAssignees(false);
+                  startUpdate(async () => {
+                    await updateManualTaskAction(task.id, {
+                      assignees: localAssignees || null,
+                    });
+                  });
+                }}
+              >
+                <input
+                  type="text"
+                  value={localAssignees}
+                  onChange={(e) => setLocalAssignees(e.target.value)}
+                  placeholder="担当者名"
+                  className="w-32 rounded border border-border bg-background px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--gradient-from)]"
+                />
+                <button
+                  type="submit"
+                  className="rounded px-1.5 py-0.5 text-xs text-[var(--gradient-from)] hover:bg-accent"
+                >
+                  保存
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingAssignees(false);
+                    setLocalAssignees(task.assignees ?? "");
+                  }}
+                  className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="ml-auto flex items-center gap-1 hover:text-[var(--gradient-from)]"
+                onClick={() => setEditingAssignees(true)}
+              >
+                {task.assignees || <span className="text-muted-foreground/50 italic">未設定</span>}
+                <Pencil className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
+          {/* 期限（インライン編集） */}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="w-16 text-muted-foreground">期限</span>
+            {editingDeadline ? (
+              <form
+                className="ml-auto flex items-center gap-1"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setEditingDeadline(false);
+                  startUpdate(async () => {
+                    await updateManualTaskAction(task.id, {
+                      deadline: localDeadline ? `${localDeadline}T00:00:00+09:00` : null,
+                    });
+                  });
+                }}
+              >
+                <input
+                  type="date"
+                  value={localDeadline}
+                  onChange={(e) => setLocalDeadline(e.target.value)}
+                  className="w-32 rounded border border-border bg-background px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--gradient-from)]"
+                />
+                <button
+                  type="submit"
+                  className="rounded px-1.5 py-0.5 text-xs text-[var(--gradient-from)] hover:bg-accent"
+                >
+                  保存
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingDeadline(false);
+                    setLocalDeadline(task.deadline ? task.deadline.slice(0, 10) : "");
+                  }}
+                  className="rounded px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent"
+                >
+                  ✕
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="ml-auto flex items-center gap-1 hover:text-[var(--gradient-from)]"
+                onClick={() => setEditingDeadline(true)}
+              >
+                {task.deadline ? (
+                  task.deadline.slice(0, 10)
+                ) : (
+                  <span className="text-muted-foreground/50 italic">未設定</span>
+                )}
+                <Pencil className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <span className="w-16 text-muted-foreground">状況</span>
             <span>{RESPONSE_STATUS_LABELS[task.responseStatus]}</span>

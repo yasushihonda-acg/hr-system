@@ -10,25 +10,34 @@ interface HandoverFormProps {
   chatMessageId: string;
   taskSummary: string | null;
   assignees: string | null;
+  deadline: string | null;
   notes: string | null;
 }
 
-export function HandoverForm({ chatMessageId, taskSummary, assignees, notes }: HandoverFormProps) {
+export function HandoverForm({
+  chatMessageId,
+  taskSummary,
+  assignees,
+  deadline,
+  notes,
+}: HandoverFormProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [localTask, setLocalTask] = useState(taskSummary ?? "");
   const [localAssignees, setLocalAssignees] = useState(assignees ?? "");
+  const [localDeadline, setLocalDeadline] = useState(deadline ? deadline.slice(0, 10) : "");
   const [localNotes, setLocalNotes] = useState(notes ?? "");
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const hasContent = !!(taskSummary || assignees || notes);
+  const hasContent = !!(taskSummary || assignees || deadline || notes);
 
   async function handleSave() {
     setSaving(true);
     const body: WorkflowUpdateRequest = {
       taskSummary: localTask || null,
       assignees: localAssignees || null,
+      deadline: localDeadline ? `${localDeadline}T00:00:00+09:00` : null,
       notes: localNotes || null,
     };
     await updateWorkflowAction(chatMessageId, body);
@@ -65,6 +74,12 @@ export function HandoverForm({ chatMessageId, taskSummary, assignees, notes }: H
               <div>
                 <span className="text-muted-foreground">担当者:</span>{" "}
                 <span className="text-foreground">{assignees}</span>
+              </div>
+            )}
+            {deadline && (
+              <div>
+                <span className="text-muted-foreground">期限:</span>{" "}
+                <span className="text-foreground">{deadline.slice(0, 10)}</span>
               </div>
             )}
             {notes && (
@@ -105,6 +120,15 @@ export function HandoverForm({ chatMessageId, taskSummary, assignees, notes }: H
           onChange={(e) => setLocalAssignees(e.target.value)}
           className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-[var(--gradient-from)]"
         />
+        <div>
+          <input
+            type="date"
+            value={localDeadline}
+            onChange={(e) => setLocalDeadline(e.target.value)}
+            className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[var(--gradient-from)]"
+          />
+          <p className="mt-0.5 text-[10px] text-muted-foreground/60">期限（任意）</p>
+        </div>
         <textarea
           placeholder="引き継ぎメモ"
           value={localNotes}
@@ -132,6 +156,7 @@ export function HandoverForm({ chatMessageId, taskSummary, assignees, notes }: H
             setEditing(false);
             setLocalTask(taskSummary ?? "");
             setLocalAssignees(assignees ?? "");
+            setLocalDeadline(deadline ? deadline.slice(0, 10) : "");
             setLocalNotes(notes ?? "");
           }}
           className="rounded-md border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent transition-colors"

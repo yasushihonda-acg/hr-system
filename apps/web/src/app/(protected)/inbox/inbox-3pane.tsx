@@ -113,6 +113,7 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
                   chatMessageId={selectedMessage.id}
                   taskSummary={selectedMessage.intent.taskSummary ?? null}
                   assignees={selectedMessage.intent.assignees ?? null}
+                  deadline={selectedMessage.intent.deadline ?? null}
                   notes={selectedMessage.intent.notes ?? null}
                 />
               </div>
