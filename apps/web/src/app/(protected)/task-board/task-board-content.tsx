@@ -1,17 +1,23 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
+import { Loader2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
+import { ResponseStatusButtons } from "@/components/response-status-buttons";
+import { TaskPrioritySelector } from "@/components/task-priority-selector";
+import { RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTimeJST } from "@/lib/utils";
 import { HandoverForm } from "../inbox/handover-form";
 import {
+  deleteManualTaskAction,
   fetchChatMessageDetailAction,
   fetchLineMessageDetailAction,
   updateLineResponseStatusFromTaskBoard,
   updateLineTaskPriorityFromTaskBoard,
+  updateManualTaskAction,
   updateResponseStatusFromTaskBoard,
   updateTaskPriorityFromTaskBoard,
   updateWorkflowFromTaskBoard,
@@ -68,6 +74,13 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
       return;
     }
 
+    // 手動タスクは一覧データに全情報が含まれるため、API呼び出し不要
+    if (selectedTask.source === "manual") {
+      setChatDetail(null);
+      setLineDetail(null);
+      return;
+    }
+
     startTransition(async () => {
       try {
         if (selectedTask.source === "gchat") {
@@ -91,7 +104,8 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
     setSelectedId(null);
   }, []);
 
-  const hasDetail = chatDetail || lineDetail;
+  const isManualTask = selectedTask?.source === "manual";
+  const hasDetail = chatDetail || lineDetail || isManualTask;
 
   return (
     <>
@@ -160,10 +174,114 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                 onUpdateResponseStatus={updateLineResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
               />
+            ) : isManualTask && selectedTask ? (
+              <ManualTaskDetailPane task={selectedTask} onClose={handleClose} />
             ) : null}
           </div>
         )}
       </div>
     </>
+  );
+}
+
+/** 手動タスクの詳細ペイン */
+function ManualTaskDetailPane({ task, onClose }: { task: TaskItem; onClose: () => void }) {
+  const [isUpdating, startUpdate] = useTransition();
+
+  const handleResponseStatusChange = (status: ResponseStatus) => {
+    startUpdate(async () => {
+      await updateManualTaskAction(task.id, { responseStatus: status });
+    });
+  };
+
+  const handlePriorityChange = (priority: TaskPriority | null) => {
+    if (!priority) return;
+    startUpdate(async () => {
+      await updateManualTaskAction(task.id, { taskPriority: priority });
+    });
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm("このタスクを削除しますか？")) return;
+    startUpdate(async () => {
+      await deleteManualTaskAction(task.id);
+      onClose();
+    });
+  };
+
+  return (
+    <div className="flex flex-1 flex-col overflow-y-auto">
+      {/* ヘッダー */}
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
+        <h2 className="text-sm font-semibold">手入力タスク</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-4 p-5">
+        {/* タイトル */}
+        <div>
+          <h3 className="text-base font-bold">{task.taskSummary || task.content}</h3>
+          {task.taskSummary && task.content !== task.taskSummary && (
+            <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{task.content}</p>
+          )}
+        </div>
+
+        {/* メタ情報 */}
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-muted-foreground">作成者</span>
+            <span>{task.senderName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-muted-foreground">作成日</span>
+            <span>{formatDateTimeJST(task.createdAt)}</span>
+          </div>
+          {task.assignees && (
+            <div className="flex items-center gap-2">
+              <span className="w-16 text-muted-foreground">担当者</span>
+              <span>{task.assignees}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="w-16 text-muted-foreground">状況</span>
+            <span>{RESPONSE_STATUS_LABELS[task.responseStatus]}</span>
+          </div>
+        </div>
+
+        {/* 優先度セレクタ */}
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">優先度</p>
+          <TaskPrioritySelector value={task.taskPriority} onChange={handlePriorityChange} />
+        </div>
+
+        {/* 対応状況 */}
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">対応状況</p>
+          <ResponseStatusButtons
+            currentStatus={task.responseStatus}
+            onChangeStatus={handleResponseStatusChange}
+            disabled={isUpdating}
+          />
+        </div>
+
+        {/* 削除ボタン */}
+        <div className="pt-4">
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isUpdating}
+            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+          >
+            タスクを削除
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

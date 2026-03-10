@@ -18,6 +18,7 @@ import type {
   LineGroupStat,
   LineMessageDetail,
   LineMessageSummary,
+  ManualTaskSummary,
   LlmClassificationRule,
   OverridePattern,
   OverrideRatePoint,
@@ -486,6 +487,69 @@ export function updateLineTaskPriority(id: string, taskPriority: TaskPriority | 
       body: JSON.stringify({ taskPriority }),
     },
   );
+}
+
+// --- Manual Tasks ---
+
+export interface ManualTaskListParams {
+  taskPriority?: TaskPriority;
+  responseStatus?: ResponseStatus;
+  limit?: number;
+  offset?: number;
+}
+
+export function getManualTasks(params?: ManualTaskListParams) {
+  const sp = new URLSearchParams();
+  if (params?.taskPriority) sp.set("taskPriority", params.taskPriority);
+  if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
+  if (params?.limit) sp.set("limit", String(params.limit));
+  if (params?.offset) sp.set("offset", String(params.offset));
+  const qs = sp.toString();
+  return request<{
+    data: ManualTaskSummary[];
+    total: number;
+    limit: number;
+    offset: number;
+  }>(`/api/manual-tasks${qs ? `?${qs}` : ""}`);
+}
+
+export function getManualTask(id: string) {
+  return request<ManualTaskSummary>(`/api/manual-tasks/${encodeURIComponent(id)}`);
+}
+
+export function createManualTask(body: {
+  title: string;
+  content?: string;
+  taskPriority: TaskPriority;
+  responseStatus?: ResponseStatus;
+  assignees?: string | null;
+}) {
+  return request<ManualTaskSummary>("/api/manual-tasks", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updateManualTask(
+  id: string,
+  body: {
+    title?: string;
+    content?: string;
+    taskPriority?: TaskPriority;
+    responseStatus?: ResponseStatus;
+    assignees?: string | null;
+  },
+) {
+  return request<ManualTaskSummary>(`/api/manual-tasks/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteManualTask(id: string) {
+  return request<{ success: boolean }>(`/api/manual-tasks/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
 
 // --- Chat Spaces ---

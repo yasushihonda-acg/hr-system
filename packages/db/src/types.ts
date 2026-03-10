@@ -9,6 +9,7 @@ import type {
   EmploymentType,
   ResponseStatus,
   SalaryItemType,
+  TaskPriority,
   UserRole,
   WorkflowSteps,
 } from "@hr-system/shared";
@@ -335,6 +336,26 @@ export interface AdminDocument {
   fileUrl: string | null;
   /** 作成者 */
   createdBy: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+/** 手動タスク（チャット・LINE以外から手入力） */
+export interface ManualTask {
+  /** タスク概要（必須） */
+  title: string;
+  /** 詳細メモ */
+  content: string;
+  /** タスク優先度 */
+  taskPriority: TaskPriority;
+  /** 対応状況 */
+  responseStatus: ResponseStatus;
+  /** 担当者（自由入力） */
+  assignees: string | null;
+  /** 作成者メール */
+  createdBy: string;
+  /** 作成者表示名 */
+  createdByName: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
