@@ -11,7 +11,7 @@ import {
 import { FieldPath, FieldValue } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
-import { clearCache } from "../lib/cache.js";
+import { clearCache, getCached, setCache, TTL } from "../lib/cache.js";
 import { notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
 import { toISO, toISOOrNull } from "../lib/serialize.js";
@@ -107,13 +107,24 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       intentByMsgId.set(iData.chatMessageId, { id: d.id, data: iData });
     }
 
-    // 3. ChatMessages をバッチフェッチ（FieldPath.documentId() "in", 30件ずつ）
+    // 3. ChatMessages をバッチフェッチ（FieldPath.documentId() "in", 30件ずつ、最大5並列）
     const chatMessageIds = [...intentByMsgId.keys()];
     const chatDocs: FirebaseFirestore.QueryDocumentSnapshot[] = [];
+    const chunks: string[][] = [];
     for (let i = 0; i < chatMessageIds.length; i += 30) {
-      const chunk = chatMessageIds.slice(i, i + 30);
-      const snap = await collections.chatMessages.where(FieldPath.documentId(), "in", chunk).get();
-      chatDocs.push(...snap.docs);
+      chunks.push(chatMessageIds.slice(i, i + 30));
+    }
+    const BATCH_CONCURRENCY = 5;
+    for (let i = 0; i < chunks.length; i += BATCH_CONCURRENCY) {
+      const batch = chunks.slice(i, i + BATCH_CONCURRENCY);
+      const results = await Promise.all(
+        batch.map((chunk) =>
+          collections.chatMessages.where(FieldPath.documentId(), "in", chunk).get(),
+        ),
+      );
+      for (const snap of results) {
+        chatDocs.push(...snap.docs);
+      }
     }
 
     // 4. ChatMessage レベルフィルタ
@@ -307,6 +318,10 @@ chatMessageRoutes.get("/inbox-counts", async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  const CACHE_KEY = "inbox-counts:chat";
+  const cached = getCached<{ counts: Record<string, number> }>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
   const results = await Promise.all(
     RESPONSE_STATUSES.map((s) =>
       collections.intentRecords
@@ -318,7 +333,9 @@ chatMessageRoutes.get("/inbox-counts", async (c) => {
   );
   const counts = Object.fromEntries(RESPONSE_STATUSES.map((s, i) => [s, results[i] ?? 0]));
 
-  return c.json({ counts });
+  const result = { counts };
+  setCache(CACHE_KEY, result, TTL.INBOX_COUNTS);
+  return c.json(result);
 });
 
 // ---------------------------------------------------------------------------
@@ -594,6 +611,7 @@ chatMessageRoutes.patch(
       });
     });
 
+    clearCache("inbox-counts:");
     return c.json({ success: true, chatMessageId, responseStatus });
   },
 );

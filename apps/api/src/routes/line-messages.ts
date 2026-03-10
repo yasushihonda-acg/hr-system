@@ -3,6 +3,7 @@ import { collections } from "@hr-system/db";
 import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
 import { Hono } from "hono";
 import { z } from "zod";
+import { clearCache, getCached, setCache, TTL } from "../lib/cache.js";
 import { notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
 import { toISO } from "../lib/serialize.js";
@@ -108,6 +109,10 @@ lineMessageRoutes.get("/inbox-counts", async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  const CACHE_KEY = "inbox-counts:line";
+  const cached = getCached<{ counts: Record<string, number> }>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
   const results = await Promise.all(
     RESPONSE_STATUSES.map((s) =>
       collections.lineMessages
@@ -119,7 +124,9 @@ lineMessageRoutes.get("/inbox-counts", async (c) => {
   );
   const counts = Object.fromEntries(RESPONSE_STATUSES.map((s, i) => [s, results[i] ?? 0]));
 
-  return c.json({ counts });
+  const result = { counts };
+  setCache(CACHE_KEY, result, TTL.INBOX_COUNTS);
+  return c.json(result);
 });
 
 // ---------------------------------------------------------------------------
@@ -190,6 +197,7 @@ lineMessageRoutes.patch(
       responseStatusUpdatedAt: new Date(),
     });
 
+    clearCache("inbox-counts:");
     return c.json({ success: true });
   },
 );

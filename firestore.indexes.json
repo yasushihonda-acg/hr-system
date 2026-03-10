@@ -143,6 +143,22 @@
         { "fieldPath": "isActive", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "intent_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "responseStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "line_messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "responseStatus", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
