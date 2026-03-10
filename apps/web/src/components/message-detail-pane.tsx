@@ -53,6 +53,9 @@ export function ChatMessageDetailPane({
               <X className="h-4 w-4" />
             </button>
             <h2 className="text-base font-bold">{message.senderName}</h2>
+            {message.spaceDisplayName && (
+              <span className="text-xs text-muted-foreground">@ {message.spaceDisplayName}</span>
+            )}
             <span className="text-xs text-muted-foreground">
               {formatDateTimeJST(message.createdAt)}
             </span>

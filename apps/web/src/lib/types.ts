@@ -249,6 +249,7 @@ export interface ChatAttachment {
 export interface ChatMessageSummary {
   id: string;
   spaceId: string;
+  spaceDisplayName: string | null;
   googleMessageId: string;
   senderUserId: string;
   senderName: string;

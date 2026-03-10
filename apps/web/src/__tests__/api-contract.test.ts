@@ -128,6 +128,7 @@ const sampleIntentDetail: IntentDetail = {
 const sampleChatMessage: ChatMessageSummary = {
   id: "msg-001",
   spaceId: "spaces/AAAA-qf5jX0",
+  spaceDisplayName: "人事関連（全社共通）",
   googleMessageId: "spaces/test/messages/test-msg-001",
   senderUserId: "users/12345",
   senderName: "田中 花子",
