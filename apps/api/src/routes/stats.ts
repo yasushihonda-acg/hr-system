@@ -19,28 +19,49 @@ const CATEGORY_LABELS: Record<ChatCategory, string> = {
   other: "その他",
 };
 
-// GET /api/stats/summary — サマリー
+// GET /api/stats/summary — サマリー（Google Chat + LINE）
 statsRoutes.get("/summary", async (c) => {
-  const allMessages = await collections.chatMessages.count().get();
-  const total = allMessages.data().count;
-
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [todaySnap, weekSnap, monthSnap] = await Promise.all([
-    collections.chatMessages.where("createdAt", ">=", Timestamp.fromDate(todayStart)).count().get(),
-    collections.chatMessages.where("createdAt", ">=", Timestamp.fromDate(weekStart)).count().get(),
-    collections.chatMessages.where("createdAt", ">=", Timestamp.fromDate(monthStart)).count().get(),
-  ]);
+  const [chatTotal, lineTotal, chatToday, lineToday, chatWeek, lineWeek, chatMonth, lineMonth] =
+    await Promise.all([
+      collections.chatMessages.count().get(),
+      collections.lineMessages.count().get(),
+      collections.chatMessages
+        .where("createdAt", ">=", Timestamp.fromDate(todayStart))
+        .count()
+        .get(),
+      collections.lineMessages
+        .where("createdAt", ">=", Timestamp.fromDate(todayStart))
+        .count()
+        .get(),
+      collections.chatMessages
+        .where("createdAt", ">=", Timestamp.fromDate(weekStart))
+        .count()
+        .get(),
+      collections.lineMessages
+        .where("createdAt", ">=", Timestamp.fromDate(weekStart))
+        .count()
+        .get(),
+      collections.chatMessages
+        .where("createdAt", ">=", Timestamp.fromDate(monthStart))
+        .count()
+        .get(),
+      collections.lineMessages
+        .where("createdAt", ">=", Timestamp.fromDate(monthStart))
+        .count()
+        .get(),
+    ]);
 
   return c.json({
-    total,
-    today: todaySnap.data().count,
-    thisWeek: weekSnap.data().count,
-    thisMonth: monthSnap.data().count,
+    total: chatTotal.data().count + lineTotal.data().count,
+    today: chatToday.data().count + lineToday.data().count,
+    thisWeek: chatWeek.data().count + lineWeek.data().count,
+    thisMonth: chatMonth.data().count + lineMonth.data().count,
   });
 });
 
@@ -90,14 +111,21 @@ statsRoutes.get("/timeline", async (c) => {
   const from = fromParam ? new Date(fromParam) : defaultFrom;
   const to = toParam ? new Date(toParam) : now;
 
-  const snapshot = await collections.chatMessages
-    .where("createdAt", ">=", Timestamp.fromDate(from))
-    .where("createdAt", "<=", Timestamp.fromDate(to))
-    .orderBy("createdAt", "asc")
-    .get();
+  const [chatSnap, lineSnap] = await Promise.all([
+    collections.chatMessages
+      .where("createdAt", ">=", Timestamp.fromDate(from))
+      .where("createdAt", "<=", Timestamp.fromDate(to))
+      .orderBy("createdAt", "asc")
+      .get(),
+    collections.lineMessages
+      .where("createdAt", ">=", Timestamp.fromDate(from))
+      .where("createdAt", "<=", Timestamp.fromDate(to))
+      .orderBy("createdAt", "asc")
+      .get(),
+  ]);
 
   const buckets: Record<string, number> = {};
-  for (const doc of snapshot.docs) {
+  for (const doc of [...chatSnap.docs, ...lineSnap.docs]) {
     const date = doc.data().createdAt.toDate();
     let key: string;
     if (granularity === "month") {
@@ -119,37 +147,66 @@ statsRoutes.get("/timeline", async (c) => {
   return c.json({ timeline, granularity, from: from.toISOString(), to: to.toISOString() });
 });
 
-// GET /api/stats/spaces — スペース別集計
+// GET /api/stats/spaces — ソース別集計（Google Chat スペース + LINE グループ）
 statsRoutes.get("/spaces", async (c) => {
   const CACHE_KEY = "stats:spaces";
   const cached = getCached<{ spaces: unknown[]; total: number }>(CACHE_KEY);
   if (cached) return c.json(cached);
 
-  const snapshot = await collections.chatMessages.get();
+  const [chatSnap, lineSnap, spaceConfigSnap] = await Promise.all([
+    collections.chatMessages.get(),
+    collections.lineMessages.get(),
+    collections.chatSpaces.get(),
+  ]);
 
+  // Google Chat スペース別
   const spaceCounts: Record<string, number> = {};
-  for (const doc of snapshot.docs) {
+  for (const doc of chatSnap.docs) {
     const spaceId = doc.data().spaceId;
     spaceCounts[spaceId] = (spaceCounts[spaceId] ?? 0) + 1;
   }
 
-  // chat_spaces から displayName を取得してマッピング
-  const spaceConfigSnap = await collections.chatSpaces.get();
   const displayNameMap: Record<string, string> = {};
   for (const doc of spaceConfigSnap.docs) {
     const d = doc.data();
     displayNameMap[d.spaceId] = d.displayName;
   }
 
-  const spaces = Object.entries(spaceCounts)
-    .sort(([, a], [, b]) => b - a)
-    .map(([spaceId, count]) => ({
-      spaceId,
-      displayName: displayNameMap[spaceId] ?? spaceId,
+  const spaces: { spaceId: string; displayName: string; count: number; source: string }[] =
+    Object.entries(spaceCounts)
+      .sort(([, a], [, b]) => b - a)
+      .map(([spaceId, count]) => ({
+        spaceId,
+        displayName: displayNameMap[spaceId] ?? spaceId,
+        count,
+        source: "gchat",
+      }));
+
+  // LINE グループ別
+  const groupCounts = new Map<string, { count: number; groupName: string | null }>();
+  for (const doc of lineSnap.docs) {
+    const msg = doc.data();
+    const existing = groupCounts.get(msg.groupId);
+    if (existing) {
+      existing.count++;
+    } else {
+      groupCounts.set(msg.groupId, { count: 1, groupName: msg.groupName });
+    }
+  }
+
+  const lineSpaces = Array.from(groupCounts.entries())
+    .sort(([, a], [, b]) => b.count - a.count)
+    .map(([groupId, { count, groupName }]) => ({
+      spaceId: groupId,
+      displayName: groupName ?? groupId,
       count,
+      source: "line",
     }));
 
-  const result = { spaces, total: snapshot.docs.length };
+  const allSpaces = [...spaces, ...lineSpaces].sort((a, b) => b.count - a.count);
+  const total = chatSnap.docs.length + lineSnap.docs.length;
+
+  const result = { spaces: allSpaces, total };
   setCache(CACHE_KEY, result, TTL.STATS);
   return c.json(result);
 });
