@@ -8,7 +8,7 @@ import {
   WORKFLOW_STEP_STATUSES,
   type WorkflowSteps,
 } from "@hr-system/shared";
-import { FieldPath, FieldValue } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
 import { clearCache, getCached, setCache, TTL } from "../lib/cache.js";
@@ -231,6 +231,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
                 taskPriority: intent.taskPriority ?? null,
                 taskSummary: intent.taskSummary ?? null,
                 assignees: intent.assignees ?? null,
+                deadline: toISOOrNull(intent.deadline),
                 notes: intent.notes ?? null,
                 workflowSteps: intent.workflowSteps ?? null,
                 workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
@@ -287,6 +288,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
               taskPriority: intent.taskPriority ?? null,
               taskSummary: intent.taskSummary ?? null,
               assignees: intent.assignees ?? null,
+              deadline: toISOOrNull(intent.deadline),
               notes: intent.notes ?? null,
               workflowSteps: intent.workflowSteps ?? null,
               workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
@@ -388,6 +390,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
             taskPriority: intent.taskPriority ?? null,
             taskSummary: intent.taskSummary ?? null,
             assignees: intent.assignees ?? null,
+            deadline: toISOOrNull(intent.deadline),
             notes: intent.notes ?? null,
             workflowSteps: intent.workflowSteps ?? null,
             workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
@@ -527,6 +530,7 @@ chatMessageRoutes.get("/:id", async (c) => {
           taskPriority: intent.taskPriority ?? null,
           taskSummary: intent.taskSummary ?? null,
           assignees: intent.assignees ?? null,
+          deadline: toISOOrNull(intent.deadline),
           notes: intent.notes ?? null,
           workflowSteps: intent.workflowSteps ?? null,
           workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
@@ -601,6 +605,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
         taskPriority: null,
         taskSummary: null,
         assignees: null,
+        deadline: null,
         notes: null,
         workflowSteps: null,
         workflowUpdatedBy: null,
@@ -688,6 +693,7 @@ chatMessageRoutes.patch(
           taskPriority: null,
           taskSummary: null,
           assignees: null,
+          deadline: null,
           notes: null,
           workflowSteps: null,
           workflowUpdatedBy: null,
@@ -731,6 +737,7 @@ const patchWorkflowSchema = z.object({
   taskPriority: z.enum(TASK_PRIORITIES).nullable().optional(),
   taskSummary: z.string().max(500).nullable().optional(),
   assignees: z.string().max(200).nullable().optional(),
+  deadline: z.string().datetime({ offset: true }).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   workflowSteps: z
     .object({
@@ -767,6 +774,8 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
   if (body.taskPriority !== undefined) updates.taskPriority = body.taskPriority;
   if (body.taskSummary !== undefined) updates.taskSummary = body.taskSummary;
   if (body.assignees !== undefined) updates.assignees = body.assignees;
+  if (body.deadline !== undefined)
+    updates.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.workflowSteps !== undefined) updates.workflowSteps = body.workflowSteps;
 
@@ -796,6 +805,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
         taskPriority: body.taskPriority ?? null,
         taskSummary: body.taskSummary ?? null,
         assignees: body.assignees ?? null,
+        deadline: body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null,
         notes: body.notes ?? null,
         workflowSteps: (body.workflowSteps as WorkflowSteps) ?? null,
         workflowUpdatedBy: actor.email,

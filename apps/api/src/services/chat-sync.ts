@@ -58,6 +58,7 @@ async function classifyAndSaveIntent(
     taskPriority: null,
     taskSummary: null,
     assignees: null,
+    deadline: null,
     notes: null,
     workflowSteps: null,
     workflowUpdatedBy: null,

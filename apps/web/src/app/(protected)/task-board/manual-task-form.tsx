@@ -19,11 +19,13 @@ export function ManualTaskCreateButton() {
     if (!title) return;
 
     startTransition(async () => {
+      const deadlineVal = (formData.get("deadline") as string) || null;
       await createManualTaskAction({
         title,
         content: (formData.get("content") as string) || "",
         taskPriority: priority,
         assignees: (formData.get("assignees") as string) || null,
+        deadline: deadlineVal ? `${deadlineVal}T00:00:00+09:00` : null,
       });
       setIsOpen(false);
       setPriority("medium");
@@ -87,6 +89,15 @@ export function ManualTaskCreateButton() {
             maxLength={200}
             className="w-full rounded-md border border-border/60 px-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
           />
+        </div>
+
+        <div>
+          <input
+            name="deadline"
+            type="date"
+            className="w-full rounded-md border border-border/60 px-3 py-2 text-sm text-muted-foreground focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">期限（任意）</p>
         </div>
 
         <div>

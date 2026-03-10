@@ -507,6 +507,7 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
         taskPriority: null,
         taskSummary: null,
         assignees: null,
+        deadline: null,
         notes: null,
         workflowSteps: null,
         workflowUpdatedBy: null,

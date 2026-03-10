@@ -201,6 +201,7 @@ export interface IntentSummary {
   taskPriority: TaskPriority | null;
   taskSummary: string | null;
   assignees: string | null;
+  deadline: string | null;
   notes: string | null;
   workflowSteps: WorkflowSteps | null;
   workflowUpdatedBy: string | null;
@@ -222,6 +223,7 @@ export interface WorkflowUpdateRequest {
   taskPriority?: TaskPriority | null;
   taskSummary?: string | null;
   assignees?: string | null;
+  deadline?: string | null;
   notes?: string | null;
   workflowSteps?: WorkflowSteps;
 }
@@ -382,6 +384,7 @@ export interface ManualTaskSummary {
   taskPriority: TaskPriority;
   responseStatus: ResponseStatus;
   assignees: string | null;
+  deadline: string | null;
   createdBy: string;
   createdByName: string;
   createdAt: string;

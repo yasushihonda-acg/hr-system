@@ -168,6 +168,8 @@ export interface IntentRecord {
   /** 「作成案」タスク管理フィールド */
   taskSummary: string | null;
   assignees: string | null;
+  /** 期限（任意） */
+  deadline: Timestamp | null;
   notes: string | null;
   workflowSteps: WorkflowSteps | null;
   workflowUpdatedBy: string | null;
@@ -352,6 +354,8 @@ export interface ManualTask {
   responseStatus: ResponseStatus;
   /** 担当者（自由入力） */
   assignees: string | null;
+  /** 期限（任意） */
+  deadline: Timestamp | null;
   /** 作成者メール */
   createdBy: string;
   /** 作成者表示名 */

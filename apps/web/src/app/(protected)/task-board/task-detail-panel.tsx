@@ -2,9 +2,11 @@
 
 import type { TaskPriority } from "@hr-system/shared";
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowUpRight,
   Calendar,
+  Clock,
   MessageCircle,
   MessageSquareText,
   User,
@@ -14,7 +16,7 @@ import {
 import Link from "next/link";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
-import { cn, formatDateTimeJST } from "@/lib/utils";
+import { cn, formatDate, formatDateTimeJST } from "@/lib/utils";
 import type { TaskItem } from "./task-list";
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -156,6 +158,9 @@ export function TaskDetailPanel({ task, onClose }: { task: TaskItem; onClose: ()
               </div>
             )}
 
+            {/* 期限 */}
+            {task.deadline && <DeadlineDisplay deadline={task.deadline} />}
+
             {/* 日時 */}
             <div className="flex items-center gap-2">
               <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
@@ -176,6 +181,45 @@ export function TaskDetailPanel({ task, onClose }: { task: TaskItem; onClose: ()
           受信箱で開く（対応状況変更・スレッド表示）
         </Link>
       </div>
+    </div>
+  );
+}
+
+function getDeadlineState(deadline: string) {
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  const isOverdue = deadlineDate < now;
+  const diffMs = deadlineDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const isNear = !isOverdue && diffDays <= 3;
+  return { isOverdue, isNear, diffDays };
+}
+
+function DeadlineDisplay({ deadline }: { deadline: string }) {
+  const { isOverdue, isNear, diffDays } = getDeadlineState(deadline);
+  const formatted = formatDate(deadline);
+
+  return (
+    <div className="flex items-center gap-2">
+      {isOverdue ? (
+        <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+      ) : (
+        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+      )}
+      <span className={cn("text-muted-foreground", isOverdue && "text-red-600 font-medium")}>
+        期限
+      </span>
+      <span
+        className={cn(
+          "ml-auto font-medium tabular-nums",
+          isOverdue && "text-red-600",
+          isNear && "text-amber-600",
+        )}
+      >
+        {formatted}
+        {isOverdue && " (期限切れ)"}
+        {isNear && ` (残${diffDays}日)`}
+      </span>
     </div>
   );
 }

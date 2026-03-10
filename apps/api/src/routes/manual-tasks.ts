@@ -2,12 +2,12 @@ import { zValidator } from "@hono/zod-validator";
 import type { ManualTask } from "@hr-system/db";
 import { collections } from "@hr-system/db";
 import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
-import { FieldValue } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
 import { forbidden, notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
-import { toISO } from "../lib/serialize.js";
+import { toISO, toISOOrNull } from "../lib/serialize.js";
 
 const createSchema = z.object({
   title: z.string().min(1).max(200),
@@ -15,6 +15,7 @@ const createSchema = z.object({
   taskPriority: z.enum(TASK_PRIORITIES),
   responseStatus: z.enum(RESPONSE_STATUSES).optional().default("unresponded"),
   assignees: z.string().max(200).nullable().optional().default(null),
+  deadline: z.string().datetime({ offset: true }).nullable().optional().default(null),
 });
 
 const updateSchema = z
@@ -24,6 +25,7 @@ const updateSchema = z
     taskPriority: z.enum(TASK_PRIORITIES),
     responseStatus: z.enum(RESPONSE_STATUSES),
     assignees: z.string().max(200).nullable(),
+    deadline: z.string().datetime({ offset: true }).nullable(),
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
@@ -45,6 +47,7 @@ function serialize(id: string, data: ManualTask) {
     taskPriority: data.taskPriority,
     responseStatus: data.responseStatus,
     assignees: data.assignees,
+    deadline: toISOOrNull(data.deadline),
     createdBy: data.createdBy,
     createdByName: data.createdByName,
     createdAt: toISO(data.createdAt),
@@ -93,6 +96,7 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     taskPriority: data.taskPriority,
     responseStatus: data.responseStatus,
     assignees: data.assignees,
+    deadline: data.deadline ? Timestamp.fromDate(new Date(data.deadline)) : null,
     createdBy: user.email,
     createdByName: user.name ?? user.email,
     createdAt: FieldValue.serverTimestamp() as never,
@@ -145,6 +149,8 @@ app.patch("/:id", zValidator("json", updateSchema), async (c) => {
   if (body.taskPriority !== undefined) updateData.taskPriority = body.taskPriority;
   if (body.responseStatus !== undefined) updateData.responseStatus = body.responseStatus;
   if (body.assignees !== undefined) updateData.assignees = body.assignees;
+  if (body.deadline !== undefined)
+    updateData.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;
 
   await docRef.update(updateData);
 
