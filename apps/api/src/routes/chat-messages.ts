@@ -525,6 +525,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
   // 手動再分類後は統計キャッシュを無効化
   clearCache("intent-stats:");
   clearCache("stats:categories");
+  clearCache("inbox-counts:");
 
   return c.json({ success: true, chatMessageId, category });
 });
@@ -710,5 +711,6 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
     });
   });
 
+  clearCache("inbox-counts:");
   return c.json({ success: true, chatMessageId });
 });
