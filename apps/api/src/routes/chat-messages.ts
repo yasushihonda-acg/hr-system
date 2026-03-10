@@ -34,6 +34,21 @@ const patchIntentSchema = z.object({
 
 export const chatMessageRoutes = new Hono();
 
+/** chatSpaces の displayName マップを取得（キャッシュ付き） */
+async function getSpaceDisplayNameMap(): Promise<Map<string, string>> {
+  const CACHE_KEY = "space-display-name-map";
+  const cached = getCached<Map<string, string>>(CACHE_KEY);
+  if (cached) return cached;
+  const snap = await collections.chatSpaces.get();
+  const map = new Map<string, string>();
+  for (const doc of snap.docs) {
+    const d = doc.data();
+    map.set(d.spaceId, d.displayName);
+  }
+  setCache(CACHE_KEY, map, TTL.STATS);
+  return map;
+}
+
 // ---------------------------------------------------------------------------
 // GET /api/chat-messages — メッセージ一覧（フィルタリング・スレッド構造付き）
 // ---------------------------------------------------------------------------
@@ -55,6 +70,8 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
   if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
   }
+
+  const spaceNameMap = await getSpaceDisplayNameMap();
 
   // Intent 系フィルタ（別コレクション依存のため Firestore クエリ不可）
   const hasIntentFilter =
@@ -184,6 +201,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
         return {
           id: doc.id,
           spaceId: msg.spaceId,
+          spaceDisplayName: spaceNameMap.get(msg.spaceId) ?? null,
           googleMessageId: msg.googleMessageId,
           senderUserId: msg.senderUserId,
           senderName: msg.senderName,
@@ -239,6 +257,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       return {
         id: doc.id,
         spaceId: msg.spaceId,
+        spaceDisplayName: spaceNameMap.get(msg.spaceId) ?? null,
         googleMessageId: msg.googleMessageId,
         senderUserId: msg.senderUserId,
         senderName: msg.senderName,
@@ -431,7 +450,10 @@ chatMessageRoutes.get("/:id", async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
-  const docSnap = await collections.chatMessages.doc(id).get();
+  const [spaceNameMap, docSnap] = await Promise.all([
+    getSpaceDisplayNameMap(),
+    collections.chatMessages.doc(id).get(),
+  ]);
   if (!docSnap.exists) throw notFound("ChatMessage", id);
 
   // biome-ignore lint/style/noNonNullAssertion: docSnap.exists checked above
@@ -469,6 +491,7 @@ chatMessageRoutes.get("/:id", async (c) => {
   return c.json({
     id: docSnap.id,
     spaceId: msg.spaceId,
+    spaceDisplayName: spaceNameMap.get(msg.spaceId) ?? null,
     googleMessageId: msg.googleMessageId,
     senderUserId: msg.senderUserId,
     senderName: msg.senderName,

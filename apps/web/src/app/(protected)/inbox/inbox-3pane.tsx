@@ -67,6 +67,11 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
                   )}
                 />
                 <span className="truncate text-xs font-medium">{msg.senderName}</span>
+                {msg.spaceDisplayName && (
+                  <span className="truncate text-xs text-muted-foreground">
+                    @ {msg.spaceDisplayName}
+                  </span>
+                )}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {formatDateTimeJST(msg.createdAt)}
                 </span>

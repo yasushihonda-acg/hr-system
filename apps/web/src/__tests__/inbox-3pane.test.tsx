@@ -150,6 +150,7 @@ function makeSummary(overrides: Partial<ChatMessageSummary> = {}): ChatMessageSu
   return {
     id: "msg-1",
     spaceId: "space-1",
+    spaceDisplayName: null,
     googleMessageId: "gm-1",
     senderUserId: "user-1",
     senderName: "田中太郎",

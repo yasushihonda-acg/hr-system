@@ -31,6 +31,9 @@ vi.mock("@hr-system/db", () => {
           get: vi.fn(() => mockChatMessagesByIdGet()),
         })),
       },
+      chatSpaces: {
+        get: vi.fn(() => Promise.resolve({ docs: [] })),
+      },
       intentRecords: {
         get: vi.fn(() => mockIntentRecordsGet()),
         where: vi.fn(() => {
