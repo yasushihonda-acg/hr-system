@@ -103,11 +103,11 @@ vi.mock("@/components/task-priority-selector", () => ({
 }));
 
 vi.mock("../app/(protected)/inbox/handover-form", () => ({
-  HandoverForm: ({ taskSummary, assignees, notes }: Record<string, unknown>) =>
+  HandoverForm: ({ taskSummary, assignees, deadline, notes }: Record<string, unknown>) =>
     React.createElement(
       "div",
       { "data-testid": "handover-form" },
-      [taskSummary, assignees, notes].filter(Boolean).join(","),
+      [taskSummary, assignees, deadline, notes].filter(Boolean).join(","),
     ),
 }));
 

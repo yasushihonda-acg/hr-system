@@ -179,6 +179,7 @@ function InboxCard({
                 chatMessageId={message.id}
                 taskSummary={intent?.taskSummary ?? null}
                 assignees={intent?.assignees ?? null}
+                deadline={intent?.deadline ?? null}
                 notes={intent?.notes ?? null}
               />
             </div>
