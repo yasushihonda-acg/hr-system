@@ -42,6 +42,7 @@ vi.mock("@hr-system/db", () => {
           };
           q.where = vi.fn(() => q);
           q.limit = vi.fn(() => q);
+          q.offset = vi.fn(() => q);
           q.orderBy = vi.fn(() => q);
           return q;
         }),
@@ -229,8 +230,8 @@ describe("chat-messages routes", () => {
       expect(body.data[0]!.id).toBe("msg-2");
     });
 
-    it("Intent フィルタ + ページネーション: offset/limit がフィルタ後に適用される", async () => {
-      // IntentRecords 逆引き: where("category","==","salary") → salary の3件のみ
+    it("Intent フィルタ + ページネーション: offset/limit がFirestoreレベルで適用される", async () => {
+      // Firestore ページネーション: limit(3).offset(0) → 3件返す（limit+1=3 で hasMore 判定）
       mockIntentRecordsGet.mockResolvedValueOnce({
         docs: [
           ...makeIntentSnap("msg-1", 0.9, "unresponded").docs,
@@ -238,12 +239,12 @@ describe("chat-messages routes", () => {
           ...makeIntentSnap("msg-5", 0.6, "unresponded").docs,
         ],
       });
-      // ChatMessages バッチフェッチ: 対応する3件
+      // ChatMessages バッチフェッチ: limit+1 のうち先頭2件分
       mockChatMessagesByIdGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-3"), makeChatDoc("msg-5")],
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-3")],
       });
 
-      // limit=2, offset=0 — salary のうち最初の2件（msg-1, msg-3）を返し hasMore=true
+      // limit=2, offset=0 — Firestore が limit(3) で3件返す → hasMore=true, data は2件
       const res = await app.request("/api/chat-messages?category=salary&limit=2&offset=0");
       expect(res.status).toBe(200);
       const body = (await res.json()) as {
@@ -257,19 +258,15 @@ describe("chat-messages routes", () => {
     });
 
     it("Intent フィルタ + ページネーション: 2ページ目を正しく返す", async () => {
-      // IntentRecords 逆引き: salary の3件
+      // Firestore ページネーション: limit(3).offset(2) → 1件のみ返す
       mockIntentRecordsGet.mockResolvedValueOnce({
-        docs: [
-          ...makeIntentSnap("msg-1", 0.9, "unresponded").docs,
-          ...makeIntentSnap("msg-3", 0.7, "unresponded").docs,
-          ...makeIntentSnap("msg-5", 0.6, "unresponded").docs,
-        ],
+        docs: [...makeIntentSnap("msg-5", 0.6, "unresponded").docs],
       });
       mockChatMessagesByIdGet.mockResolvedValueOnce({
-        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-3"), makeChatDoc("msg-5")],
+        docs: [makeChatDoc("msg-5")],
       });
 
-      // limit=2, offset=2 — salary の3件目（msg-5）のみ、hasMore=false
+      // limit=2, offset=2 — Firestore が1件返す → hasMore=false
       const res = await app.request("/api/chat-messages?category=salary&limit=2&offset=2");
       expect(res.status).toBe(200);
       const body = (await res.json()) as {
