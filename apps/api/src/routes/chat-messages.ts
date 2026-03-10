@@ -228,7 +228,10 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
         pagination: { limit: lim, offset: off, hasMore },
       });
     }
-    // Firestore ページネーションパス: chatDocs をそのまま使用（ソート済み）
+    // Firestore ページネーションパス: intentDocs の createdAt desc 順に並べ替え
+    // （in クエリはドキュメントID順で返すため）
+    const idOrder = new Map(chatMessageIds.map((id, i) => [id, i]));
+    chatDocs.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0));
     const data = chatDocs.map((doc) => {
       const msg = doc.data();
       const intentEntry = intentByMsgId.get(doc.id);
