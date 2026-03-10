@@ -45,4 +45,5 @@ export function clearCache(prefix?: string): void {
 
 export const TTL = {
   STATS: 5 * 60 * 1000, // 統計系: 5分
+  INBOX_COUNTS: 30 * 1000, // Inbox カウント: 30秒
 } as const;

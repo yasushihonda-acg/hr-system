@@ -66,6 +66,7 @@ vi.mock("../middleware/rbac.js", () => ({
 }));
 
 import { app } from "../app.js";
+import { clearCache } from "../lib/cache.js";
 
 const now = Timestamp.fromDate(new Date("2026-01-15T10:00:00Z"));
 
@@ -122,6 +123,7 @@ function makeIntentSnap(
 describe("chat-messages routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearCache();
   });
 
   describe("GET /api/chat-messages", () => {
