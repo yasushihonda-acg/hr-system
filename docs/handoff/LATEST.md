@@ -1,19 +1,19 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-10（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `f2799f9` — test: manual-tasks CRUD API の統合テスト追加 (#235)）
+**ブランチ**: `main`（最新コミット: `385ae88` — perf: 未対応フィルター5000件超の高速化 — Firestore ページネーション (#240)）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 7 — 手動タスク入力 + ダッシュボード統計拡充 完了**
+**Phase 8 — 受信箱パフォーマンス改善完了**
 
-手動タスク入力機能（CRUD API + UI）を追加し、ダッシュボード統計に LINE メッセージを統合。統合テストも追加済み（PR #233/#234/#235）。
+未対応フィルター（5000件超）の高速化（Firestore ページネーション）、受信箱フィルター切替のパフォーマンス改善、CI 自動デプロイ改善を実施（PR #237/#238/#240）。
 
 **未コミット変更**: `apps/web/e2e/.auth/`（gitignore 推奨、機密情報の可能性あり）
 
-**CI**: Deploy to Cloud Run (#235) が in_progress（直前 2 件は success）
+**CI**: Deploy to Cloud Run (#240) — success（確認済み）
 
 ---
 
@@ -133,26 +133,28 @@
 | **—** | **feat: 手動タスク入力機能を追加（CRUD API + UI）** | **main (#233)** | **完了** |
 | **—** | **feat: ダッシュボード統計に LINE メッセージを統合 (#230)** | **main (#234)** | **完了** |
 | **—** | **test: manual-tasks CRUD API の統合テスト追加** | **main (#235)** | **完了** |
+| **—** | **perf(web): 受信箱フィルター切替のパフォーマンス改善** | **main (#237)** | **完了** |
+| **—** | **ci: firestore.indexes.json 変更時に自動デプロイするステップを追加** | **main (#238)** | **完了** |
+| **—** | **perf: 未対応フィルター5000件超の高速化 — Firestore ページネーション** | **main (#240)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### perf: 未対応フィルター5000件超の高速化 — Firestore ページネーション (385ae88, PR #240)
+- 未対応フィルター適用時に5000件超のドキュメントを一括取得していた問題を Firestore ページネーションで解決
+
+### ci: firestore.indexes.json 変更時に自動デプロイするステップを追加 (0d2944f, PR #238)
+- `firestore.indexes.json` 変更時に `firebase deploy --only firestore:indexes` を自動実行する CI ステップを追加
+
+### perf(web): 受信箱フィルター切替のパフォーマンス改善 (5b8c589, PR #237)
+- 受信箱フィルター切替時のパフォーマンスを改善
 
 ### test: manual-tasks CRUD API の統合テスト追加 (f2799f9, PR #235)
 - 手動タスク CRUD API の統合テストを Firestore Emulator ベースで追加
 
 ### feat: ダッシュボード統計に LINE メッセージを統合 (#230) (e507963, PR #234)
 - ダッシュボードの統計カード・グラフに LINE メッセージ件数を組み込み
-
-### feat: 手動タスク入力機能を追加 (ac16cdc, PR #233)
-- CRUD API（POST/GET/PATCH/DELETE `/api/manual-tasks`）と Web UI を実装
-- Google Chat / LINE 由来でない業務タスクを手動で登録可能に
-
-### perf(web): タスクボードにページネーション追加 (30件/ページ) (PR #232)
-- タスクボードで大量データをページング表示（30件/ページ）
-
-### perf(web): タスクボード・受信箱に loading.tsx スケルトン追加 (PR #231)
-- ローディング中にスケルトン UI を表示し体感速度を改善
 
 ### fix(worker): vitest exclude に dist/ を追加（CI build 後のテスト失敗修正）(2114c61)
 - CI の `pnpm build` 実行後に `dist/` 以下のコンパイル済みファイルが vitest に拾われてテスト失敗する問題を修正
@@ -260,8 +262,7 @@
 ## 次のアクション候補
 
 1. **[P2] `apps/web/e2e/.auth/` を `.gitignore` に追加** — E2E 認証キャッシュが未追跡状態。機密情報の可能性あるため gitignore 推奨。
-2. **CI 確認**: Deploy to Cloud Run (#235) が in_progress — 完了後に success を確認する。
-3. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
 
 ### 完了済みバックログ（参考）
 
