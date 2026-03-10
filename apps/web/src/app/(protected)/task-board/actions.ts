@@ -86,6 +86,7 @@ export async function createManualTaskAction(body: {
   taskPriority: TaskPriority;
   responseStatus?: ResponseStatus;
   assignees?: string | null;
+  deadline?: string | null;
 }): Promise<ManualTaskSummary> {
   await requireAccess();
   const result = await createManualTask(body);
@@ -101,6 +102,7 @@ export async function updateManualTaskAction(
     taskPriority?: TaskPriority;
     responseStatus?: ResponseStatus;
     assignees?: string | null;
+    deadline?: string | null;
   },
 ): Promise<ManualTaskSummary> {
   await requireAccess();

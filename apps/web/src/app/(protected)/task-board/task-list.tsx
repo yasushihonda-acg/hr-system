@@ -1,10 +1,10 @@
 "use client";
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
-import { ClipboardEdit, MessageCircle, MessageSquareText } from "lucide-react";
+import { Clock, ClipboardEdit, MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
-import { cn, formatDateTimeJST } from "@/lib/utils";
+import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
 import { taskCompositeId } from "./task-composite-id";
 
 export interface TaskItem {
@@ -16,6 +16,7 @@ export interface TaskItem {
   responseStatus: ResponseStatus;
   taskSummary: string | null;
   assignees: string | null;
+  deadline: string | null;
   groupName: string | null;
   createdAt: string;
 }
@@ -100,13 +101,32 @@ export function TaskList({
               {task.taskSummary || task.content}
             </p>
 
-            {/* 担当者 */}
-            {task.assignees && (
-              <p className="mt-1 text-xs text-muted-foreground">担当: {task.assignees}</p>
+            {/* 担当者・期限 */}
+            {(task.assignees || task.deadline) && (
+              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                {task.assignees && <span>担当: {task.assignees}</span>}
+                {task.deadline && <DeadlineBadge deadline={task.deadline} />}
+              </div>
             )}
           </button>
         );
       })}
     </div>
+  );
+}
+
+function DeadlineBadge({ deadline }: { deadline: string }) {
+  const isOverdue = new Date(deadline) < new Date();
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5",
+        isOverdue ? "text-red-600 font-medium" : "text-muted-foreground",
+      )}
+    >
+      <Clock size={11} />
+      {formatDateJST(deadline)}
+    </span>
   );
 }

@@ -80,6 +80,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         responseStatus: (msg.intent?.responseStatus ?? "unresponded") as ResponseStatus,
         taskSummary: msg.intent?.taskSummary ?? null,
         assignees: msg.intent?.assignees ?? null,
+        deadline: msg.intent?.deadline ?? null,
         groupName: null,
         createdAt: msg.createdAt,
       });
@@ -98,6 +99,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         responseStatus: msg.responseStatus,
         taskSummary: null,
         assignees: null,
+        deadline: null,
         groupName: msg.groupName,
         createdAt: msg.createdAt,
       });
@@ -115,6 +117,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         responseStatus: task.responseStatus,
         taskSummary: task.title,
         assignees: task.assignees,
+        deadline: task.deadline,
         groupName: null,
         createdAt: task.createdAt,
       });

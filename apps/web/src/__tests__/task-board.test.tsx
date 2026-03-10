@@ -91,6 +91,7 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     responseStatus: "unresponded",
     taskSummary: null,
     assignees: null,
+    deadline: null,
     groupName: null,
     createdAt: "2026-03-01T09:00:00Z",
     ...overrides,
