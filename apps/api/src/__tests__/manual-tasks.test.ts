@@ -173,10 +173,10 @@ describe("manual-tasks routes", () => {
       const res = await app.request("/api/manual-tasks");
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as { data: { id: string; title: string }[]; total: number };
       expect(body.data).toHaveLength(1);
-      expect(body.data[0].id).toBe("task-1");
-      expect(body.data[0].title).toBe("テストタスク");
+      expect(body.data[0]!.id).toBe("task-1");
+      expect(body.data[0]!.title).toBe("テストタスク");
       expect(body.total).toBe(1);
     });
   });
@@ -197,7 +197,7 @@ describe("manual-tasks routes", () => {
       });
 
       expect(res.status).toBe(201);
-      const body = await res.json();
+      const body = (await res.json()) as Record<string, unknown>;
       expect(body.title).toBe("テストタスク");
       expect(mockAuditAdd).toHaveBeenCalledOnce();
     });
@@ -233,7 +233,7 @@ describe("manual-tasks routes", () => {
       const res = await app.request("/api/manual-tasks/task-1");
       expect(res.status).toBe(200);
 
-      const body = await res.json();
+      const body = (await res.json()) as Record<string, unknown>;
       expect(body.id).toBe("task-1");
     });
 
