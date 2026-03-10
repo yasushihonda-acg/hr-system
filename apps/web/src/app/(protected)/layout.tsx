@@ -15,7 +15,9 @@ export default async function ProtectedLayout({
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <SidebarNav />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6" style={{ scrollbarGutter: "stable" }}>
+          {children}
+        </main>
       </div>
     </div>
   );
