@@ -72,8 +72,14 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     query = query.where("threadName", "==", threadName);
   }
 
-  // ---- Intent フィルタあり: IntentRecords → ChatMessages の逆引きで上限なし ----
+  // ---- Intent フィルタあり: IntentRecords → ChatMessages の逆引き ----
   if (hasIntentFilter) {
+    // ChatMessage レベルのポストフィルタが不要か判定
+    const hasChatFilter =
+      spaceId !== undefined || messageType !== undefined || threadName !== undefined;
+    // Firestore ページネーション可能: ChatMessage フィルタなし & maxConfidence なし
+    const canPaginateAtFirestore = !hasChatFilter && maxConfidence === undefined;
+
     // 1. IntentRecords をネイティブフィルタでクエリ
     let intentQuery = collections.intentRecords as FirebaseFirestore.Query;
     if (category) {
@@ -82,12 +88,24 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     if (responseStatus) {
       intentQuery = intentQuery.where("responseStatus", "==", responseStatus);
     }
-    const intentSnapshot = await intentQuery.get();
 
-    // maxConfidence はレンジフィルタのため post-filter
-    let intentDocs = intentSnapshot.docs;
-    if (maxConfidence !== undefined) {
-      intentDocs = intentDocs.filter((d) => d.data().confidenceScore < maxConfidence);
+    let intentDocs: FirebaseFirestore.QueryDocumentSnapshot[];
+
+    if (canPaginateAtFirestore) {
+      // Firestore レベルでページネーション（O(page_size)）
+      intentQuery = intentQuery.orderBy("createdAt", "desc");
+      const intentSnapshot = await intentQuery
+        .limit(lim + 1)
+        .offset(off)
+        .get();
+      intentDocs = intentSnapshot.docs;
+    } else {
+      // 全件取得 → ポストフィルタ（従来パス）
+      const intentSnapshot = await intentQuery.get();
+      intentDocs = intentSnapshot.docs;
+      if (maxConfidence !== undefined) {
+        intentDocs = intentDocs.filter((d) => d.data().confidenceScore < maxConfidence);
+      }
     }
 
     if (intentDocs.length === 0) {
@@ -95,6 +113,13 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
         data: [],
         pagination: { limit: lim, offset: off, hasMore: false },
       });
+    }
+
+    // hasMore 判定 & ページ切り出し（Firestore ページネーション時）
+    let hasMore = false;
+    if (canPaginateAtFirestore) {
+      hasMore = intentDocs.length > lim;
+      intentDocs = intentDocs.slice(0, lim);
     }
 
     // 2. intentByMsgId マップ構築
@@ -127,30 +152,87 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       }
     }
 
-    // 4. ChatMessage レベルフィルタ
-    let filteredDocs = chatDocs;
-    if (spaceId) {
-      filteredDocs = filteredDocs.filter((d) => d.data().spaceId === spaceId);
-    }
-    if (messageType) {
-      filteredDocs = filteredDocs.filter((d) => d.data().messageType === messageType);
-    }
-    if (threadName) {
-      filteredDocs = filteredDocs.filter((d) => d.data().threadName === threadName);
-    }
+    if (!canPaginateAtFirestore) {
+      // 4. ChatMessage レベルフィルタ（従来パス）
+      let filteredDocs = chatDocs;
+      if (spaceId) {
+        filteredDocs = filteredDocs.filter((d) => d.data().spaceId === spaceId);
+      }
+      if (messageType) {
+        filteredDocs = filteredDocs.filter((d) => d.data().messageType === messageType);
+      }
+      if (threadName) {
+        filteredDocs = filteredDocs.filter((d) => d.data().threadName === threadName);
+      }
 
-    // 5. createdAt desc でソート（同一時刻は documentId で安定ソート）
-    filteredDocs.sort((a, b) => {
-      const aTime = a.data().createdAt?.toMillis?.() ?? 0;
-      const bTime = b.data().createdAt?.toMillis?.() ?? 0;
-      if (bTime !== aTime) return bTime - aTime;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    });
+      // 5. createdAt desc でソート
+      filteredDocs.sort((a, b) => {
+        const aTime = a.data().createdAt?.toMillis?.() ?? 0;
+        const bTime = b.data().createdAt?.toMillis?.() ?? 0;
+        if (bTime !== aTime) return bTime - aTime;
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      });
 
-    // 6. ページネーション + レスポンス構築
-    const paged = filteredDocs.slice(off, off + lim);
-    const hasMore = off + lim < filteredDocs.length;
-    const data = paged.map((doc) => {
+      // 6. ページネーション
+      const paged = filteredDocs.slice(off, off + lim);
+      hasMore = off + lim < filteredDocs.length;
+
+      const data = paged.map((doc) => {
+        const msg = doc.data();
+        const intentEntry = intentByMsgId.get(doc.id);
+        const intent = intentEntry?.data ?? null;
+        return {
+          id: doc.id,
+          spaceId: msg.spaceId,
+          googleMessageId: msg.googleMessageId,
+          senderUserId: msg.senderUserId,
+          senderName: msg.senderName,
+          senderType: msg.senderType,
+          content: msg.content,
+          formattedContent: msg.formattedContent ?? null,
+          messageType: msg.messageType,
+          threadName: msg.threadName ?? null,
+          parentMessageId: msg.parentMessageId ?? null,
+          mentionedUsers: msg.mentionedUsers ?? [],
+          annotations: msg.annotations ?? [],
+          attachments: msg.attachments ?? [],
+          isEdited: msg.isEdited ?? false,
+          isDeleted: msg.isDeleted ?? false,
+          processedAt: toISOOrNull(msg.processedAt),
+          createdAt: toISO(msg.createdAt),
+          intent: intent
+            ? {
+                id: intentEntry?.id ?? "",
+                category: intent.category as ChatCategory,
+                confidenceScore: intent.confidenceScore,
+                classificationMethod: intent.classificationMethod ?? "ai",
+                regexPattern: intent.regexPattern ?? null,
+                isManualOverride: intent.isManualOverride ?? false,
+                originalCategory: intent.originalCategory ?? null,
+                responseStatus: intent.responseStatus ?? "unresponded",
+                taskPriority: intent.taskPriority ?? null,
+                taskSummary: intent.taskSummary ?? null,
+                assignees: intent.assignees ?? null,
+                notes: intent.notes ?? null,
+                workflowSteps: intent.workflowSteps ?? null,
+                workflowUpdatedBy: intent.workflowUpdatedBy ?? null,
+                workflowUpdatedAt: toISOOrNull(intent.workflowUpdatedAt),
+                createdAt: toISO(intent.createdAt),
+              }
+            : null,
+        };
+      });
+
+      return c.json({
+        data,
+        pagination: { limit: lim, offset: off, hasMore },
+      });
+    }
+    // Firestore ページネーションパス: intentDocs の createdAt desc 順に並べ替え
+    // （in クエリはドキュメントID順で返すため）
+    const idOrder = new Map(chatMessageIds.map((id, i) => [id, i]));
+    chatDocs.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0));
+    const data = chatDocs.map((doc) => {
       const msg = doc.data();
       const intentEntry = intentByMsgId.get(doc.id);
       const intent = intentEntry?.data ?? null;
