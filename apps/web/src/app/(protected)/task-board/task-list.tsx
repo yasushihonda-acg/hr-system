@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
-import { Clock, ClipboardEdit, MessageCircle, MessageSquareText } from "lucide-react";
+import { ClipboardEdit, Clock, MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";

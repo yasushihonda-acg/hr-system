@@ -25,12 +25,6 @@ function getCategoryPill(category: string): string {
   return CATEGORY_CONFIG[category]?.pill ?? "bg-gray-100 text-gray-600";
 }
 
-const METHOD_LABELS: Record<string, string> = {
-  ai: "AI (Gemini)",
-  regex: "正規表現",
-  manual: "手動修正",
-};
-
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
