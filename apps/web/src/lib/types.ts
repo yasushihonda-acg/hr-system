@@ -172,6 +172,7 @@ export interface SpaceStat {
   spaceId: string;
   displayName: string;
   count: number;
+  source?: string;
 }
 
 // --- Admin Users ---

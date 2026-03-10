@@ -3,6 +3,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { CategoryDistributionChart, TimelineChart } from "@/components/dashboard-charts";
 import {
   getInboxCounts,
+  getLineInboxCounts,
   getStatsCategories,
   getStatsSpaces,
   getStatsSummary,
@@ -12,15 +13,23 @@ import { cn } from "@/lib/utils";
 import { InboxStatusBar } from "./inbox-status-bar";
 
 export default async function DashboardPage() {
-  const [summary, categoriesData, timelineData, spacesData, inboxData] = await Promise.all([
-    getStatsSummary(),
-    getStatsCategories(),
-    getStatsTimeline({ granularity: "day" }),
-    getStatsSpaces(),
-    getInboxCounts(),
-  ]);
+  const [summary, categoriesData, timelineData, spacesData, chatInbox, lineInbox] =
+    await Promise.all([
+      getStatsSummary(),
+      getStatsCategories(),
+      getStatsTimeline({ granularity: "day" }),
+      getStatsSpaces(),
+      getInboxCounts(),
+      getLineInboxCounts(),
+    ]);
 
-  const counts = inboxData.counts;
+  // Google Chat + LINE の対応状況を合算
+  const counts = {
+    unresponded: chatInbox.counts.unresponded + lineInbox.counts.unresponded,
+    in_progress: chatInbox.counts.in_progress + lineInbox.counts.in_progress,
+    responded: chatInbox.counts.responded + lineInbox.counts.responded,
+    not_required: chatInbox.counts.not_required + lineInbox.counts.not_required,
+  };
 
   return (
     <div className="space-y-6">
@@ -85,23 +94,35 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* スペース別 */}
+        {/* ソース別メッセージ */}
         <div className="rounded-xl border border-border/60 bg-card p-5">
           <div className="mb-4">
-            <h2 className="text-sm font-semibold">スペース別メッセージ</h2>
+            <h2 className="text-sm font-semibold">ソース別メッセージ</h2>
             <p className="text-xs text-muted-foreground">全{spacesData.total}件</p>
           </div>
           <div className="space-y-2.5">
             {spacesData.spaces.map((space) => {
               const pct = spacesData.total > 0 ? (space.count / spacesData.total) * 100 : 0;
+              const isLine = space.source === "line";
               return (
                 <div key={space.spaceId} className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      "shrink-0 rounded px-1 py-0.5 text-[10px] font-medium leading-none",
+                      isLine ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700",
+                    )}
+                  >
+                    {isLine ? "LINE" : "Chat"}
+                  </span>
                   <span className="text-xs text-muted-foreground truncate min-w-0 flex-1">
                     {space.displayName}
                   </span>
                   <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden flex-shrink-0">
                     <div
-                      className="h-full rounded-full bg-[var(--gradient-from)] transition-[width] duration-500"
+                      className={cn(
+                        "h-full rounded-full transition-[width] duration-500",
+                        isLine ? "bg-emerald-500" : "bg-[var(--gradient-from)]",
+                      )}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
