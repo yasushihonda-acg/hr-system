@@ -1,4 +1,5 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getChatMessages, getLineMessages } from "@/lib/api";
 import { TaskBoardContent } from "./task-board-content";
@@ -34,11 +35,14 @@ const PRIORITY_ORDER: Record<TaskPriority, number> = {
   low: 3,
 };
 
+const PAGE_SIZE = 30;
+
 interface Props {
   searchParams: Promise<{
     priority?: string;
     source?: string;
     status?: string;
+    page?: string;
     id?: string;
   }>;
 }
@@ -48,6 +52,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const priorityFilter = (params.priority as TaskPriority | undefined) ?? undefined;
   const sourceFilter: Source = (params.source as Source) ?? "all";
   const statusFilter = (params.status as ResponseStatus | undefined) ?? undefined;
+  const page = Math.max(1, Number(params.page) || 1);
   const selectedId = params.id ?? null;
 
   // 両ソースを並列取得
@@ -114,14 +119,27 @@ export default async function TaskBoardPage({ searchParams }: Props) {
 
   const criticalCount = filtered.filter((t) => t.taskPriority === "critical").length;
 
-  function buildUrl(overrides: { priority?: string; source?: string; status?: string }) {
+  // ページネーション
+  const totalCount = filtered.length;
+  const offset = (page - 1) * PAGE_SIZE;
+  const paged = filtered.slice(offset, offset + PAGE_SIZE);
+  const hasMore = offset + PAGE_SIZE < totalCount;
+
+  function buildUrl(overrides: {
+    priority?: string;
+    source?: string;
+    status?: string;
+    page?: string;
+  }) {
     const sp = new URLSearchParams();
     const p = "priority" in overrides ? overrides.priority : params.priority;
     const src = "source" in overrides ? overrides.source : params.source;
     const s = "status" in overrides ? overrides.status : params.status;
+    const pg = "page" in overrides ? overrides.page : params.page;
     if (p && p !== "all") sp.set("priority", p);
     if (src && src !== "all") sp.set("source", src);
     if (s && s !== "all") sp.set("status", s);
+    if (pg && pg !== "1") sp.set("page", pg);
     // フィルター切替時は選択を維持
     if (params.id) sp.set("id", params.id);
     const qs = sp.toString();
@@ -130,11 +148,11 @@ export default async function TaskBoardPage({ searchParams }: Props) {
 
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
-      <TaskBoardContent tasks={filtered} initialSelectedId={selectedId}>
+      <TaskBoardContent tasks={paged} initialSelectedId={selectedId}>
         <div className="mb-2 flex items-center justify-between">
           <h1 className="text-lg font-bold tracking-tight">タスク一覧</h1>
           <span className="text-xs text-muted-foreground">
-            {filtered.length}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
+            {totalCount}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
           </span>
         </div>
 
@@ -145,7 +163,10 @@ export default async function TaskBoardPage({ searchParams }: Props) {
             return (
               <Link
                 key={tab.value}
-                href={buildUrl({ priority: tab.value === "all" ? undefined : tab.value })}
+                href={buildUrl({
+                  priority: tab.value === "all" ? undefined : tab.value,
+                  page: "1",
+                })}
                 className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
                   isActive
                     ? tab.value === "critical"
@@ -168,7 +189,10 @@ export default async function TaskBoardPage({ searchParams }: Props) {
               return (
                 <Link
                   key={tab.value}
-                  href={buildUrl({ source: tab.value === "all" ? undefined : tab.value })}
+                  href={buildUrl({
+                    source: tab.value === "all" ? undefined : tab.value,
+                    page: "1",
+                  })}
                   className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                     isActive ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"
                   }`}
@@ -185,7 +209,10 @@ export default async function TaskBoardPage({ searchParams }: Props) {
               return (
                 <Link
                   key={tab.value}
-                  href={buildUrl({ status: tab.value === "all" ? undefined : tab.value })}
+                  href={buildUrl({
+                    status: tab.value === "all" ? undefined : tab.value,
+                    page: "1",
+                  })}
                   className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                     isActive ? "bg-slate-700 text-white" : "text-slate-500 hover:bg-slate-100"
                   }`}
@@ -197,6 +224,41 @@ export default async function TaskBoardPage({ searchParams }: Props) {
           </div>
         </div>
       </TaskBoardContent>
+
+      {/* ページネーション */}
+      {totalCount > PAGE_SIZE && (
+        <div className="flex-shrink-0 border-t border-border/60 bg-white px-5 py-2">
+          <div className="flex items-center justify-center gap-2">
+            <Link
+              href={page > 1 ? buildUrl({ page: String(page - 1) }) : "#"}
+              aria-disabled={page <= 1}
+              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                page <= 1
+                  ? "pointer-events-none text-slate-300"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <ChevronLeft size={16} />
+              前へ
+            </Link>
+            <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold tabular-nums text-slate-700">
+              ページ {page}
+            </span>
+            <Link
+              href={hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
+              aria-disabled={!hasMore}
+              className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                !hasMore
+                  ? "pointer-events-none text-slate-300"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              次へ
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
