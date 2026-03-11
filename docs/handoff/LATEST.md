@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-11（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `a0a2628` — fix: DialogContent の aria-describedby 警告を修正 (#266)）
+**最終更新**: 2026-03-12（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `b07f6b4` — refactor: 受信箱/タスクボードの AI判定パネルを削除 (#267)）
 
 ---
 
@@ -9,11 +9,11 @@
 
 **Phase 9 — タスク管理拡張**
 
-タスク詳細に期限(deadline)フィールド追加（PR #249）、期限の設定・編集 UI 追加（PR #250）、全メッセージ種別（Google Chat / LINE / 手動タスク）で担当者・期限インライン編集対応（PR #252）。インライン編集の外側クリックキャンセル + 手動タスク UI 統一（PR #256）。担当者フィールドをコンボ入力（リスト選択+直入力）に変更（PR #257）。担当者ドロップダウンのキーボードナビ + 期限カレンダーピッカー追加（PR #259）。/api/admin/users の Next.js API route 追加（PR #260）。担当者・期限の保存後 UI 即時反映修正（PR #262）。担当者フィールドのIME候補選択で苗字のみ入力される問題を修正（PR #264）。ユーザー管理に「表示名を編集」メニュー追加（PR #265）。DialogContent の aria-describedby 警告を修正（PR #266）。
+タスク詳細に期限(deadline)フィールド追加（PR #249）、期限の設定・編集 UI 追加（PR #250）、全メッセージ種別（Google Chat / LINE / 手動タスク）で担当者・期限インライン編集対応（PR #252）。インライン編集の外側クリックキャンセル + 手動タスク UI 統一（PR #256）。担当者フィールドをコンボ入力（リスト選択+直入力）に変更（PR #257）。担当者ドロップダウンのキーボードナビ + 期限カレンダーピッカー追加（PR #259）。/api/admin/users の Next.js API route 追加（PR #260）。担当者・期限の保存後 UI 即時反映修正（PR #262）。担当者フィールドのIME候補選択で苗字のみ入力される問題を修正（PR #264）。ユーザー管理に「表示名を編集」メニュー追加（PR #265）。DialogContent の aria-describedby 警告を修正（PR #266）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
 **未追跡ファイル**: `apps/web/src/app/(protected)/ai-settings/page.tsx` — PR #134 で `admin/ai-settings/` に移動済みの旧ファイルが残留。`git rm` で削除推奨。
 
-**CI**: Deploy to Cloud Run (#260) — success（確認済み）
+**CI**: Deploy to Cloud Run (#267) — success（確認済み）
 
 ---
 
@@ -152,14 +152,18 @@
 | **—** | **fix: 担当者フィールドのIME候補選択で苗字のみ入力される問題を修正 (#264)** | **main (67675dc)** | **完了** |
 | **—** | **feat: ユーザー管理の操作メニューに「表示名を編集」を追加 (#265)** | **main (39bb47c)** | **完了** |
 | **—** | **fix: DialogContent の aria-describedby 警告を修正 (#266)** | **main (a0a2628)** | **完了** |
+| **—** | **refactor: 受信箱/タスクボードの AI判定パネルを削除 (#267)** | **main (b07f6b4)** | **完了** |
 
 ---
 
 ## 直近の変更（最新5件）
 
+### refactor: 受信箱/タスクボードの AI判定パネルを削除 (#267) (b07f6b4)
+- 受信箱(Inbox)および タスクボード の右ペイン AI判定パネルを削除
+- CI: Deploy to Cloud Run — success
+
 ### fix: DialogContent の aria-describedby 警告を修正 (#266) (a0a2628)
 - shadcn/ui DialogContent に description が欠落している場合の aria-describedby 警告を修正
-- CI: Deploy to Cloud Run — success
 
 ### feat: ユーザー管理の操作メニューに「表示名を編集」を追加 (#265) (39bb47c)
 - ユーザー管理テーブルの操作メニューに「表示名を編集」アクションを追加
