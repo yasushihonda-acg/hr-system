@@ -32,12 +32,26 @@ export function InlineEditField({
   const [isPending, startTransition] = useTransition();
   const [showSaved, setShowSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
+
+  // 外側クリックで編集をキャンセル
+  useEffect(() => {
+    if (!editing) return;
+    function handleMouseDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setEditing(false);
+        setLocalValue(type === "date" && value ? value.slice(0, 10) : (value ?? ""));
+      }
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [editing, value, type]);
 
   const displayValue = type === "date" && value ? value.slice(0, 10) : value;
 
@@ -61,7 +75,7 @@ export function InlineEditField({
 
   if (editing) {
     return (
-      <div className="flex items-center gap-2">
+      <div ref={containerRef} className="flex items-center gap-2">
         <Icon className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
         <span className="w-14 flex-shrink-0 text-xs text-muted-foreground">{label}</span>
         <form
