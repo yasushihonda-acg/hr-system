@@ -86,7 +86,7 @@ export function UserActions({ user }: { user: AdminUser }) {
       </DropdownMenu>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
           <DialogHeader>
             <DialogTitle>表示名を編集</DialogTitle>
           </DialogHeader>
