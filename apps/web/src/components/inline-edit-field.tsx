@@ -3,6 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Calendar, Check, Loader2, Pencil, Users, X } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useAssigneeSuggestions } from "@/hooks/use-assignee-suggestions";
 import { cn } from "@/lib/utils";
 
 interface InlineEditFieldProps {
@@ -12,6 +13,8 @@ interface InlineEditFieldProps {
   placeholder: string;
   type: "text" | "date";
   onSave: (value: string | null) => Promise<void>;
+  /** テキスト入力時にフィルタリング表示される候補リスト */
+  suggestions?: string[];
 }
 
 /**
@@ -26,11 +29,13 @@ export function InlineEditField({
   placeholder,
   type,
   onSave,
+  suggestions,
 }: InlineEditFieldProps) {
   const [editing, setEditing] = useState(false);
   const [localValue, setLocalValue] = useState(value ?? "");
   const [isPending, startTransition] = useTransition();
   const [showSaved, setShowSaved] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -85,13 +90,47 @@ export function InlineEditField({
             handleSave();
           }}
         >
-          <input
-            type={type}
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            placeholder={placeholder}
-            className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--gradient-from)]"
-          />
+          <div className="relative min-w-0 flex-1">
+            <input
+              type={type}
+              value={localValue}
+              onChange={(e) => {
+                setLocalValue(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder={placeholder}
+              className="w-full rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[var(--gradient-from)]"
+              autoComplete="off"
+            />
+            {suggestions &&
+              showSuggestions &&
+              (() => {
+                const filtered = suggestions.filter(
+                  (s) => s.toLowerCase().includes(localValue.toLowerCase()) && s !== localValue,
+                );
+                if (filtered.length === 0) return null;
+                return (
+                  <ul className="absolute left-0 top-full z-50 mt-1 max-h-32 w-full overflow-y-auto rounded border border-border bg-background shadow-md">
+                    {filtered.map((s) => (
+                      <li key={s}>
+                        <button
+                          type="button"
+                          className="w-full px-2 py-1 text-left text-xs hover:bg-accent"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setLocalValue(s);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          {s}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
+          </div>
           <button
             type="submit"
             className="rounded px-1.5 py-0.5 text-xs font-medium text-[var(--gradient-from)] hover:bg-accent"
@@ -143,7 +182,7 @@ export function InlineEditField({
   );
 }
 
-/** 担当者フィールド */
+/** 担当者フィールド（候補リストを自動取得） */
 export function AssigneesField({
   value,
   onSave,
@@ -151,6 +190,7 @@ export function AssigneesField({
   value: string | null;
   onSave: (v: string | null) => Promise<void>;
 }) {
+  const suggestions = useAssigneeSuggestions();
   return (
     <InlineEditField
       icon={Users}
@@ -159,6 +199,7 @@ export function AssigneesField({
       placeholder="未設定"
       type="text"
       onSave={onSave}
+      suggestions={suggestions}
     />
   );
 }
