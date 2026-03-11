@@ -43,6 +43,8 @@ export function InlineEditField({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  // IME候補選択後のonChange上書きを防止するフラグ
+  const justSelectedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -85,10 +87,10 @@ export function InlineEditField({
     }
   }, [highlightedIndex]);
 
-  function handleSave() {
+  function handleSave(overrideValue?: string) {
     setEditing(false);
     setShowSuggestions(false);
-    const newValue = localValue.trim() || null;
+    const newValue = (overrideValue ?? localValue).trim() || null;
 
     startTransition(async () => {
       await onSave(newValue);
@@ -126,9 +128,8 @@ export function InlineEditField({
         const selected = filtered[highlightedIndex];
         if (selected) {
           e.preventDefault();
-          setLocalValue(selected);
-          setShowSuggestions(false);
-          setHighlightedIndex(-1);
+          justSelectedRef.current = true;
+          handleSave(selected);
         }
         break;
       }
@@ -158,6 +159,11 @@ export function InlineEditField({
               type="text"
               value={localValue}
               onChange={(e) => {
+                // 候補選択直後のIME compositionend由来のonChangeをスキップ
+                if (justSelectedRef.current) {
+                  justSelectedRef.current = false;
+                  return;
+                }
                 setLocalValue(e.target.value);
                 setHighlightedIndex(-1);
                 setShowSuggestions(true);
@@ -189,8 +195,8 @@ export function InlineEditField({
                     )}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      setLocalValue(s);
-                      setShowSuggestions(false);
+                      justSelectedRef.current = true;
+                      handleSave(s);
                     }}
                   >
                     {s}
@@ -241,6 +247,23 @@ export function InlineEditField({
         )}
         <Pencil className="ml-auto h-3 w-3 flex-shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground" />
       </button>
+      {value && !isPending && (
+        <button
+          type="button"
+          onClick={() => {
+            startTransition(async () => {
+              await onSave(null);
+              setShowSaved(true);
+              if (timerRef.current) clearTimeout(timerRef.current);
+              timerRef.current = setTimeout(() => setShowSaved(false), 1500);
+            });
+          }}
+          className="rounded p-0.5 text-muted-foreground/50 hover:text-muted-foreground"
+          title="クリア"
+        >
+          <X className="h-3 w-3" />
+        </button>
+      )}
       {showSaved && (
         <span className="flex items-center gap-0.5 text-xs text-emerald-600">
           <Check className="h-3 w-3" />
