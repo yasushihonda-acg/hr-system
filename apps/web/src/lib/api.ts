@@ -489,6 +489,16 @@ export function updateLineTaskPriority(id: string, taskPriority: TaskPriority | 
   );
 }
 
+export function updateLineWorkflow(
+  id: string,
+  body: { assignees?: string | null; deadline?: string | null },
+) {
+  return request<{ success: boolean }>(`/api/line-messages/${encodeURIComponent(id)}/workflow`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
 // --- Manual Tasks ---
 
 export interface ManualTaskListParams {

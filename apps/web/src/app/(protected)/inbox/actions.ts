@@ -6,6 +6,7 @@ import { requireAccess } from "@/lib/access-control";
 import {
   updateLineResponseStatus,
   updateLineTaskPriority,
+  updateLineWorkflow,
   updateResponseStatus,
   updateWorkflow,
 } from "@/lib/api";
@@ -57,6 +58,36 @@ export async function updateLineTaskPriorityAction(
 ) {
   await requireAccess();
   await updateLineTaskPriority(messageId, taskPriority);
+  revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateChatAssigneesAction(chatMessageId: string, assignees: string | null) {
+  await requireAccess();
+  await updateWorkflow(chatMessageId, { assignees });
+  revalidatePath("/inbox");
+  revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
+
+export async function updateChatDeadlineAction(chatMessageId: string, deadline: string | null) {
+  await requireAccess();
+  await updateWorkflow(chatMessageId, { deadline });
+  revalidatePath("/inbox");
+  revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
+
+export async function updateLineAssigneesAction(messageId: string, assignees: string | null) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, { assignees });
+  revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateLineDeadlineAction(messageId: string, deadline: string | null) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, { deadline });
   revalidatePath("/inbox");
   revalidatePath("/task-board");
 }

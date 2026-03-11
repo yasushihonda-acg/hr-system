@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections } from "@hr-system/db";
 import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
+import { Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
 import { clearCache, getCached, setCache, TTL } from "../lib/cache.js";
@@ -57,6 +58,8 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       contentUrl: (msg.contentUrl as string) ?? null,
       lineMessageType: msg.lineMessageType as string,
       taskPriority: (msg.taskPriority as string) ?? null,
+      assignees: (msg.assignees as string) ?? null,
+      deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
       responseStatus: (msg.responseStatus as string) ?? "unresponded",
       createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
     };
@@ -157,6 +160,8 @@ lineMessageRoutes.get("/:id", async (c) => {
     contentUrl: msg.contentUrl ?? null,
     lineMessageType: msg.lineMessageType,
     taskPriority: msg.taskPriority ?? null,
+    assignees: msg.assignees ?? null,
+    deadline: msg.deadline ? toISO(msg.deadline) : null,
     responseStatus: msg.responseStatus ?? "unresponded",
     responseStatusUpdatedBy: msg.responseStatusUpdatedBy ?? null,
     responseStatusUpdatedAt: msg.responseStatusUpdatedAt
@@ -230,3 +235,39 @@ lineMessageRoutes.patch(
     return c.json({ success: true });
   },
 );
+
+// ---------------------------------------------------------------------------
+// PATCH /api/line-messages/:id/workflow — 担当者・期限更新
+// ---------------------------------------------------------------------------
+const updateWorkflowSchema = z.object({
+  assignees: z.string().nullable().optional(),
+  deadline: z.string().datetime({ offset: true }).nullable().optional(),
+});
+
+lineMessageRoutes.patch("/:id/workflow", zValidator("json", updateWorkflowSchema), async (c) => {
+  const id = c.req.param("id");
+  const body = c.req.valid("json");
+  const actorRole = c.get("actorRole");
+
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  const docRef = collections.lineMessages.doc(id);
+  const docSnap = await docRef.get();
+  if (!docSnap.exists) throw notFound("LineMessage", id);
+
+  const updates: Record<string, unknown> = {};
+  if ("assignees" in body) {
+    updates.assignees = body.assignees ?? null;
+  }
+  if ("deadline" in body) {
+    updates.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await docRef.update(updates);
+  }
+
+  return c.json({ success: true });
+});

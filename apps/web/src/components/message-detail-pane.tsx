@@ -4,6 +4,7 @@ import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { AttachmentList } from "@/components/chat/attachment-list";
+import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +26,14 @@ export interface ChatMessageDetailPaneProps {
   onUpdateWorkflow: (id: string, body: WorkflowUpdateRequest) => Promise<void>;
   /** Optional slot rendered after the workflow section (e.g. HandoverForm) */
   extraContent?: ReactNode;
+  /** Assignees value from intent (for inline editing) */
+  assignees?: string | null;
+  /** Deadline value from intent (for inline editing) */
+  deadline?: string | null;
+  /** Save assignees callback */
+  onUpdateAssignees?: (id: string, assignees: string | null) => Promise<void>;
+  /** Save deadline callback */
+  onUpdateDeadline?: (id: string, deadline: string | null) => Promise<void>;
 }
 
 export function ChatMessageDetailPane({
@@ -34,6 +43,10 @@ export function ChatMessageDetailPane({
   onUpdateTaskPriority,
   onUpdateWorkflow,
   extraContent,
+  assignees,
+  deadline,
+  onUpdateAssignees,
+  onUpdateDeadline,
 }: ChatMessageDetailPaneProps) {
   const intent = message.intent as IntentDetail | null;
   const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
@@ -105,6 +118,20 @@ export function ChatMessageDetailPane({
                 onChange={(p) => onUpdateTaskPriority(message.id, p)}
               />
             </div>
+
+            {/* 担当者・期限 */}
+            {onUpdateAssignees && onUpdateDeadline && (
+              <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <AssigneesField
+                  value={assignees ?? null}
+                  onSave={(v) => onUpdateAssignees(message.id, v)}
+                />
+                <DeadlineField
+                  value={deadline ?? null}
+                  onSave={(v) => onUpdateDeadline(message.id, v)}
+                />
+              </div>
+            )}
 
             {/* ワークフロー */}
             {intent && (

@@ -64,6 +64,10 @@ vi.mock("lucide-react", () => ({
   MessageSquare: () => React.createElement("span", { "data-testid": "icon-message-square" }),
   Paperclip: () => React.createElement("span", { "data-testid": "icon-paperclip" }),
   X: () => React.createElement("span", { "data-testid": "icon-x" }),
+  Users: () => React.createElement("span", { "data-testid": "icon-users" }),
+  Calendar: () => React.createElement("span", { "data-testid": "icon-calendar" }),
+  Pencil: () => React.createElement("span", { "data-testid": "icon-pencil" }),
+  Check: () => React.createElement("span", { "data-testid": "icon-check" }),
 }));
 
 vi.mock("@/components/ui/tabs", () => ({
@@ -119,6 +123,8 @@ vi.mock("../app/(protected)/inbox/actions", () => ({
   updateResponseStatusAction: vi.fn(),
   updateTaskPriorityAction: vi.fn(),
   updateWorkflowAction: vi.fn(),
+  updateChatAssigneesAction: vi.fn(),
+  updateChatDeadlineAction: vi.fn(),
 }));
 
 vi.mock("@/components/chat/attachment-list", () => ({

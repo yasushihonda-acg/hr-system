@@ -8,6 +8,8 @@ import { CATEGORY_LABELS, RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type { ChatMessageDetail, ChatMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import {
+  updateChatAssigneesAction,
+  updateChatDeadlineAction,
   updateResponseStatusAction,
   updateTaskPriorityAction,
   updateWorkflowAction,
@@ -106,6 +108,10 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
           onUpdateResponseStatus={updateResponseStatusAction}
           onUpdateTaskPriority={updateTaskPriorityAction}
           onUpdateWorkflow={updateWorkflowAction}
+          assignees={selectedMessage.intent?.assignees ?? null}
+          deadline={selectedMessage.intent?.deadline ?? null}
+          onUpdateAssignees={updateChatAssigneesAction}
+          onUpdateDeadline={updateChatDeadlineAction}
           extraContent={
             selectedMessage.intent && (
               <div className="mt-4">

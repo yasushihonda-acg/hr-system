@@ -299,6 +299,10 @@ export interface LineMessage {
   lineMessageType: string;
   /** タスク優先度 */
   taskPriority: "critical" | "high" | "medium" | "low" | null;
+  /** 担当者（自由入力テキスト） */
+  assignees: string | null;
+  /** 期限（ISO 8601 datetime） */
+  deadline: Timestamp | null;
   /** 対応状況（受信箱管理用） */
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   /** 対応状況の最終更新者 */
