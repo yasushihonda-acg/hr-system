@@ -104,6 +104,31 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
     });
   }, [selectedTask?.id, selectedTask?.source]);
 
+  // 担当者・期限の保存後に詳細データを再取得して表示を更新するラッパー
+  const handleChatAssignees = useCallback(async (id: string, assignees: string | null) => {
+    await updateChatAssigneesFromTaskBoard(id, assignees);
+    const updated = await fetchChatMessageDetailAction(id);
+    setChatDetail(updated);
+  }, []);
+
+  const handleChatDeadline = useCallback(async (id: string, deadline: string | null) => {
+    await updateChatDeadlineFromTaskBoard(id, deadline);
+    const updated = await fetchChatMessageDetailAction(id);
+    setChatDetail(updated);
+  }, []);
+
+  const handleLineAssignees = useCallback(async (id: string, assignees: string | null) => {
+    await updateLineAssigneesFromTaskBoard(id, assignees);
+    const updated = await fetchLineMessageDetailAction(id);
+    setLineDetail(updated);
+  }, []);
+
+  const handleLineDeadline = useCallback(async (id: string, deadline: string | null) => {
+    await updateLineDeadlineFromTaskBoard(id, deadline);
+    const updated = await fetchLineMessageDetailAction(id);
+    setLineDetail(updated);
+  }, []);
+
   const handleClose = useCallback(() => {
     setSelectedId(null);
   }, []);
@@ -160,8 +185,8 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                 onUpdateWorkflow={updateWorkflowFromTaskBoard}
                 assignees={chatDetail.intent?.assignees ?? null}
                 deadline={chatDetail.intent?.deadline ?? null}
-                onUpdateAssignees={updateChatAssigneesFromTaskBoard}
-                onUpdateDeadline={updateChatDeadlineFromTaskBoard}
+                onUpdateAssignees={handleChatAssignees}
+                onUpdateDeadline={handleChatDeadline}
                 extraContent={
                   chatDetail.intent && (
                     <div className="mt-4">
@@ -182,8 +207,8 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                 onClose={handleClose}
                 onUpdateResponseStatus={updateLineResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
-                onUpdateAssignees={updateLineAssigneesFromTaskBoard}
-                onUpdateDeadline={updateLineDeadlineFromTaskBoard}
+                onUpdateAssignees={handleLineAssignees}
+                onUpdateDeadline={handleLineDeadline}
               />
             ) : isManualTask && selectedTask ? (
               <ManualTaskDetailPane task={selectedTask} onClose={handleClose} />
@@ -198,6 +223,14 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
 /** 手動タスクの詳細ペイン */
 function ManualTaskDetailPane({ task, onClose }: { task: TaskItem; onClose: () => void }) {
   const [isUpdating, startUpdate] = useTransition();
+  const [localAssignees, setLocalAssignees] = useState(task.assignees);
+  const [localDeadline, setLocalDeadline] = useState(task.deadline);
+
+  // props が変わったら同期
+  useEffect(() => {
+    setLocalAssignees(task.assignees);
+    setLocalDeadline(task.deadline);
+  }, [task.assignees, task.deadline]);
 
   const handleResponseStatusChange = (status: ResponseStatus) => {
     startUpdate(async () => {
@@ -264,15 +297,17 @@ function ManualTaskDetailPane({ task, onClose }: { task: TaskItem; onClose: () =
         {/* 担当者・期限 */}
         <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
           <AssigneesField
-            value={task.assignees}
+            value={localAssignees}
             onSave={async (v) => {
               await updateManualTaskAction(task.id, { assignees: v });
+              setLocalAssignees(v);
             }}
           />
           <DeadlineField
-            value={task.deadline}
+            value={localDeadline}
             onSave={async (v) => {
               await updateManualTaskAction(task.id, { deadline: v });
+              setLocalDeadline(v);
             }}
           />
         </div>
