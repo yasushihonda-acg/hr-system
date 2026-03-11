@@ -226,11 +226,11 @@ function ManualTaskDetailPane({ task, onClose }: { task: TaskItem; onClose: () =
   const [localAssignees, setLocalAssignees] = useState(task.assignees);
   const [localDeadline, setLocalDeadline] = useState(task.deadline);
 
-  // 別タスクに切り替わったら同期
+  // props が変わったら同期
   useEffect(() => {
     setLocalAssignees(task.assignees);
     setLocalDeadline(task.deadline);
-  }, [task.id, task.assignees, task.deadline]);
+  }, [task.assignees, task.deadline]);
 
   const handleResponseStatusChange = (status: ResponseStatus) => {
     startUpdate(async () => {
