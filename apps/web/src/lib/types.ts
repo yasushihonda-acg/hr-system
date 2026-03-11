@@ -357,6 +357,8 @@ export interface LineMessageSummary {
   contentUrl: string | null;
   lineMessageType: string;
   taskPriority: TaskPriority | null;
+  assignees: string | null;
+  deadline: string | null;
   responseStatus: ResponseStatus;
   createdAt: string;
 }

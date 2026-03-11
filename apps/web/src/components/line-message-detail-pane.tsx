@@ -2,6 +2,7 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
+import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import type { LineMessageDetail } from "@/lib/types";
@@ -12,6 +13,8 @@ interface LineMessageDetailPaneProps {
   onClose: () => void;
   onUpdateResponseStatus: (id: string, status: ResponseStatus) => Promise<void>;
   onUpdateTaskPriority: (id: string, priority: TaskPriority | null) => Promise<void>;
+  onUpdateAssignees: (id: string, assignees: string | null) => Promise<void>;
+  onUpdateDeadline: (id: string, deadline: string | null) => Promise<void>;
 }
 
 export function LineMessageDetailPane({
@@ -19,6 +22,8 @@ export function LineMessageDetailPane({
   onClose,
   onUpdateResponseStatus,
   onUpdateTaskPriority,
+  onUpdateAssignees,
+  onUpdateDeadline,
 }: LineMessageDetailPaneProps) {
   const responseStatus = message.responseStatus;
 
@@ -75,6 +80,15 @@ export function LineMessageDetailPane({
             value={message.taskPriority}
             onChange={(p) => onUpdateTaskPriority(message.id, p)}
           />
+        </div>
+
+        {/* 担当者・期限 */}
+        <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+          <AssigneesField
+            value={message.assignees}
+            onSave={(v) => onUpdateAssignees(message.id, v)}
+          />
+          <DeadlineField value={message.deadline} onSave={(v) => onUpdateDeadline(message.id, v)} />
         </div>
 
         {/* メタ情報 */}

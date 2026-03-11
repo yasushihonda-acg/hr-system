@@ -6,7 +6,12 @@ import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type { LineMessageDetail, LineMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
-import { updateLineResponseStatusAction, updateLineTaskPriorityAction } from "./actions";
+import {
+  updateLineAssigneesAction,
+  updateLineDeadlineAction,
+  updateLineResponseStatusAction,
+  updateLineTaskPriorityAction,
+} from "./actions";
 import { useSelectMessage } from "./use-select-message";
 
 interface LineInbox3PaneProps {
@@ -100,6 +105,8 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
           onClose={() => selectMessage(null)}
           onUpdateResponseStatus={updateLineResponseStatusAction}
           onUpdateTaskPriority={updateLineTaskPriorityAction}
+          onUpdateAssignees={updateLineAssigneesAction}
+          onUpdateDeadline={updateLineDeadlineAction}
         />
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">

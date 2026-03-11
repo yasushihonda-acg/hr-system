@@ -15,6 +15,10 @@ import {
   deleteManualTaskAction,
   fetchChatMessageDetailAction,
   fetchLineMessageDetailAction,
+  updateChatAssigneesFromTaskBoard,
+  updateChatDeadlineFromTaskBoard,
+  updateLineAssigneesFromTaskBoard,
+  updateLineDeadlineFromTaskBoard,
   updateLineResponseStatusFromTaskBoard,
   updateLineTaskPriorityFromTaskBoard,
   updateManualTaskAction,
@@ -154,6 +158,10 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                 onUpdateResponseStatus={updateResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateTaskPriorityFromTaskBoard}
                 onUpdateWorkflow={updateWorkflowFromTaskBoard}
+                assignees={chatDetail.intent?.assignees ?? null}
+                deadline={chatDetail.intent?.deadline ?? null}
+                onUpdateAssignees={updateChatAssigneesFromTaskBoard}
+                onUpdateDeadline={updateChatDeadlineFromTaskBoard}
                 extraContent={
                   chatDetail.intent && (
                     <div className="mt-4">
@@ -174,6 +182,8 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
                 onClose={handleClose}
                 onUpdateResponseStatus={updateLineResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
+                onUpdateAssignees={updateLineAssigneesFromTaskBoard}
+                onUpdateDeadline={updateLineDeadlineFromTaskBoard}
               />
             ) : isManualTask && selectedTask ? (
               <ManualTaskDetailPane task={selectedTask} onClose={handleClose} />
