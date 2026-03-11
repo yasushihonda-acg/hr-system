@@ -9,7 +9,6 @@ import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkflowPanel } from "@/components/workflow-panel";
-import { CATEGORY_LABELS } from "@/lib/constants";
 import type {
   ChatMessageDetail,
   IntentDetail,
@@ -157,81 +156,6 @@ export function ChatMessageDetailPane({
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* 右ペイン: AI分析 (lg以上で表示) */}
-      {intent && (
-        <div className="hidden w-[300px] flex-shrink-0 overflow-y-auto border-l border-border/60 bg-muted/20 p-4 lg:block">
-          <AiAnalysisPanel intent={intent} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// --- AI分析パネル ---
-
-export function AiAnalysisPanel({ intent }: { intent: IntentDetail }) {
-  const category = intent.category;
-  const confidence = intent.confidenceScore;
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-bold">AI 判定</h3>
-
-      <div className="rounded-lg border border-border/60 bg-white p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">カテゴリ</span>
-          <span className="rounded-full bg-[var(--gradient-from)]/10 px-2 py-0.5 text-xs font-medium text-[var(--gradient-from)]">
-            {CATEGORY_LABELS[category] ?? category}
-          </span>
-        </div>
-      </div>
-
-      <div className="rounded-lg border border-border/60 bg-white p-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">信頼度</span>
-          <span className="text-sm font-bold tabular-nums">
-            {confidence != null ? `${(confidence * 100).toFixed(0)}%` : "—"}
-          </span>
-        </div>
-        {confidence != null && (
-          <div className="mt-2 h-1.5 rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-[var(--gradient-from)] transition-[width] duration-300"
-              style={{ width: `${confidence * 100}%` }}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-lg border border-border/60 bg-white p-3">
-        <span className="text-xs text-muted-foreground">分類方法</span>
-        <p className="mt-1 text-xs font-medium">
-          {intent.classificationMethod === "ai"
-            ? "AI (Gemini)"
-            : intent.classificationMethod === "regex"
-              ? "正規表現"
-              : "手動"}
-        </p>
-      </div>
-
-      {intent.reasoning && (
-        <div className="rounded-lg border border-border/60 bg-white p-3">
-          <span className="text-xs text-muted-foreground">推論</span>
-          <p className="mt-1 text-xs leading-relaxed">{intent.reasoning}</p>
-        </div>
-      )}
-
-      {intent.isManualOverride && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <span className="text-xs font-medium text-amber-800">手動修正済</span>
-          {intent.originalCategory && (
-            <p className="mt-1 text-xs text-amber-700">
-              元: {CATEGORY_LABELS[intent.originalCategory] ?? intent.originalCategory}
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }

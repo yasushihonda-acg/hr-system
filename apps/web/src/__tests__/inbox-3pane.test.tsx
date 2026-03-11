@@ -367,7 +367,7 @@ describe("Inbox3Pane", () => {
       expect(html).toContain('data-status="unresponded"');
     });
 
-    it("AI判定パネルにカテゴリと信頼度が表示される", () => {
+    it("AI判定パネルが表示されない（chat-messages/[id]で確認する設計）", () => {
       const text = renderToText(
         React.createElement(Inbox3Pane, {
           messages: [makeSummary()],
@@ -375,69 +375,7 @@ describe("Inbox3Pane", () => {
           selectedId: "msg-1",
         }),
       );
-      expect(text).toContain("AI 判定");
-      expect(text).toContain("給与・社保");
-      expect(text).toContain("95%");
-    });
-
-    it("分類方法がAI (Gemini)と表示される", () => {
-      const text = renderToText(
-        React.createElement(Inbox3Pane, {
-          messages: [makeSummary()],
-          selectedMessage: makeDetail(),
-          selectedId: "msg-1",
-        }),
-      );
-      expect(text).toContain("AI (Gemini)");
-    });
-
-    it("推論テキストが表示される", () => {
-      const text = renderToText(
-        React.createElement(Inbox3Pane, {
-          messages: [makeSummary()],
-          selectedMessage: makeDetail(),
-          selectedId: "msg-1",
-        }),
-      );
-      expect(text).toContain("給与に関する依頼");
-    });
-
-    it("手動修正済みの場合にバッジと元カテゴリが表示される", () => {
-      const detail = makeDetail({
-        intent: {
-          id: "intent-1",
-          category: "retirement",
-          confidenceScore: 0.8,
-          classificationMethod: "ai",
-          regexPattern: null,
-          isManualOverride: true,
-          originalCategory: "salary",
-          responseStatus: "unresponded",
-          taskPriority: null,
-          taskSummary: null,
-          assignees: null,
-          deadline: null,
-          notes: null,
-          workflowSteps: null,
-          workflowUpdatedBy: null,
-          workflowUpdatedAt: null,
-          createdAt: "2026-03-01T09:00:00Z",
-          reasoning: null,
-          overriddenBy: null,
-          overriddenAt: null,
-          responseStatusUpdatedBy: null,
-          responseStatusUpdatedAt: null,
-        },
-      });
-      const text = renderToText(
-        React.createElement(Inbox3Pane, {
-          messages: [makeSummary()],
-          selectedMessage: detail,
-          selectedId: "msg-1",
-        }),
-      );
-      expect(text).toContain("手動修正済");
-      expect(text).toContain("給与・社保");
+      expect(text).not.toContain("AI 判定");
     });
 
     it("詳細ページへの遷移リンクが存在しない", () => {
