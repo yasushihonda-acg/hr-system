@@ -26,6 +26,12 @@ export async function changeRoleAction(id: string, role: string) {
   revalidatePath("/admin/users");
 }
 
+export async function updateDisplayNameAction(id: string, displayName: string) {
+  await requireAdmin();
+  await updateAdminUser(id, { displayName });
+  revalidatePath("/admin/users");
+}
+
 export async function removeUserAction(id: string) {
   await requireAdmin();
   await deleteAdminUser(id);
