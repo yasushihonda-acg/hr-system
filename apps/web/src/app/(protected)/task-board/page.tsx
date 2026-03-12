@@ -102,8 +102,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         taskPriority: msg.taskPriority,
         responseStatus: msg.responseStatus,
         taskSummary: null,
-        assignees: null,
-        deadline: null,
+        assignees: msg.assignees ?? null,
+        deadline: msg.deadline ?? null,
         groupName: msg.groupName,
         createdAt: msg.createdAt,
       });

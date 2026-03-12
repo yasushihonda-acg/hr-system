@@ -40,7 +40,7 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     if (groupId) tpQuery = tpQuery.where("groupId", "==", groupId);
     if (responseStatus) tpQuery = tpQuery.where("responseStatus", "==", responseStatus);
 
-    const tpSnap = await tpQuery.get();
+    const tpSnap = await tpQuery.limit(500).get();
     const allDocs = tpSnap.docs.sort((a, b) => {
       const aTime = (a.data().createdAt as FirebaseFirestore.Timestamp)?.toMillis?.() ?? 0;
       const bTime = (b.data().createdAt as FirebaseFirestore.Timestamp)?.toMillis?.() ?? 0;
