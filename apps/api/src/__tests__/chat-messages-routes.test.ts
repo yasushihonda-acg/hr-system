@@ -103,6 +103,7 @@ function makeIntentSnap(
   id: string,
   confidenceScore: number,
   responseStatus: string = "unresponded",
+  taskPriority: string | null = null,
 ) {
   return {
     docs: [
@@ -117,6 +118,7 @@ function makeIntentSnap(
           originalCategory: null,
           regexPattern: null,
           responseStatus,
+          taskPriority,
           createdAt: now,
         }),
       },
@@ -279,6 +281,46 @@ describe("chat-messages routes", () => {
       expect(body.data).toHaveLength(1);
       expect(body.data[0]!.id).toBe("msg-5");
       expect(body.pagination.hasMore).toBe(false);
+    });
+
+    it("hasTaskPriority=true でタスク優先度付きメッセージのみ返す", async () => {
+      // IntentRecords 逆引き: taskPriority in ["critical","high","medium","low"]
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [
+          ...makeIntentSnap("msg-1", 0.9, "unresponded", "critical").docs,
+          ...makeIntentSnap("msg-3", 0.7, "in_progress", "high").docs,
+        ],
+      });
+      // ChatMessages バッチフェッチ
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-1"), makeChatDoc("msg-3")],
+      });
+
+      const res = await app.request("/api/chat-messages?hasTaskPriority=true");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        data: Array<{ id: string; intent: { taskPriority: string } }>;
+      };
+      expect(body.data).toHaveLength(2);
+      expect(body.data[0]!.intent.taskPriority).toBe("critical");
+      expect(body.data[1]!.intent.taskPriority).toBe("high");
+    });
+
+    it("hasTaskPriority=true で優先度なしメッセージを除外する", async () => {
+      // IntentRecords 逆引き: taskPriority フィルタ → 優先度付きのみ
+      mockIntentRecordsGet.mockResolvedValueOnce({
+        docs: [...makeIntentSnap("msg-2", 0.8, "unresponded", "medium").docs],
+      });
+      mockChatMessagesByIdGet.mockResolvedValueOnce({
+        docs: [makeChatDoc("msg-2")],
+      });
+
+      const res = await app.request("/api/chat-messages?hasTaskPriority=true");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { data: Array<{ id: string }> };
+      // msg-1（taskPriority=null）は IntentRecords クエリから除外される
+      expect(body.data).toHaveLength(1);
+      expect(body.data[0]!.id).toBe("msg-2");
     });
 
     it("Intent フィルタなしでは Firestore レベルのページネーションを使用する", async () => {
