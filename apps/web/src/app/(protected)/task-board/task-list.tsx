@@ -1,13 +1,8 @@
 "use client";
 
-import type {
-  ResponseStatus,
-  TaskPriority,
-  WorkflowStepStatus,
-  WorkflowSteps,
-} from "@hr-system/shared";
+import type { ResponseStatus, TaskPriority, WorkflowSteps } from "@hr-system/shared";
 import { ClipboardEdit, Clock, ExternalLink, MessageCircle, MessageSquareText } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import {
   CATEGORY_LABELS,
@@ -15,6 +10,7 @@ import {
   RESPONSE_STATUS_LABELS,
 } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
+import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG, STEP_KEYS } from "@/lib/workflow-steps";
 import { updateWorkflowFromTaskBoard } from "./actions";
 import { taskCompositeId } from "./task-composite-id";
 
@@ -47,39 +43,6 @@ const SOURCE_ICONS: Record<TaskItem["source"], React.ReactNode> = {
   line: <MessageCircle size={12} className="text-emerald-500" />,
   manual: <ClipboardEdit size={12} className="text-blue-500" />,
 };
-
-const STEP_CYCLE: WorkflowStepStatus[] = ["undetermined", "completed", "not_required"];
-
-const DEFAULT_STEPS: WorkflowSteps = {
-  salaryListReflection: "undetermined",
-  noticeExecution: "undetermined",
-  laborLawyerShare: "undetermined",
-  smartHRReflection: "undetermined",
-};
-
-const STEP_CONFIG: Record<WorkflowStepStatus, { label: string; cls: string }> = {
-  undetermined: { label: "ー", cls: "text-muted-foreground bg-muted/50 border border-border" },
-  completed: {
-    label: "✓",
-    cls: "text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold",
-  },
-  not_required: {
-    label: "✗",
-    cls: "text-muted-foreground bg-muted border border-border line-through",
-  },
-};
-
-const STEP_KEYS = [
-  "salaryListReflection",
-  "noticeExecution",
-  "laborLawyerShare",
-  "smartHRReflection",
-] as const;
-
-function nextInCycle<T>(arr: T[], current: T): T {
-  const idx = arr.indexOf(current);
-  return arr[(idx + 1) % arr.length] ?? arr[0]!;
-}
 
 export function TaskList({
   tasks,
@@ -205,8 +168,14 @@ function TaskRow({
   const [localNotes, setLocalNotes] = useState(task.notes ?? "");
   const [savedNotes, setSavedNotes] = useState(task.notes ?? "");
 
+  useEffect(() => {
+    setLocalSteps(task.workflowSteps ?? { ...DEFAULT_STEPS });
+    setLocalNotes(task.notes ?? "");
+    setSavedNotes(task.notes ?? "");
+  }, [task.workflowSteps, task.notes]);
+
   const handleStep = (key: keyof WorkflowSteps) => {
-    const next = nextInCycle(STEP_CYCLE, localSteps[key]);
+    const next = nextStepStatus(localSteps[key]);
     const newSteps = { ...localSteps, [key]: next };
     setLocalSteps(newSteps);
     startTransition(async () => {
