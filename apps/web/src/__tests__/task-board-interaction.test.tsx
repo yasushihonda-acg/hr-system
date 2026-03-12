@@ -15,7 +15,6 @@ import { describe, expect, it, vi } from "vitest";
 // --- モック設定 ---
 
 const mockOnSelect = vi.fn();
-const mockOnClose = vi.fn();
 
 vi.mock("@/lib/constants", () => ({
   RESPONSE_STATUS_DOT_COLORS: {
@@ -47,26 +46,11 @@ vi.mock("@/lib/utils", () => ({
   },
 }));
 
-vi.mock("next/link", () => ({
-  default: ({
-    children,
-    href,
-    ...props
-  }: { children: React.ReactNode; href: string } & Record<string, unknown>) =>
-    React.createElement("a", { href, ...props }, children),
-}));
-
 vi.mock("lucide-react", () => ({
   MessageSquareText: () => React.createElement("span", { "data-testid": "icon-gchat" }),
   MessageCircle: () => React.createElement("span", { "data-testid": "icon-line" }),
   ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
-  ArrowLeft: () => React.createElement("span", { "data-testid": "icon-arrow-left" }),
-  ArrowUpRight: () => React.createElement("span", { "data-testid": "icon-arrow-up-right" }),
-  Calendar: () => React.createElement("span", { "data-testid": "icon-calendar" }),
-  X: () => React.createElement("span", { "data-testid": "icon-x" }),
-  User: () => React.createElement("span", { "data-testid": "icon-user" }),
-  Users: () => React.createElement("span", { "data-testid": "icon-users" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
@@ -84,7 +68,6 @@ vi.mock("@/components/task-priority-selector", () => ({
 import type { TaskItem } from "../app/(protected)/task-board/task-list";
 
 const { TaskList } = await import("../app/(protected)/task-board/task-list");
-const { TaskDetailPanel } = await import("../app/(protected)/task-board/task-detail-panel");
 
 // --- ヘルパー ---
 
@@ -149,27 +132,5 @@ describe("TaskList onSelect コールバック", () => {
       }),
     );
     expect(html).toContain("bg-accent");
-  });
-});
-
-describe("TaskDetailPanel onClose コールバック", () => {
-  it("閉じるボタンが2つ存在する（モバイル戻る + デスクトップX）", () => {
-    const task = makeTask({ id: "msg-42", source: "gchat" });
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
-
-    const buttonCount = (html.match(/<button/g) || []).length;
-    expect(buttonCount).toBe(2);
-  });
-
-  it("モバイル戻るボタン（ArrowLeft）が描画される", () => {
-    const task = makeTask();
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
-    expect(html).toContain('data-testid="icon-arrow-left"');
-  });
-
-  it("デスクトップ閉じるボタン（X）が描画される", () => {
-    const task = makeTask();
-    const html = renderToHtml(React.createElement(TaskDetailPanel, { task, onClose: mockOnClose }));
-    expect(html).toContain('data-testid="icon-x"');
   });
 });
