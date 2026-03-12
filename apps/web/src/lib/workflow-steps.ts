@@ -30,5 +30,5 @@ export const STEP_KEYS = [
 
 export function nextStepStatus(current: WorkflowStepStatus): WorkflowStepStatus {
   const idx = STEP_CYCLE.indexOf(current);
-  return STEP_CYCLE[(idx + 1) % STEP_CYCLE.length] ?? STEP_CYCLE[0];
+  return STEP_CYCLE[(idx + 1) % STEP_CYCLE.length] as WorkflowStepStatus;
 }
