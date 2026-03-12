@@ -75,7 +75,7 @@ export function TaskPriorityDot({ priority }: { priority: TaskPriority | null })
 
   if (priority === "critical") {
     return (
-      <span className="inline-flex items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[10px] font-bold text-red-700 animate-pulse">
+      <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[10px] font-bold text-red-700 animate-pulse whitespace-nowrap">
         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
         {opt.label}
       </span>

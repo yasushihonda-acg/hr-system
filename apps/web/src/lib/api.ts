@@ -168,6 +168,7 @@ export interface ChatMessageListParams {
   category?: string;
   responseStatus?: "unresponded" | "in_progress" | "responded" | "not_required";
   maxConfidence?: number;
+  hasTaskPriority?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -180,6 +181,7 @@ export function getChatMessages(params?: ChatMessageListParams) {
   if (params?.category) sp.set("category", params.category);
   if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
   if (params?.maxConfidence !== undefined) sp.set("maxConfidence", String(params.maxConfidence));
+  if (params?.hasTaskPriority) sp.set("hasTaskPriority", "true");
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.offset) sp.set("offset", String(params.offset));
   const qs = sp.toString();
@@ -440,6 +442,7 @@ export function getOverridePatterns() {
 export interface LineMessageListParams {
   groupId?: string;
   responseStatus?: ResponseStatus;
+  hasTaskPriority?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -448,6 +451,7 @@ export function getLineMessages(params?: LineMessageListParams) {
   const sp = new URLSearchParams();
   if (params?.groupId) sp.set("groupId", params.groupId);
   if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
+  if (params?.hasTaskPriority) sp.set("hasTaskPriority", "true");
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.offset) sp.set("offset", String(params.offset));
   const qs = sp.toString();

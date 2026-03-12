@@ -23,6 +23,7 @@ const listQuerySchema = z.object({
   category: z.enum(CHAT_CATEGORIES).optional(),
   responseStatus: z.enum(RESPONSE_STATUSES).optional(),
   maxConfidence: z.coerce.number().min(0).max(1).optional(),
+  hasTaskPriority: z.enum(["true"]).optional(),
   limit: z.string().optional(),
   offset: z.string().optional(),
 });
@@ -60,6 +61,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     category,
     responseStatus,
     maxConfidence,
+    hasTaskPriority,
     limit,
     offset,
   } = c.req.valid("query");
@@ -75,7 +77,10 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
 
   // Intent 系フィルタ（別コレクション依存のため Firestore クエリ不可）
   const hasIntentFilter =
-    category !== undefined || responseStatus !== undefined || maxConfidence !== undefined;
+    category !== undefined ||
+    responseStatus !== undefined ||
+    maxConfidence !== undefined ||
+    hasTaskPriority !== undefined;
 
   let query = collections.chatMessages.orderBy("createdAt", "desc") as FirebaseFirestore.Query;
 
@@ -94,8 +99,10 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     // ChatMessage レベルのポストフィルタが不要か判定
     const hasChatFilter =
       spaceId !== undefined || messageType !== undefined || threadName !== undefined;
-    // Firestore ページネーション可能: ChatMessage フィルタなし & maxConfidence なし
-    const canPaginateAtFirestore = !hasChatFilter && maxConfidence === undefined;
+    // Firestore ページネーション可能: ChatMessage フィルタなし & maxConfidence なし & hasTaskPriority なし
+    // (in + orderBy は複合インデックスが必要なため hasTaskPriority 時はメモリ内ページネーション)
+    const canPaginateAtFirestore =
+      !hasChatFilter && maxConfidence === undefined && hasTaskPriority === undefined;
 
     // 1. IntentRecords をネイティブフィルタでクエリ
     let intentQuery = collections.intentRecords as FirebaseFirestore.Query;
@@ -104,6 +111,9 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     }
     if (responseStatus) {
       intentQuery = intentQuery.where("responseStatus", "==", responseStatus);
+    }
+    if (hasTaskPriority) {
+      intentQuery = intentQuery.where("taskPriority", "in", TASK_PRIORITIES);
     }
 
     let intentDocs: FirebaseFirestore.QueryDocumentSnapshot[];

@@ -57,10 +57,14 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const page = Math.max(1, Number(params.page) || 1);
   const selectedId = params.id ?? null;
 
-  // 全ソースを並列取得
+  // 全ソースを並列取得（hasTaskPriority でタスク優先度付きのみ取得）
   const [chatResult, lineResult, manualResult] = await Promise.all([
-    sourceFilter === "all" || sourceFilter === "gchat" ? getChatMessages({ limit: 200 }) : null,
-    sourceFilter === "all" || sourceFilter === "line" ? getLineMessages({ limit: 200 }) : null,
+    sourceFilter === "all" || sourceFilter === "gchat"
+      ? getChatMessages({ hasTaskPriority: true, limit: 200 })
+      : null,
+    sourceFilter === "all" || sourceFilter === "line"
+      ? getLineMessages({ hasTaskPriority: true, limit: 200 })
+      : null,
     sourceFilter === "all" || sourceFilter === "manual" ? getManualTasks({ limit: 200 }) : null,
   ]);
 
@@ -98,8 +102,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         taskPriority: msg.taskPriority,
         responseStatus: msg.responseStatus,
         taskSummary: null,
-        assignees: null,
-        deadline: null,
+        assignees: msg.assignees ?? null,
+        deadline: msg.deadline ?? null,
         groupName: msg.groupName,
         createdAt: msg.createdAt,
       });

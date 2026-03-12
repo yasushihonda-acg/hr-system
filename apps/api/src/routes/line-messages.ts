@@ -12,6 +12,7 @@ import { toISO } from "../lib/serialize.js";
 const listQuerySchema = z.object({
   groupId: z.string().optional(),
   responseStatus: z.enum(RESPONSE_STATUSES).optional(),
+  hasTaskPriority: z.enum(["true"]).optional(),
   limit: z.string().optional(),
   offset: z.string().optional(),
 });
@@ -22,12 +23,55 @@ export const lineMessageRoutes = new Hono();
 // GET /api/line-messages — LINE メッセージ一覧
 // ---------------------------------------------------------------------------
 lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
-  const { groupId, responseStatus, limit, offset } = c.req.valid("query");
+  const { groupId, responseStatus, hasTaskPriority, limit, offset } = c.req.valid("query");
   const { limit: lim, offset: off } = parsePagination({ limit, offset });
   const actorRole = c.get("actorRole");
 
   if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
     return c.json({ error: "Forbidden" }, 403);
+  }
+
+  // hasTaskPriority フィルタ: in + orderBy は複合インデックスが必要なため
+  // 別パスでクエリしメモリ内でソート・ページネーション
+  if (hasTaskPriority) {
+    let tpQuery = collections.lineMessages.where("taskPriority", "in", [
+      ...TASK_PRIORITIES,
+    ]) as FirebaseFirestore.Query;
+    if (groupId) tpQuery = tpQuery.where("groupId", "==", groupId);
+    if (responseStatus) tpQuery = tpQuery.where("responseStatus", "==", responseStatus);
+
+    const tpSnap = await tpQuery.limit(500).get();
+    const allDocs = tpSnap.docs.sort((a, b) => {
+      const aTime = (a.data().createdAt as FirebaseFirestore.Timestamp)?.toMillis?.() ?? 0;
+      const bTime = (b.data().createdAt as FirebaseFirestore.Timestamp)?.toMillis?.() ?? 0;
+      return bTime - aTime;
+    });
+    const paged = allDocs.slice(off, off + lim);
+    const hasMore = off + lim < allDocs.length;
+
+    const data = paged.map((doc) => {
+      const msg = doc.data() as Record<string, unknown>;
+      return {
+        id: doc.id,
+        groupId: msg.groupId as string,
+        groupName: (msg.groupName as string) ?? null,
+        senderUserId: msg.senderUserId as string,
+        senderName: msg.senderName as string,
+        content: msg.content as string,
+        contentUrl: (msg.contentUrl as string) ?? null,
+        lineMessageType: msg.lineMessageType as string,
+        taskPriority: (msg.taskPriority as string) ?? null,
+        assignees: (msg.assignees as string) ?? null,
+        deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
+        responseStatus: (msg.responseStatus as string) ?? "unresponded",
+        createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
+      };
+    });
+
+    return c.json({
+      data,
+      pagination: { limit: lim, offset: off, hasMore },
+    });
   }
 
   let query = collections.lineMessages.orderBy("createdAt", "desc") as FirebaseFirestore.Query;
