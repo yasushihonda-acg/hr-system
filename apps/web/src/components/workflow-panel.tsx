@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, Check, Circle, Minus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { WorkflowStepStatus, WorkflowSteps } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -28,6 +28,10 @@ interface WorkflowPanelProps {
 export function WorkflowPanel({ steps, onUpdate, compact = false }: WorkflowPanelProps) {
   const [localSteps, setLocalSteps] = useState<WorkflowSteps>(steps ?? { ...DEFAULT_STEPS });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalSteps(steps ?? { ...DEFAULT_STEPS });
+  }, [steps]);
 
   async function handleToggle(key: keyof WorkflowSteps) {
     const next = nextStepStatus(localSteps[key]);
