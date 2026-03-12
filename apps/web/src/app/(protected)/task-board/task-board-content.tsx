@@ -3,7 +3,15 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
@@ -37,10 +45,14 @@ interface Props {
   children: React.ReactNode;
 }
 
+/** 子コンポーネントからタスク選択を操作するための Context */
+const SelectTaskContext = createContext<(id: string) => void>(() => {});
+export const useSelectTask = () => useContext(SelectTaskContext);
+
 /**
  * タスクボードのメインコンテンツ（クライアントコンポーネント）。
  *
- * 選択状態を useState で管理し、URL 同期は history.replaceState で行う。
+ * 選択状態を useState で管理し、URL 同期は router.replace で行う。
  * タスク選択時に Server Action 経由で詳細データを取得し、受信箱と同等の
  * DetailPane を表示する。
  */
@@ -139,7 +151,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
   const hasDetail = chatDetail || lineDetail || isManualTask;
 
   return (
-    <>
+    <SelectTaskContext.Provider value={setSelectedId}>
       {/* フィルターヘッダー（選択中はモバイルで非表示） */}
       <div
         className={cn(
@@ -218,7 +230,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
           </div>
         )}
       </div>
-    </>
+    </SelectTaskContext.Provider>
   );
 }
 
