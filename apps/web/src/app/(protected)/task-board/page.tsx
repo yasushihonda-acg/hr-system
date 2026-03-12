@@ -1,7 +1,9 @@
-import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
+import type { ChatCategory, ResponseStatus, TaskPriority } from "@hr-system/shared";
+import { CHAT_CATEGORIES } from "@hr-system/shared";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
+import { CATEGORY_LABELS } from "@/lib/constants";
 import { ManualTaskCreateButton } from "./manual-task-form";
 import { TaskBoardContent } from "./task-board-content";
 import type { TaskItem } from "./task-list";
@@ -30,6 +32,11 @@ const STATUS_TABS: { value: ResponseStatus | "all"; label: string }[] = [
   { value: "responded", label: "対応済" },
 ];
 
+const CATEGORY_TABS: { value: ChatCategory | "all"; label: string }[] = [
+  { value: "all", label: "すべて" },
+  ...CHAT_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] ?? c })),
+];
+
 const PRIORITY_ORDER: Record<TaskPriority, number> = {
   critical: 0,
   high: 1,
@@ -44,6 +51,7 @@ interface Props {
     priority?: string;
     source?: string;
     status?: string;
+    category?: string;
     page?: string;
     id?: string;
   }>;
@@ -54,6 +62,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const priorityFilter = (params.priority as TaskPriority | undefined) ?? undefined;
   const sourceFilter: Source = (params.source as Source) ?? "all";
   const statusFilter = (params.status as ResponseStatus | undefined) ?? undefined;
+  const categoryFilter = (params.category as ChatCategory | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
   const selectedId = params.id ?? null;
 
@@ -87,6 +96,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         deadline: msg.intent?.deadline ?? null,
         groupName: null,
         chatUrl: `https://chat.google.com/room/${msg.spaceId}/${msg.googleMessageId}`,
+        category: msg.intent?.category ?? null,
         createdAt: msg.createdAt,
       });
     }
@@ -107,6 +117,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         deadline: msg.deadline ?? null,
         groupName: msg.groupName,
         chatUrl: null,
+        category: null,
         createdAt: msg.createdAt,
       });
     }
@@ -126,6 +137,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         deadline: task.deadline,
         groupName: null,
         chatUrl: null,
+        category: null,
         createdAt: task.createdAt,
       });
     }
@@ -138,6 +150,9 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   }
   if (statusFilter) {
     filtered = filtered.filter((t) => t.responseStatus === statusFilter);
+  }
+  if (categoryFilter) {
+    filtered = filtered.filter((t) => t.category === categoryFilter);
   }
 
   // 優先度順 → 日時降順でソート
@@ -159,16 +174,19 @@ export default async function TaskBoardPage({ searchParams }: Props) {
     priority?: string;
     source?: string;
     status?: string;
+    category?: string;
     page?: string;
   }) {
     const sp = new URLSearchParams();
     const p = "priority" in overrides ? overrides.priority : params.priority;
     const src = "source" in overrides ? overrides.source : params.source;
     const s = "status" in overrides ? overrides.status : params.status;
+    const cat = "category" in overrides ? overrides.category : params.category;
     const pg = "page" in overrides ? overrides.page : params.page;
     if (p && p !== "all") sp.set("priority", p);
     if (src && src !== "all") sp.set("source", src);
     if (s && s !== "all") sp.set("status", s);
+    if (cat && cat !== "all") sp.set("category", cat);
     if (pg && pg !== "1") sp.set("page", pg);
     // フィルター切替時は選択を維持
     if (params.id) sp.set("id", params.id);
@@ -248,6 +266,26 @@ export default async function TaskBoardPage({ searchParams }: Props) {
                   })}
                   className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                     isActive ? "bg-slate-700 text-white" : "text-slate-500 hover:bg-slate-100"
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </div>
+          <span className="text-slate-300">|</span>
+          <div className="flex flex-wrap gap-1">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = tab.value === "all" ? !categoryFilter : categoryFilter === tab.value;
+              return (
+                <Link
+                  key={tab.value}
+                  href={buildUrl({
+                    category: tab.value === "all" ? undefined : tab.value,
+                    page: "1",
+                  })}
+                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                    isActive ? "bg-slate-600 text-white" : "text-slate-500 hover:bg-slate-100"
                   }`}
                 >
                   {tab.label}

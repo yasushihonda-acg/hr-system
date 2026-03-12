@@ -3,7 +3,11 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { ClipboardEdit, Clock, ExternalLink, MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
-import { RESPONSE_STATUS_BADGE_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
+import {
+  CATEGORY_LABELS,
+  RESPONSE_STATUS_BADGE_COLORS,
+  RESPONSE_STATUS_LABELS,
+} from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
 import { taskCompositeId } from "./task-composite-id";
 
@@ -19,6 +23,7 @@ export interface TaskItem {
   deadline: string | null;
   groupName: string | null;
   chatUrl: string | null;
+  category: string | null;
   createdAt: string;
 }
 
@@ -55,7 +60,7 @@ export function TaskList({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1100px] text-xs">
+      <table className="w-full min-w-[1200px] text-xs">
         <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
           <tr>
             <th className="w-10 px-2 py-2.5 text-center font-semibold text-muted-foreground">No</th>
@@ -76,6 +81,9 @@ export function TaskList({
             </th>
             <th className="w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground">
               ソース
+            </th>
+            <th className="w-20 px-2 py-2.5 text-center font-semibold text-muted-foreground">
+              カテゴリ
             </th>
             <th className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground">
               割り振り
@@ -186,6 +194,17 @@ export function TaskList({
                     {SOURCE_ICONS[task.source]}
                     <span className="text-muted-foreground">{SOURCE_LABELS[task.source]}</span>
                   </span>
+                </td>
+
+                {/* カテゴリ */}
+                <td className="px-2 py-2.5 text-center">
+                  {task.category ? (
+                    <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+                      {CATEGORY_LABELS[task.category] ?? task.category}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
                 </td>
 
                 {/* 割り振り */}
