@@ -3,21 +3,14 @@
 import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import type { ChatMessageSummary, WorkflowStepStatus, WorkflowSteps } from "@/lib/types";
+import type { ChatMessageSummary, WorkflowSteps } from "@/lib/types";
 import { buildMessageSearchUrl, formatDateJST } from "@/lib/utils";
+import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG } from "@/lib/workflow-steps";
 import { updateResponseStatusAction, updateWorkflowAction } from "./[id]/actions";
 
 type ResponseStatus = NonNullable<ChatMessageSummary["intent"]>["responseStatus"];
 
 const RS_CYCLE: ResponseStatus[] = ["unresponded", "in_progress", "responded", "not_required"];
-const STEP_CYCLE: WorkflowStepStatus[] = ["undetermined", "completed", "not_required"];
-
-const DEFAULT_STEPS: WorkflowSteps = {
-  salaryListReflection: "undetermined",
-  noticeExecution: "undetermined",
-  laborLawyerShare: "undetermined",
-  smartHRReflection: "undetermined",
-};
 
 const RS_CONFIG: Record<ResponseStatus, { label: string; cls: string }> = {
   unresponded: { label: "未対応", cls: "bg-rose-50 text-rose-700 border border-rose-200" },
@@ -26,21 +19,9 @@ const RS_CONFIG: Record<ResponseStatus, { label: string; cls: string }> = {
   not_required: { label: "不要", cls: "bg-muted text-muted-foreground border border-border" },
 };
 
-const STEP_CONFIG: Record<WorkflowStepStatus, { label: string; cls: string }> = {
-  undetermined: { label: "ー", cls: "text-muted-foreground bg-muted/50 border border-border" },
-  completed: {
-    label: "✓",
-    cls: "text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold",
-  },
-  not_required: {
-    label: "✗",
-    cls: "text-muted-foreground bg-muted border border-border line-through",
-  },
-};
-
 function nextInCycle<T>(arr: T[], current: T): T {
   const idx = arr.indexOf(current);
-  return arr[(idx + 1) % arr.length] ?? arr[0]!;
+  return arr[(idx + 1) % arr.length] ?? (arr[0] as T);
 }
 
 const formatDate = formatDateJST;
@@ -79,7 +60,7 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
   };
 
   const handleStep = (key: keyof WorkflowSteps) => {
-    const next = nextInCycle(STEP_CYCLE, state.workflowSteps[key]);
+    const next = nextStepStatus(state.workflowSteps[key]);
     const newSteps = { ...state.workflowSteps, [key]: next };
     setState((s) => ({ ...s, workflowSteps: newSteps }));
     startTransition(async () => {
