@@ -99,25 +99,25 @@ export function TaskList({
             <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">期限</th>
             <th
               className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❶条件通知書SS反映"
+              title="❶SS反映"
             >
               ❶
             </th>
             <th
               className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❷通知・締結"
+              title="❷SmartHR反映"
             >
               ❷
             </th>
             <th
               className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❸社労士共有"
+              title="❸通知・締結"
             >
               ❸
             </th>
             <th
               className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❹SmartHR反映"
+              title="❹社労士共有"
             >
               ❹
             </th>
