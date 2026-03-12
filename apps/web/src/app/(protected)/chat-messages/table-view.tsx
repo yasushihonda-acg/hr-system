@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ChatMessageSummary, WorkflowSteps } from "@/lib/types";
 import { buildMessageSearchUrl, formatDateJST } from "@/lib/utils";
-import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG } from "@/lib/workflow-steps";
+import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG, STEP_KEYS } from "@/lib/workflow-steps";
 import { updateResponseStatusAction, updateWorkflowAction } from "./[id]/actions";
 
 type ResponseStatus = NonNullable<ChatMessageSummary["intent"]>["responseStatus"];
@@ -152,14 +152,7 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
       </td>
 
       {/* ❶〜❹ */}
-      {(
-        [
-          "salaryListReflection",
-          "noticeExecution",
-          "laborLawyerShare",
-          "smartHRReflection",
-        ] as const
-      ).map((key) => (
+      {STEP_KEYS.map((key) => (
         <td key={key} className="w-10 px-1 py-2 text-center">
           <button
             type="button"
@@ -219,25 +212,25 @@ export function TableView({
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❶条件通知書SS反映"
+              title="❶SS反映"
             >
               ❶
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❷通知・締結"
+              title="❷SmartHR反映"
             >
               ❷
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❸社労士共有"
+              title="❸通知・締結"
             >
               ❸
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❹SmartHR反映"
+              title="❹社労士共有"
             >
               ❹
             </th>

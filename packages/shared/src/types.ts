@@ -120,7 +120,12 @@ export const TASK_PRIORITIES = ["critical", "high", "medium", "low"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 
 /** ワークフローステップの進捗状況 */
-export const WORKFLOW_STEP_STATUSES = ["undetermined", "completed", "not_required"] as const;
+export const WORKFLOW_STEP_STATUSES = [
+  "undetermined",
+  "completed",
+  "not_required",
+  "pending",
+] as const;
 export type WorkflowStepStatus = (typeof WORKFLOW_STEP_STATUSES)[number];
 
 /** チャットスペース設定 */
@@ -136,10 +141,10 @@ export interface ChatSpaceConfig {
 export interface WorkflowSteps {
   /** ❶条件通知書（変更）の職員給与一覧SSへの反映 */
   salaryListReflection: WorkflowStepStatus;
-  /** ❷条件通知書（変更）の通知、締結 */
-  noticeExecution: WorkflowStepStatus;
-  /** ❸条件通知書（変更）の社労士共有 */
-  laborLawyerShare: WorkflowStepStatus;
-  /** ❹SmartHRへの反映 */
+  /** ❷SmartHRへの反映 */
   smartHRReflection: WorkflowStepStatus;
+  /** ❸条件通知書（変更）の通知、締結 */
+  noticeExecution: WorkflowStepStatus;
+  /** ❹条件通知書（変更）の社労士共有 */
+  laborLawyerShare: WorkflowStepStatus;
 }
