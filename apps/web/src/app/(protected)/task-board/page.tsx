@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/constants";
+import { FilterSelect } from "./filter-select";
 import { ManualTaskCreateButton } from "./manual-task-form";
 import { TaskBoardContent } from "./task-board-content";
 import type { TaskItem } from "./task-list";
@@ -203,102 +204,34 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
       <TaskBoardContent tasks={paged} initialSelectedId={selectedId} pageOffset={offset}>
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold tracking-tight">タスク一覧</h1>
-            <ManualTaskCreateButton />
+        <div className="flex items-center gap-3">
+          <h1 className="text-base font-bold tracking-tight">タスク一覧</h1>
+          <ManualTaskCreateButton />
+          <div className="flex items-center gap-2">
+            <FilterSelect
+              options={PRIORITY_TABS}
+              currentValue={priorityFilter ?? "all"}
+              buildUrl={(v) => buildUrl({ priority: v === "all" ? undefined : v, page: "1" })}
+            />
+            <FilterSelect
+              options={SOURCE_TABS}
+              currentValue={sourceFilter}
+              buildUrl={(v) => buildUrl({ source: v === "all" ? undefined : v, page: "1" })}
+            />
+            <FilterSelect
+              options={STATUS_TABS}
+              currentValue={statusFilter ?? "all"}
+              buildUrl={(v) => buildUrl({ status: v === "all" ? undefined : v, page: "1" })}
+            />
+            <FilterSelect
+              options={CATEGORY_TABS}
+              currentValue={categoryFilter ?? "all"}
+              buildUrl={(v) => buildUrl({ category: v === "all" ? undefined : v, page: "1" })}
+            />
           </div>
-          <span className="text-xs text-muted-foreground">
+          <span className="ml-auto text-xs tabular-nums text-muted-foreground">
             {totalCount}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
           </span>
-        </div>
-
-        {/* フィルター: 優先度 */}
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {PRIORITY_TABS.map((tab) => {
-            const isActive = tab.value === "all" ? !priorityFilter : priorityFilter === tab.value;
-            return (
-              <Link
-                key={tab.value}
-                href={buildUrl({
-                  priority: tab.value === "all" ? undefined : tab.value,
-                  page: "1",
-                })}
-                className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  isActive
-                    ? tab.value === "critical"
-                      ? "bg-red-600 text-white"
-                      : "bg-slate-900 text-white"
-                    : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* フィルター: ソース + ステータス */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex gap-1">
-            {SOURCE_TABS.map((tab) => {
-              const isActive = sourceFilter === tab.value;
-              return (
-                <Link
-                  key={tab.value}
-                  href={buildUrl({
-                    source: tab.value === "all" ? undefined : tab.value,
-                    page: "1",
-                  })}
-                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                    isActive ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
-          <span className="text-slate-300">|</span>
-          <div className="flex gap-1">
-            {STATUS_TABS.map((tab) => {
-              const isActive = tab.value === "all" ? !statusFilter : statusFilter === tab.value;
-              return (
-                <Link
-                  key={tab.value}
-                  href={buildUrl({
-                    status: tab.value === "all" ? undefined : tab.value,
-                    page: "1",
-                  })}
-                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                    isActive ? "bg-slate-700 text-white" : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
-          <span className="text-slate-300">|</span>
-          <div className="flex flex-wrap gap-1">
-            {CATEGORY_TABS.map((tab) => {
-              const isActive = tab.value === "all" ? !categoryFilter : categoryFilter === tab.value;
-              return (
-                <Link
-                  key={tab.value}
-                  href={buildUrl({
-                    category: tab.value === "all" ? undefined : tab.value,
-                    page: "1",
-                  })}
-                  className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                    isActive ? "bg-slate-600 text-white" : "text-slate-500 hover:bg-slate-100"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
         </div>
       </TaskBoardContent>
 
