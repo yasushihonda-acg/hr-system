@@ -533,6 +533,7 @@ export function createManualTask(body: {
   taskPriority: TaskPriority;
   responseStatus?: ResponseStatus;
   assignees?: string | null;
+  deadline?: string | null;
 }) {
   return request<ManualTaskSummary>("/api/manual-tasks", {
     method: "POST",

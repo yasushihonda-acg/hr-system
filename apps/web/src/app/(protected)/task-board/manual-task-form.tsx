@@ -4,6 +4,7 @@ import type { TaskPriority } from "@hr-system/shared";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Calendar as CalendarIcon, Plus, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { createManualTaskAction } from "./actions";
 
 export function ManualTaskCreateButton() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [priority, setPriority] = useState<TaskPriority>("medium");
@@ -102,7 +104,7 @@ export function ManualTaskCreateButton() {
     if (!title) return;
 
     startTransition(async () => {
-      await createManualTaskAction({
+      const result = await createManualTaskAction({
         title,
         content: (formData.get("content") as string) || "",
         taskPriority: priority,
@@ -110,6 +112,15 @@ export function ManualTaskCreateButton() {
         deadline: deadline ? `${format(deadline, "yyyy-MM-dd")}T00:00:00+09:00` : null,
       });
       handleClose();
+
+      // 作成されたタスクを自動選択（詳細パネルを開く）
+      const url = new URL(window.location.href);
+      const currentSource = url.searchParams.get("source");
+      if (currentSource && currentSource !== "all" && currentSource !== "manual") {
+        url.searchParams.delete("source");
+      }
+      url.searchParams.set("id", `manual-${result.id}`);
+      router.push(url.pathname + url.search);
     });
   };
 
