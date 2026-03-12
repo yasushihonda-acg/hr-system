@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-12（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `b7c3ead` — chore: PR #134 で移動済みの旧 ai-settings/page.tsx を削除）
+**ブランチ**: `main`（最新コミット: `d4dd9b2` — fix: 手動タスク作成後のタスク自動選択を Context 経由に変更 (#272)）
 
 ---
 
@@ -30,6 +30,18 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: 手動タスク作成後のタスク自動選択を Context 経由に変更 (#272) (d4dd9b2)
+- タスク自動選択ロジックを props 経由から Context 経由に変更（クライアント側エラー修正の後続対応）
+- CI: Deploy to Cloud Run — success
+
+### fix: 手動タスク削除時のクライアントエラーを修正 (#271) (e2bb775)
+- 手動タスク削除時に発生していたクライアントエラーを修正
+- CI: Deploy to Cloud Run — success
+
+### feat: 手動タスク作成後に作成タスクを自動選択して詳細パネル表示 (#269) (#270) (0196cc2)
+- 手動タスク作成後、作成したタスクを自動選択して詳細パネルに表示
+- CI: Deploy to Cloud Run — success
 
 ### chore: PR #134 で移動済みの旧 ai-settings/page.tsx を削除 (b7c3ead)
 - `apps/web/src/app/(protected)/ai-settings/page.tsx` を `git rm` で削除（残留ファイルのクリーンアップ）
