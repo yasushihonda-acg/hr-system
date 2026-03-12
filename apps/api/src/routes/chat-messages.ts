@@ -5,7 +5,6 @@ import {
   type ChatCategory,
   RESPONSE_STATUSES,
   TASK_PRIORITIES,
-  WORKFLOW_STEP_STATUSES,
   type WorkflowSteps,
 } from "@hr-system/shared";
 import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
@@ -14,6 +13,7 @@ import { z } from "zod";
 import { clearCache, getCached, setCache, TTL } from "../lib/cache.js";
 import { notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
+import { workflowStepsSchema } from "../lib/schemas.js";
 import { toISO, toISOOrNull } from "../lib/serialize.js";
 
 const listQuerySchema = z.object({
@@ -741,22 +741,13 @@ chatMessageRoutes.patch(
 // ---------------------------------------------------------------------------
 // PATCH /api/chat-messages/:id/workflow — 「作成案」ワークフロー管理フィールド更新
 // ---------------------------------------------------------------------------
-const workflowStepStatusSchema = z.enum(WORKFLOW_STEP_STATUSES);
-
 const patchWorkflowSchema = z.object({
   taskPriority: z.enum(TASK_PRIORITIES).nullable().optional(),
   taskSummary: z.string().max(500).nullable().optional(),
   assignees: z.string().max(200).nullable().optional(),
   deadline: z.string().datetime({ offset: true }).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
-  workflowSteps: z
-    .object({
-      salaryListReflection: workflowStepStatusSchema,
-      noticeExecution: workflowStepStatusSchema,
-      laborLawyerShare: workflowStepStatusSchema,
-      smartHRReflection: workflowStepStatusSchema,
-    })
-    .optional(),
+  workflowSteps: workflowStepsSchema.optional(),
 });
 
 chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema), async (c) => {

@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { forbidden, notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
+import { workflowStepsSchema } from "../lib/schemas.js";
 import { toISO, toISOOrNull } from "../lib/serialize.js";
 
 const createSchema = z.object({
@@ -26,6 +27,8 @@ const updateSchema = z
     responseStatus: z.enum(RESPONSE_STATUSES),
     assignees: z.string().max(200).nullable(),
     deadline: z.string().datetime({ offset: true }).nullable(),
+    notes: z.string().max(2000).nullable(),
+    workflowSteps: workflowStepsSchema,
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
@@ -48,6 +51,8 @@ function serialize(id: string, data: ManualTask) {
     responseStatus: data.responseStatus,
     assignees: data.assignees,
     deadline: toISOOrNull(data.deadline),
+    workflowSteps: data.workflowSteps ?? null,
+    notes: data.notes ?? null,
     createdBy: data.createdBy,
     createdByName: data.createdByName,
     createdAt: toISO(data.createdAt),
@@ -151,6 +156,12 @@ app.patch("/:id", zValidator("json", updateSchema), async (c) => {
   if (body.assignees !== undefined) updateData.assignees = body.assignees;
   if (body.deadline !== undefined)
     updateData.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;
+  if (body.notes !== undefined) updateData.notes = body.notes;
+  if (body.workflowSteps !== undefined) {
+    updateData.workflowSteps = body.workflowSteps;
+    updateData.workflowUpdatedBy = user.email;
+    updateData.workflowUpdatedAt = FieldValue.serverTimestamp();
+  }
 
   await docRef.update(updateData);
 

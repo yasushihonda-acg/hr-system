@@ -360,6 +360,8 @@ export interface LineMessageSummary {
   assignees: string | null;
   deadline: string | null;
   responseStatus: ResponseStatus;
+  workflowSteps: WorkflowSteps | null;
+  notes: string | null;
   createdAt: string;
 }
 
@@ -387,6 +389,8 @@ export interface ManualTaskSummary {
   responseStatus: ResponseStatus;
   assignees: string | null;
   deadline: string | null;
+  workflowSteps: WorkflowSteps | null;
+  notes: string | null;
   createdBy: string;
   createdByName: string;
   createdAt: string;

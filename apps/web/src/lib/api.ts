@@ -28,6 +28,7 @@ import type {
   SyncStatus,
   TestClassificationResult,
   TimelinePoint,
+  WorkflowSteps,
   WorkflowUpdateRequest,
 } from "@/lib/types";
 
@@ -495,7 +496,12 @@ export function updateLineTaskPriority(id: string, taskPriority: TaskPriority | 
 
 export function updateLineWorkflow(
   id: string,
-  body: { assignees?: string | null; deadline?: string | null },
+  body: {
+    assignees?: string | null;
+    deadline?: string | null;
+    notes?: string | null;
+    workflowSteps?: WorkflowSteps;
+  },
 ) {
   return request<{ success: boolean }>(`/api/line-messages/${encodeURIComponent(id)}/workflow`, {
     method: "PATCH",
@@ -553,6 +559,8 @@ export function updateManualTask(
     taskPriority?: TaskPriority;
     responseStatus?: ResponseStatus;
     assignees?: string | null;
+    notes?: string | null;
+    workflowSteps?: WorkflowSteps;
   },
 ) {
   return request<ManualTaskSummary>(`/api/manual-tasks/${encodeURIComponent(id)}`, {

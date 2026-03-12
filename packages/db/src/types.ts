@@ -309,6 +309,14 @@ export interface LineMessage {
   responseStatusUpdatedBy: string | null;
   /** 対応状況の最終更新日時 */
   responseStatusUpdatedAt: Timestamp | null;
+  /** ワークフローステップ（❶❷❸❹） */
+  workflowSteps?: WorkflowSteps | null;
+  /** メモ */
+  notes?: string | null;
+  /** ワークフロー最終更新者 */
+  workflowUpdatedBy?: string | null;
+  /** ワークフロー最終更新日時 */
+  workflowUpdatedAt?: Timestamp | null;
   /** 生ペイロード（将来の再解析用） */
   rawPayload: Record<string, unknown>;
   createdAt: Timestamp;
@@ -360,6 +368,14 @@ export interface ManualTask {
   assignees: string | null;
   /** 期限（任意） */
   deadline: Timestamp | null;
+  /** ワークフローステップ（❶❷❸❹） */
+  workflowSteps?: WorkflowSteps | null;
+  /** メモ */
+  notes?: string | null;
+  /** ワークフロー最終更新者 */
+  workflowUpdatedBy?: string | null;
+  /** ワークフロー最終更新日時 */
+  workflowUpdatedAt?: Timestamp | null;
   /** 作成者メール */
   createdBy: string;
   /** 作成者表示名 */

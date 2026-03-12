@@ -11,7 +11,11 @@ import {
 } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
 import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG, STEP_KEYS } from "@/lib/workflow-steps";
-import { updateWorkflowFromTaskBoard } from "./actions";
+import {
+  updateLineWorkflowFromTaskBoard,
+  updateManualWorkflowFromTaskBoard,
+  updateWorkflowFromTaskBoard,
+} from "./actions";
 import { taskCompositeId } from "./task-composite-id";
 
 export interface TaskItem {
@@ -159,8 +163,6 @@ function TaskRow({
   const isCritical = task.taskPriority === "critical";
   const compositeId = taskCompositeId(task);
   const isSelected = compositeId === selectedId;
-  const isGchat = task.source === "gchat";
-
   const [isPending, startTransition] = useTransition();
   const [localSteps, setLocalSteps] = useState<WorkflowSteps>(
     task.workflowSteps ?? { ...DEFAULT_STEPS },
@@ -174,12 +176,30 @@ function TaskRow({
     setSavedNotes(task.notes ?? "");
   }, [task.workflowSteps, task.notes]);
 
+  const saveWorkflow = async (body: { workflowSteps?: WorkflowSteps; notes?: string | null }) => {
+    switch (task.source) {
+      case "gchat":
+        await updateWorkflowFromTaskBoard(task.id, body);
+        break;
+      case "line":
+        await updateLineWorkflowFromTaskBoard(task.id, body);
+        break;
+      case "manual":
+        await updateManualWorkflowFromTaskBoard(task.id, body);
+        break;
+      default: {
+        const _exhaustive: never = task.source;
+        throw new Error(`Unknown source: ${_exhaustive}`);
+      }
+    }
+  };
+
   const handleStep = (key: keyof WorkflowSteps) => {
     const next = nextStepStatus(localSteps[key]);
     const newSteps = { ...localSteps, [key]: next };
     setLocalSteps(newSteps);
     startTransition(async () => {
-      await updateWorkflowFromTaskBoard(task.id, { workflowSteps: newSteps });
+      await saveWorkflow({ workflowSteps: newSteps });
     });
   };
 
@@ -187,7 +207,7 @@ function TaskRow({
     if (localNotes === savedNotes) return;
     setSavedNotes(localNotes);
     startTransition(async () => {
-      await updateWorkflowFromTaskBoard(task.id, { notes: localNotes || null });
+      await saveWorkflow({ notes: localNotes || null });
     });
   };
 
@@ -323,39 +343,31 @@ function TaskRow({
       {/* ❶〜❹ ワークフローステップ */}
       {STEP_KEYS.map((key) => (
         <td key={key} className="px-1 py-2.5 text-center">
-          {isGchat ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStep(key);
-              }}
-              disabled={isPending}
-              className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[localSteps[key]].cls}`}
-            >
-              {STEP_CONFIG[localSteps[key]].label}
-            </button>
-          ) : (
-            <span className="text-muted-foreground/40">—</span>
-          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStep(key);
+            }}
+            disabled={isPending}
+            className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[localSteps[key]].cls}`}
+          >
+            {STEP_CONFIG[localSteps[key]].label}
+          </button>
         </td>
       ))}
 
       {/* メモ */}
       <td className="px-2 py-1">
-        {isGchat ? (
-          <textarea
-            rows={1}
-            value={localNotes}
-            onChange={(e) => setLocalNotes(e.target.value)}
-            onBlur={handleNotesBlur}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="メモ"
-            className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
-          />
-        ) : (
-          <span className="text-muted-foreground/40">—</span>
-        )}
+        <textarea
+          rows={1}
+          value={localNotes}
+          onChange={(e) => setLocalNotes(e.target.value)}
+          onBlur={handleNotesBlur}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="メモ"
+          className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
+        />
       </td>
     </tr>
   );

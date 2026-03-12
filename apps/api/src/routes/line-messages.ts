@@ -1,12 +1,13 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections } from "@hr-system/db";
 import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
-import { Timestamp } from "firebase-admin/firestore";
+import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
 import { clearCache, getCached, setCache, TTL } from "../lib/cache.js";
 import { notFound } from "../lib/errors.js";
 import { parsePagination } from "../lib/pagination.js";
+import { workflowStepsSchema } from "../lib/schemas.js";
 import { toISO } from "../lib/serialize.js";
 
 const listQuerySchema = z.object({
@@ -64,6 +65,8 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
         assignees: (msg.assignees as string) ?? null,
         deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
         responseStatus: (msg.responseStatus as string) ?? "unresponded",
+        workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
+        notes: (msg.notes as string) ?? null,
         createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
       };
     });
@@ -105,6 +108,8 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       assignees: (msg.assignees as string) ?? null,
       deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
       responseStatus: (msg.responseStatus as string) ?? "unresponded",
+      workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
+      notes: (msg.notes as string) ?? null,
       createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
     };
   });
@@ -283,14 +288,21 @@ lineMessageRoutes.patch(
 // ---------------------------------------------------------------------------
 // PATCH /api/line-messages/:id/workflow — 担当者・期限更新
 // ---------------------------------------------------------------------------
-const updateWorkflowSchema = z.object({
-  assignees: z.string().nullable().optional(),
-  deadline: z.string().datetime({ offset: true }).nullable().optional(),
-});
+const updateWorkflowSchema = z
+  .object({
+    assignees: z.string().nullable().optional(),
+    deadline: z.string().datetime({ offset: true }).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
+    workflowSteps: workflowStepsSchema.optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "更新するフィールドを1つ以上指定してください",
+  });
 
 lineMessageRoutes.patch("/:id/workflow", zValidator("json", updateWorkflowSchema), async (c) => {
   const id = c.req.param("id");
   const body = c.req.valid("json");
+  const actor = c.get("user");
   const actorRole = c.get("actorRole");
 
   if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
@@ -307,6 +319,14 @@ lineMessageRoutes.patch("/:id/workflow", zValidator("json", updateWorkflowSchema
   }
   if ("deadline" in body) {
     updates.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;
+  }
+  if (body.notes !== undefined) {
+    updates.notes = body.notes;
+  }
+  if (body.workflowSteps !== undefined) {
+    updates.workflowSteps = body.workflowSteps;
+    updates.workflowUpdatedBy = actor.email;
+    updates.workflowUpdatedAt = FieldValue.serverTimestamp();
   }
 
   if (Object.keys(updates).length > 0) {

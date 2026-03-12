@@ -121,8 +121,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         groupName: msg.groupName,
         chatUrl: null,
         category: null,
-        workflowSteps: null,
-        notes: null,
+        workflowSteps: msg.workflowSteps ?? null,
+        notes: msg.notes ?? null,
         createdAt: msg.createdAt,
       });
     }
@@ -143,8 +143,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         groupName: null,
         chatUrl: null,
         category: null,
-        workflowSteps: null,
-        notes: null,
+        workflowSteps: task.workflowSteps ?? null,
+        notes: task.notes ?? null,
         createdAt: task.createdAt,
       });
     }
