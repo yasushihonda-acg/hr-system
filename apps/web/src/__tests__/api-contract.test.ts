@@ -30,6 +30,8 @@ import type {
   EmployeeSummary,
   IntentDetail,
   IntentSummary,
+  LineMessageSummary,
+  ManualTaskSummary,
 } from "../lib/types";
 
 // ---------------------------------------------------------------------------
@@ -479,5 +481,102 @@ describe("EmployeeDetail 契約", () => {
       },
     };
     expect(withSalary.currentSalary).not.toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 契約テスト: LineMessageSummary — workflowSteps / notes 対応
+// ---------------------------------------------------------------------------
+
+describe("LineMessageSummary 契約", () => {
+  const sampleLineMessage: LineMessageSummary = {
+    id: "line-001",
+    groupId: "group-001",
+    groupName: "有川チーム",
+    senderUserId: "U1234567890",
+    senderName: "佐藤 花子",
+    content: "給与変更をお願いします",
+    contentUrl: null,
+    lineMessageType: "text",
+    taskPriority: "medium",
+    assignees: null,
+    deadline: null,
+    responseStatus: "unresponded",
+    workflowSteps: null,
+    notes: null,
+    createdAt: "2026-03-01T09:00:00.000Z",
+  };
+
+  it("workflowSteps と notes フィールドが存在すること", () => {
+    expect(hasAllKeys(sampleLineMessage, ["workflowSteps", "notes"])).toBe(true);
+  });
+
+  it("workflowSteps が null 許容で WorkflowSteps 型を受け付けること", () => {
+    expect(sampleLineMessage.workflowSteps).toBeNull();
+
+    const withSteps: LineMessageSummary = {
+      ...sampleLineMessage,
+      workflowSteps: {
+        salaryListReflection: "completed",
+        smartHRReflection: "undetermined",
+        noticeExecution: "undetermined",
+        laborLawyerShare: "not_required",
+      },
+    };
+    expect(withSteps.workflowSteps).not.toBeNull();
+    expect(withSteps.workflowSteps?.salaryListReflection).toBe("completed");
+  });
+
+  it("notes が null 許容で string を受け付けること", () => {
+    expect(sampleLineMessage.notes).toBeNull();
+    const withNotes: LineMessageSummary = { ...sampleLineMessage, notes: "テストメモ" };
+    expect(withNotes.notes).toBe("テストメモ");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 契約テスト: ManualTaskSummary — workflowSteps / notes 対応
+// ---------------------------------------------------------------------------
+
+describe("ManualTaskSummary 契約", () => {
+  const sampleManualTask: ManualTaskSummary = {
+    id: "manual-001",
+    title: "手入力タスク",
+    content: "詳細メモ",
+    taskPriority: "high",
+    responseStatus: "unresponded",
+    assignees: null,
+    deadline: null,
+    workflowSteps: null,
+    notes: null,
+    createdBy: "admin@example.com",
+    createdByName: "管理者",
+    createdAt: "2026-03-01T09:00:00.000Z",
+    updatedAt: "2026-03-01T09:00:00.000Z",
+  };
+
+  it("workflowSteps と notes フィールドが存在すること", () => {
+    expect(hasAllKeys(sampleManualTask, ["workflowSteps", "notes"])).toBe(true);
+  });
+
+  it("workflowSteps が null 許容で WorkflowSteps 型を受け付けること", () => {
+    expect(sampleManualTask.workflowSteps).toBeNull();
+
+    const withSteps: ManualTaskSummary = {
+      ...sampleManualTask,
+      workflowSteps: {
+        salaryListReflection: "undetermined",
+        smartHRReflection: "completed",
+        noticeExecution: "pending",
+        laborLawyerShare: "undetermined",
+      },
+    };
+    expect(withSteps.workflowSteps).not.toBeNull();
+  });
+
+  it("notes が null 許容で string を受け付けること", () => {
+    expect(sampleManualTask.notes).toBeNull();
+    const withNotes: ManualTaskSummary = { ...sampleManualTask, notes: "手入力メモ" };
+    expect(withNotes.notes).toBe("手入力メモ");
   });
 });

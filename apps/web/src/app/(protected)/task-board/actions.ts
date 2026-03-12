@@ -19,6 +19,7 @@ import type {
   ChatMessageDetail,
   LineMessageDetail,
   ManualTaskSummary,
+  WorkflowSteps,
   WorkflowUpdateRequest,
 } from "@/lib/types";
 
@@ -147,6 +148,25 @@ export async function updateLineDeadlineFromTaskBoard(messageId: string, deadlin
   await requireAccess();
   await updateLineWorkflow(messageId, { deadline });
   revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateLineWorkflowFromTaskBoard(
+  messageId: string,
+  body: { workflowSteps?: WorkflowSteps; notes?: string | null },
+) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, body);
+  revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateManualWorkflowFromTaskBoard(
+  id: string,
+  body: { workflowSteps?: WorkflowSteps; notes?: string | null },
+) {
+  await requireAccess();
+  await updateManualTask(id, body);
   revalidatePath("/task-board");
 }
 
