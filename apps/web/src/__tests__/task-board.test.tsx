@@ -72,6 +72,10 @@ vi.mock("@/components/task-priority-selector", () => ({
       : null,
 }));
 
+vi.mock("../app/(protected)/task-board/actions", () => ({
+  updateWorkflowFromTaskBoard: vi.fn(),
+}));
+
 // --- インポート ---
 
 import type { TaskItem } from "../app/(protected)/task-board/task-list";
@@ -103,6 +107,8 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     groupName: null,
     chatUrl: null,
     category: null,
+    workflowSteps: null,
+    notes: null,
     createdAt: "2026-03-01T09:00:00Z",
     ...overrides,
   };
@@ -306,5 +312,80 @@ describe("TaskList", () => {
     expect(html).toContain("カテゴリ");
     // カテゴリ列にダッシュ（バッジなし）
     expect(html).not.toContain("給与・社保");
+  });
+
+  it("テーブルヘッダーにワークフローステップ列（❶❷❸❹）が存在する", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask()],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    expect(html).toContain("❶");
+    expect(html).toContain("❷");
+    expect(html).toContain("❸");
+    expect(html).toContain("❹");
+  });
+
+  it("テーブルヘッダーにメモ列が存在する", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask()],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    expect(html).toContain("メモ");
+  });
+
+  it("gchat タスクにワークフローステップボタンが表示される", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [
+          makeTask({
+            source: "gchat",
+            workflowSteps: {
+              salaryListReflection: "completed",
+              noticeExecution: "undetermined",
+              laborLawyerShare: "not_required",
+              smartHRReflection: "undetermined",
+            },
+          }),
+        ],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    // completed ステップの ✓ が表示される
+    expect(html).toContain("✓");
+    // not_required ステップの ✗ が表示される
+    expect(html).toContain("✗");
+    // undetermined ステップの ー が表示される
+    expect(html).toContain("ー");
+  });
+
+  it("LINE タスクではワークフローステップがダッシュ表示される", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask({ source: "line", workflowSteps: null })],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    // ボタンではなくダッシュ（button タグが ❶❷❸❹ 列に存在しない）
+    // LINE の場合、ワークフローステップのボタンは描画されない
+    expect(html).not.toContain("bg-emerald-50");
+  });
+
+  it("gchat タスクにメモ textarea が表示される", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask({ source: "gchat", notes: "テストメモ" })],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    expect(html).toContain("テストメモ");
   });
 });

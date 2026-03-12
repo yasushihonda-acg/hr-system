@@ -97,6 +97,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         groupName: null,
         chatUrl: `https://chat.google.com/room/${msg.spaceId}/${msg.googleMessageId}`,
         category: msg.intent?.category ?? null,
+        workflowSteps: msg.intent?.workflowSteps ?? null,
+        notes: msg.intent?.notes ?? null,
         createdAt: msg.createdAt,
       });
     }
@@ -118,6 +120,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         groupName: msg.groupName,
         chatUrl: null,
         category: null,
+        workflowSteps: null,
+        notes: null,
         createdAt: msg.createdAt,
       });
     }
@@ -138,6 +142,8 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         groupName: null,
         chatUrl: null,
         category: null,
+        workflowSteps: null,
+        notes: null,
         createdAt: task.createdAt,
       });
     }
