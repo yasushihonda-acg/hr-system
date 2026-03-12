@@ -42,6 +42,7 @@ import { TaskList } from "./task-list";
 interface Props {
   tasks: TaskItem[];
   initialSelectedId: string | null;
+  pageOffset?: number;
   children: React.ReactNode;
 }
 
@@ -56,7 +57,7 @@ export const useSelectTask = () => useContext(SelectTaskContext);
  * タスク選択時に Server Action 経由で詳細データを取得し、受信箱と同等の
  * DetailPane を表示する。
  */
-export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) {
+export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, children }: Props) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [chatDetail, setChatDetail] = useState<ChatMessageDetail | null>(null);
@@ -162,27 +163,26 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
         {children}
       </div>
 
-      {/* メインエリア: リスト + 詳細ペイン */}
+      {/* メインエリア: テーブル + 詳細ペイン */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 左: タスク一覧 (選択中はモバイルで非表示、lg ではリスト幅を固定) */}
+        {/* テーブル一覧 (選択中はモバイルで非表示) */}
         <div
           className={cn(
-            "overflow-y-auto",
-            selectedTask
-              ? "hidden md:block md:w-[320px] md:flex-shrink-0 md:border-r md:border-border/60"
-              : "flex-1",
+            "flex-1 overflow-y-auto",
+            selectedTask && "hidden md:block md:border-r md:border-border/60",
           )}
         >
           <TaskList
             tasks={tasks}
             selectedId={selectedTask ? selectedId : null}
             onSelect={setSelectedId}
+            pageOffset={pageOffset}
           />
         </div>
 
         {/* 右: 詳細ペイン（タスク選択時のみ表示） */}
         {selectedTask && (
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex w-full md:w-[420px] md:flex-shrink-0 overflow-hidden">
             {isPending || !hasDetail ? (
               <div className="flex flex-1 items-center justify-center">
                 <div className="text-center">

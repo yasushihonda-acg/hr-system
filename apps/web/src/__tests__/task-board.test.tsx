@@ -26,11 +26,21 @@ vi.mock("@/lib/constants", () => ({
     responded: "対応済",
     not_required: "対応不要",
   },
+  RESPONSE_STATUS_BADGE_COLORS: {
+    unresponded: "bg-red-100 text-red-800",
+    in_progress: "bg-yellow-100 text-yellow-800",
+    responded: "bg-green-100 text-green-800",
+    not_required: "bg-gray-100 text-gray-600",
+  },
 }));
 
 vi.mock("@/lib/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   formatDateTimeJST: (d: string) => new Date(d).toLocaleString("ja-JP"),
+  formatDateJST: (d: string) => {
+    const date = new Date(d);
+    return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+  },
 }));
 
 vi.mock("next/link", () => ({
@@ -45,6 +55,8 @@ vi.mock("next/link", () => ({
 vi.mock("lucide-react", () => ({
   MessageSquareText: () => React.createElement("span", { "data-testid": "icon-gchat" }),
   MessageCircle: () => React.createElement("span", { "data-testid": "icon-line" }),
+  ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
+  Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ArrowLeft: () => React.createElement("span", { "data-testid": "icon-arrow-left" }),
   ArrowUpRight: () => React.createElement("span", { "data-testid": "icon-arrow-up-right" }),
   Calendar: () => React.createElement("span", { "data-testid": "icon-calendar" }),
@@ -158,7 +170,7 @@ describe("TaskList", () => {
     expect(html).toContain('data-testid="icon-line"');
   });
 
-  it("タスクがボタン要素で描画され、選択時にハイライトされる", () => {
+  it("タスクがテーブル行で描画され、選択時にハイライトされる", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask({ id: "msg-42", source: "gchat" })],
@@ -166,9 +178,8 @@ describe("TaskList", () => {
         onSelect: mockOnSelect,
       }),
     );
-    expect(html).toContain("button");
+    expect(html).toContain("<tr");
     expect(html).toContain("bg-accent");
-    // 注: 実際のクリックイベントテストは task-board-interaction.test.tsx を参照
   });
 
   it("selectedId に一致するタスクがハイライトされる", () => {
@@ -182,7 +193,7 @@ describe("TaskList", () => {
     expect(html).toContain("bg-accent");
   });
 
-  it("critical タスクに赤い border-l が表示される", () => {
+  it("critical タスクに赤い背景が表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask({ taskPriority: "critical" })],
@@ -190,8 +201,7 @@ describe("TaskList", () => {
         onSelect: mockOnSelect,
       }),
     );
-    expect(html).toContain("border-l-4");
-    expect(html).toContain("border-l-red-500");
+    expect(html).toContain("bg-red-50");
   });
 
   it("LINE タスクにグループ名が表示される", () => {
@@ -225,7 +235,7 @@ describe("TaskList", () => {
         onSelect: mockOnSelect,
       }),
     );
-    expect(text).toContain("担当: 佐藤花子");
+    expect(text).toContain("佐藤花子");
   });
 
   it("対応状況ラベルが表示される", () => {

@@ -30,11 +30,21 @@ vi.mock("@/lib/constants", () => ({
     responded: "対応済",
     not_required: "対応不要",
   },
+  RESPONSE_STATUS_BADGE_COLORS: {
+    unresponded: "bg-red-100 text-red-800",
+    in_progress: "bg-yellow-100 text-yellow-800",
+    responded: "bg-green-100 text-green-800",
+    not_required: "bg-gray-100 text-gray-600",
+  },
 }));
 
 vi.mock("@/lib/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   formatDateTimeJST: (d: string) => new Date(d).toLocaleString("ja-JP"),
+  formatDateJST: (d: string) => {
+    const date = new Date(d);
+    return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
+  },
 }));
 
 vi.mock("next/link", () => ({
@@ -49,6 +59,8 @@ vi.mock("next/link", () => ({
 vi.mock("lucide-react", () => ({
   MessageSquareText: () => React.createElement("span", { "data-testid": "icon-gchat" }),
   MessageCircle: () => React.createElement("span", { "data-testid": "icon-line" }),
+  ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
+  Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ArrowLeft: () => React.createElement("span", { "data-testid": "icon-arrow-left" }),
   ArrowUpRight: () => React.createElement("span", { "data-testid": "icon-arrow-up-right" }),
   Calendar: () => React.createElement("span", { "data-testid": "icon-calendar" }),
@@ -100,7 +112,7 @@ function renderToHtml(element: React.ReactElement): string {
 // --- テスト ---
 
 describe("TaskList onSelect コールバック", () => {
-  it("各タスクにクリック可能なボタンが描画される", () => {
+  it("各タスクにクリック可能な行が描画される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [
@@ -111,9 +123,9 @@ describe("TaskList onSelect コールバック", () => {
         onSelect: mockOnSelect,
       }),
     );
-    // 2つのボタンが存在
-    const buttonCount = (html.match(/<button/g) || []).length;
-    expect(buttonCount).toBe(2);
+    // tbody 内に 2つの tr が存在（thead 1 + tbody 2）
+    const trCount = (html.match(/<tr[ >]/g) || []).length;
+    expect(trCount).toBe(3);
   });
 
   it("gchat タスクの複合ID形式が正しい（source-id）", () => {
