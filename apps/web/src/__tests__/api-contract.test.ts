@@ -408,6 +408,7 @@ describe("ChatMessageDetail 契約", () => {
 
   it("threadMessages の各要素が必須フィールドを持つこと", () => {
     expect(sampleChatMessageDetail.threadMessages.length).toBeGreaterThan(0);
+    // biome-ignore lint/style/noNonNullAssertion: length > 0 を上で確認済み
     const msg = sampleChatMessageDetail.threadMessages[0]!;
     expect(hasAllKeys(msg, ["id", "senderName", "content", "messageType", "createdAt"])).toBe(true);
   });
