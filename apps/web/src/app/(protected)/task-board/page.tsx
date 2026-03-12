@@ -177,6 +177,14 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const paged = filtered.slice(offset, offset + PAGE_SIZE);
   const hasMore = offset + PAGE_SIZE < totalCount;
 
+  // FilterSelect（Client Component）に渡すシリアライズ可能なsearchParams
+  const filterParams: Record<string, string> = {};
+  if (params.priority) filterParams.priority = params.priority;
+  if (params.source) filterParams.source = params.source;
+  if (params.status) filterParams.status = params.status;
+  if (params.category) filterParams.category = params.category;
+  if (params.id) filterParams.id = params.id;
+
   function buildUrl(overrides: {
     priority?: string;
     source?: string;
@@ -211,22 +219,26 @@ export default async function TaskBoardPage({ searchParams }: Props) {
             <FilterSelect
               options={PRIORITY_TABS}
               currentValue={priorityFilter ?? "all"}
-              buildUrl={(v) => buildUrl({ priority: v === "all" ? undefined : v, page: "1" })}
+              paramKey="priority"
+              searchParams={filterParams}
             />
             <FilterSelect
               options={SOURCE_TABS}
               currentValue={sourceFilter}
-              buildUrl={(v) => buildUrl({ source: v === "all" ? undefined : v, page: "1" })}
+              paramKey="source"
+              searchParams={filterParams}
             />
             <FilterSelect
               options={STATUS_TABS}
               currentValue={statusFilter ?? "all"}
-              buildUrl={(v) => buildUrl({ status: v === "all" ? undefined : v, page: "1" })}
+              paramKey="status"
+              searchParams={filterParams}
             />
             <FilterSelect
               options={CATEGORY_TABS}
               currentValue={categoryFilter ?? "all"}
-              buildUrl={(v) => buildUrl({ category: v === "all" ? undefined : v, page: "1" })}
+              paramKey="category"
+              searchParams={filterParams}
             />
           </div>
           <span className="ml-auto text-xs tabular-nums text-muted-foreground">
