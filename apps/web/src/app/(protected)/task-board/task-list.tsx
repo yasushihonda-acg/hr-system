@@ -3,7 +3,7 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { ClipboardEdit, Clock, MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
-import { RESPONSE_STATUS_DOT_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
+import { RESPONSE_STATUS_BADGE_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
 import { taskCompositeId } from "./task-composite-id";
 
@@ -21,14 +21,28 @@ export interface TaskItem {
   createdAt: string;
 }
 
+const SOURCE_LABELS: Record<TaskItem["source"], string> = {
+  gchat: "Chat",
+  line: "LINE",
+  manual: "手入力",
+};
+
+const SOURCE_ICONS: Record<TaskItem["source"], React.ReactNode> = {
+  gchat: <MessageSquareText size={12} className="text-muted-foreground" />,
+  line: <MessageCircle size={12} className="text-emerald-500" />,
+  manual: <ClipboardEdit size={12} className="text-blue-500" />,
+};
+
 export function TaskList({
   tasks,
   selectedId,
   onSelect,
+  pageOffset = 0,
 }: {
   tasks: TaskItem[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  pageOffset?: number;
 }) {
   if (tasks.length === 0) {
     return (
@@ -39,78 +53,130 @@ export function TaskList({
   }
 
   return (
-    <div className="divide-y divide-border/40">
-      {tasks.map((task) => {
-        const isCritical = task.taskPriority === "critical";
-        const compositeId = taskCompositeId(task);
-        const isSelected = compositeId === selectedId;
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[900px] text-xs">
+        <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
+          <tr>
+            <th className="w-10 px-2 py-2.5 text-center font-semibold text-muted-foreground">No</th>
+            <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">
+              発生日
+            </th>
+            <th className="w-14 px-2 py-2.5 text-center font-semibold text-muted-foreground">
+              優先度
+            </th>
+            <th className="min-w-[200px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
+              タスク内容
+            </th>
+            <th className="w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground">
+              ソース
+            </th>
+            <th className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground">
+              割り振り
+            </th>
+            <th className="w-20 px-2 py-2.5 text-center font-semibold text-muted-foreground">
+              ステータス
+            </th>
+            <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">期限</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/30">
+          {tasks.map((task, index) => {
+            const isCritical = task.taskPriority === "critical";
+            const compositeId = taskCompositeId(task);
+            const isSelected = compositeId === selectedId;
 
-        return (
-          <button
-            key={compositeId}
-            type="button"
-            onClick={() => onSelect(isSelected ? null : compositeId)}
-            className={cn(
-              "block w-full text-left px-5 py-3 transition-colors hover:bg-accent/50",
-              isCritical && "border-l-4 border-l-red-500 bg-red-50/50 hover:bg-red-50",
-              isSelected && !isCritical && "bg-accent",
-              isSelected && isCritical && "bg-red-100/70",
-            )}
-          >
-            <div className="flex items-center gap-2">
-              {/* 対応状況ドット */}
-              <span
+            return (
+              <tr
+                key={compositeId}
+                tabIndex={0}
+                aria-selected={isSelected}
+                onClick={() => onSelect(isSelected ? null : compositeId)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(isSelected ? null : compositeId);
+                  }
+                }}
                 className={cn(
-                  "h-2 w-2 flex-shrink-0 rounded-full",
-                  RESPONSE_STATUS_DOT_COLORS[task.responseStatus],
+                  "cursor-pointer transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isCritical && "bg-red-50/60 hover:bg-red-50",
+                  isSelected && !isCritical && "bg-accent",
+                  isSelected && isCritical && "bg-red-100/70",
                 )}
-              />
-              {/* 優先度 */}
-              <TaskPriorityDot priority={task.taskPriority} />
-              {/* 送信者名 */}
-              <span className={cn("text-xs font-medium", isCritical && "text-red-800")}>
-                {task.senderName}
-              </span>
-              {/* ソースアイコン */}
-              {task.source === "gchat" ? (
-                <MessageSquareText size={12} className="text-muted-foreground" />
-              ) : task.source === "line" ? (
-                <MessageCircle size={12} className="text-emerald-500" />
-              ) : (
-                <ClipboardEdit size={12} className="text-blue-500" />
-              )}
-              {task.groupName && (
-                <span className="text-xs text-muted-foreground">@ {task.groupName}</span>
-              )}
-              {/* 対応状況 */}
-              <span className="ml-auto text-xs text-muted-foreground">
-                {RESPONSE_STATUS_LABELS[task.responseStatus]}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {formatDateTimeJST(task.createdAt)}
-              </span>
-            </div>
+              >
+                {/* No */}
+                <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
+                  {pageOffset + index + 1}
+                </td>
 
-            {/* タスク概要 or メッセージ */}
-            <p
-              className={cn(
-                "mt-1 line-clamp-2 text-xs",
-                isCritical ? "text-red-700" : "text-muted-foreground",
-              )}
-            >
-              {task.taskSummary || task.content}
-            </p>
+                {/* 発生日 */}
+                <td className="px-2 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                  {formatDateTimeJST(task.createdAt)}
+                </td>
 
-            {/* 担当者・期限 */}
-            {(task.assignees || task.deadline) && (
-              <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                {task.assignees && <span>担当: {task.assignees}</span>}
-                {task.deadline && <DeadlineBadge deadline={task.deadline} />}
-              </div>
-            )}
-          </button>
-        );
-      })}
+                {/* 優先度 */}
+                <td className="px-2 py-2.5 text-center">
+                  <TaskPriorityDot priority={task.taskPriority} />
+                </td>
+
+                {/* タスク内容 */}
+                <td className="px-2 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("font-medium", isCritical && "text-red-800")}>
+                      {task.senderName}
+                    </span>
+                    {task.groupName && (
+                      <span className="text-muted-foreground">@ {task.groupName}</span>
+                    )}
+                  </div>
+                  <p
+                    className={cn(
+                      "mt-0.5 line-clamp-2 leading-relaxed",
+                      isCritical ? "text-red-700" : "text-muted-foreground",
+                    )}
+                  >
+                    {task.taskSummary || task.content}
+                  </p>
+                </td>
+
+                {/* ソース */}
+                <td className="px-2 py-2.5 text-center">
+                  <span className="inline-flex items-center gap-1">
+                    {SOURCE_ICONS[task.source]}
+                    <span className="text-muted-foreground">{SOURCE_LABELS[task.source]}</span>
+                  </span>
+                </td>
+
+                {/* 割り振り */}
+                <td className="px-2 py-2.5 text-muted-foreground">
+                  {task.assignees || <span className="text-muted-foreground/40">—</span>}
+                </td>
+
+                {/* ステータス */}
+                <td className="px-2 py-2.5 text-center">
+                  <span
+                    className={cn(
+                      "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      RESPONSE_STATUS_BADGE_COLORS[task.responseStatus],
+                    )}
+                  >
+                    {RESPONSE_STATUS_LABELS[task.responseStatus]}
+                  </span>
+                </td>
+
+                {/* 期限 */}
+                <td className="px-2 py-2.5 whitespace-nowrap">
+                  {task.deadline ? (
+                    <DeadlineBadge deadline={task.deadline} />
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

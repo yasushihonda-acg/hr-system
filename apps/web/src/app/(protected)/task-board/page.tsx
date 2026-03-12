@@ -175,7 +175,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
 
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
-      <TaskBoardContent tasks={paged} initialSelectedId={selectedId}>
+      <TaskBoardContent tasks={paged} initialSelectedId={selectedId} pageOffset={offset}>
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold tracking-tight">タスク一覧</h1>
