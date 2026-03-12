@@ -2,6 +2,7 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { Loader2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
@@ -44,6 +45,7 @@ interface Props {
  * DetailPane を表示する。
  */
 export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) {
+  const router = useRouter();
   const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [chatDetail, setChatDetail] = useState<ChatMessageDetail | null>(null);
   const [lineDetail, setLineDetail] = useState<LineMessageDetail | null>(null);
@@ -54,7 +56,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
     ? (tasks.find((t) => taskCompositeId(t) === selectedId) ?? null)
     : null;
 
-  // URL 同期（ナビゲーションなし）— 初回マウントはスキップ
+  // URL 同期 — router.replace で Next.js 内部状態と整合性を保つ
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -66,8 +68,8 @@ export function TaskBoardContent({ tasks, initialSelectedId, children }: Props) 
     } else {
       url.searchParams.delete("id");
     }
-    window.history.replaceState(window.history.state ?? {}, "", url.toString());
-  }, [selectedId]);
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [selectedId, router]);
 
   // タスク選択時に詳細データを取得
   // biome-ignore lint/correctness/useExhaustiveDependencies: selectedTask 全体を依存にすると参照が毎レンダー変わり無限ループになるため id+source で制御
