@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-12（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `6f09f42` — feat: 手動タスク作成フォームをDialogモーダル化 + UI改善 (#268)）
+**ブランチ**: `main`（最新コミット: `b7c3ead` — chore: PR #134 で移動済みの旧 ai-settings/page.tsx を削除）
 
 ---
 
@@ -11,9 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**未追跡ファイル**: `apps/web/src/app/(protected)/ai-settings/page.tsx` — PR #134 で `admin/ai-settings/` に移動済みの旧ファイルが残留。`git rm` で削除推奨。
-
-**CI**: Deploy to Cloud Run (#268) — success（確認済み）
+**CI**: Deploy to Cloud Run (b7c3ead) — success（確認済み）
 
 ---
 
@@ -32,6 +30,10 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### chore: PR #134 で移動済みの旧 ai-settings/page.tsx を削除 (b7c3ead)
+- `apps/web/src/app/(protected)/ai-settings/page.tsx` を `git rm` で削除（残留ファイルのクリーンアップ）
+- CI: Deploy to Cloud Run — success（Web のみ再デプロイ）
 
 ### feat: 手動タスク作成フォームをDialogモーダル化 + UI改善 (#268) (6f09f42)
 - 手動タスク作成フォームを独立ページからDialogモーダルに変更
@@ -54,9 +56,9 @@
 
 ## 次のアクション候補
 
-1. **残留ファイル削除**: `apps/web/src/app/(protected)/ai-settings/page.tsx`（PR #134 の移動済みファイルが残留）を `git rm` で削除してコミット
-2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-3. **E2E テスト自動化**（Playwright による本番フロー検証）
+1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+2. **E2E テスト自動化**（Playwright による本番フロー検証）
+3. **Node.js 20 Actions 非推奨対応**（GitHub Actions を Node.js 24 対応バージョンへ更新。期限: 2026-06-02）
 
 ---
 
