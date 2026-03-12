@@ -51,6 +51,7 @@ vi.mock("lucide-react", () => ({
   MessageCircle: () => React.createElement("span", { "data-testid": "icon-line" }),
   ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
+  ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
@@ -83,6 +84,7 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     assignees: null,
     deadline: null,
     groupName: null,
+    chatUrl: null,
     createdAt: "2026-03-01T09:00:00Z",
     ...overrides,
   };

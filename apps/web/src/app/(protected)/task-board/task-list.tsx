@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
-import { ClipboardEdit, Clock, MessageCircle, MessageSquareText } from "lucide-react";
+import { ClipboardEdit, Clock, ExternalLink, MessageCircle, MessageSquareText } from "lucide-react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_BADGE_COLORS, RESPONSE_STATUS_LABELS } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
@@ -18,6 +18,7 @@ export interface TaskItem {
   assignees: string | null;
   deadline: string | null;
   groupName: string | null;
+  chatUrl: string | null;
   createdAt: string;
 }
 
@@ -54,7 +55,7 @@ export function TaskList({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[900px] text-xs">
+      <table className="w-full min-w-[1100px] text-xs">
         <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
           <tr>
             <th className="w-10 px-2 py-2.5 text-center font-semibold text-muted-foreground">No</th>
@@ -64,8 +65,14 @@ export function TaskList({
             <th className="w-14 px-2 py-2.5 text-center font-semibold text-muted-foreground">
               優先度
             </th>
-            <th className="min-w-[200px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
-              タスク内容
+            <th className="min-w-[180px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
+              記事のコピー
+            </th>
+            <th className="w-12 px-2 py-2.5 text-center font-semibold text-muted-foreground">
+              URL
+            </th>
+            <th className="min-w-[140px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
+              タスク
             </th>
             <th className="w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground">
               ソース
@@ -119,7 +126,7 @@ export function TaskList({
                   <TaskPriorityDot priority={task.taskPriority} />
                 </td>
 
-                {/* タスク内容 */}
+                {/* 記事のコピー（メッセージ本文） */}
                 <td className="px-2 py-2.5">
                   <div className="flex items-center gap-1.5">
                     <span className={cn("font-medium", isCritical && "text-red-800")}>
@@ -135,8 +142,42 @@ export function TaskList({
                       isCritical ? "text-red-700" : "text-muted-foreground",
                     )}
                   >
-                    {task.taskSummary || task.content}
+                    {task.content}
                   </p>
+                </td>
+
+                {/* チャットURL */}
+                <td className="px-2 py-2.5 text-center">
+                  {task.chatUrl ? (
+                    <a
+                      href={task.chatUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                      title="Google Chat で開く"
+                    >
+                      <ExternalLink size={13} />
+                    </a>
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
+                </td>
+
+                {/* タスク（AI抽出要約） */}
+                <td className="px-2 py-2.5">
+                  {task.taskSummary ? (
+                    <p
+                      className={cn(
+                        "line-clamp-2 leading-relaxed font-medium",
+                        isCritical ? "text-red-700" : "text-foreground",
+                      )}
+                    >
+                      {task.taskSummary}
+                    </p>
+                  ) : (
+                    <span className="text-muted-foreground/40">—</span>
+                  )}
                 </td>
 
                 {/* ソース */}

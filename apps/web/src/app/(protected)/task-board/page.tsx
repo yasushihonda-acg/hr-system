@@ -86,6 +86,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: msg.intent?.assignees ?? null,
         deadline: msg.intent?.deadline ?? null,
         groupName: null,
+        chatUrl: `https://chat.google.com/room/${msg.spaceId}/${msg.googleMessageId}`,
         createdAt: msg.createdAt,
       });
     }
@@ -105,6 +106,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: msg.assignees ?? null,
         deadline: msg.deadline ?? null,
         groupName: msg.groupName,
+        chatUrl: null,
         createdAt: msg.createdAt,
       });
     }
@@ -123,6 +125,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: task.assignees,
         deadline: task.deadline,
         groupName: null,
+        chatUrl: null,
         createdAt: task.createdAt,
       });
     }
