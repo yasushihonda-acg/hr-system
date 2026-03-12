@@ -11,11 +11,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // React hooks のモック
 const mockSetState = vi.fn();
-let capturedEffect: (() => (() => void) | void) | null = null;
+let capturedEffect: (() => (() => void) | undefined) | null = null;
 
 vi.mock("react", () => ({
   useState: (initial: unknown) => [initial, mockSetState],
-  useEffect: (fn: () => (() => void) | void) => {
+  useEffect: (fn: () => (() => void) | undefined) => {
     capturedEffect = fn;
   },
   useRef: () => ({ current: null }),
@@ -106,6 +106,7 @@ describe("ヘルプページ", () => {
       const { permissionData } = await import("../app/(protected)/help/help-data");
       const viewerAccess = permissionData.filter((p) => p.viewer);
       expect(viewerAccess).toHaveLength(1);
+      // biome-ignore lint/style/noNonNullAssertion: toHaveLength(1) で存在確認済み
       expect(viewerAccess[0]!.feature).toBe("ダッシュボード");
     });
   });
@@ -163,7 +164,7 @@ describe("ヘルプページ", () => {
       useActiveSection(["sec-a", "sec-b", "sec-c"]);
 
       expect(capturedEffect).not.toBeNull();
-      capturedEffect!();
+      capturedEffect?.();
 
       expect(mockObserve).toHaveBeenCalledTimes(3);
     });
@@ -172,7 +173,7 @@ describe("ヘルプページ", () => {
       const { useActiveSection } = await import("../app/(protected)/help/help-data");
       useActiveSection(["sec-a", "sec-b"]);
 
-      capturedEffect!();
+      capturedEffect?.();
 
       const mockEntry = {
         isIntersecting: true,
@@ -187,7 +188,7 @@ describe("ヘルプページ", () => {
       const { useActiveSection } = await import("../app/(protected)/help/help-data");
       useActiveSection(["sec-a", "sec-b"]);
 
-      capturedEffect!();
+      capturedEffect?.();
 
       const mockEntry = {
         isIntersecting: false,
@@ -214,7 +215,7 @@ describe("ヘルプページ", () => {
       const { useActiveSection } = await import("../app/(protected)/help/help-data");
       useActiveSection(["missing-1", "missing-2"]);
 
-      capturedEffect!();
+      capturedEffect?.();
 
       expect(mockObserve).not.toHaveBeenCalled();
     });

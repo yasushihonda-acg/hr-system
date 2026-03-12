@@ -1,8 +1,8 @@
 "use client";
 
+import type { TaskPriority } from "@hr-system/shared";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import type { TaskPriority } from "@hr-system/shared";
 import { Calendar as CalendarIcon, Plus, Users } from "lucide-react";
 import { useRef, useState, useTransition } from "react";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
