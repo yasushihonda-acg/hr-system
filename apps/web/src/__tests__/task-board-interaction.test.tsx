@@ -76,6 +76,10 @@ vi.mock("@/components/task-priority-selector", () => ({
       : null,
 }));
 
+vi.mock("../app/(protected)/task-board/actions", () => ({
+  updateWorkflowFromTaskBoard: vi.fn(),
+}));
+
 // --- インポート ---
 
 import type { TaskItem } from "../app/(protected)/task-board/task-list";
@@ -98,6 +102,8 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     groupName: null,
     chatUrl: null,
     category: null,
+    workflowSteps: null,
+    notes: null,
     createdAt: "2026-03-01T09:00:00Z",
     ...overrides,
   };

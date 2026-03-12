@@ -1,7 +1,13 @@
 "use client";
 
-import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
+import type {
+  ResponseStatus,
+  TaskPriority,
+  WorkflowStepStatus,
+  WorkflowSteps,
+} from "@hr-system/shared";
 import { ClipboardEdit, Clock, ExternalLink, MessageCircle, MessageSquareText } from "lucide-react";
+import { useState, useTransition } from "react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import {
   CATEGORY_LABELS,
@@ -9,6 +15,7 @@ import {
   RESPONSE_STATUS_LABELS,
 } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
+import { updateWorkflowFromTaskBoard } from "./actions";
 import { taskCompositeId } from "./task-composite-id";
 
 export interface TaskItem {
@@ -24,6 +31,8 @@ export interface TaskItem {
   groupName: string | null;
   chatUrl: string | null;
   category: string | null;
+  workflowSteps: WorkflowSteps | null;
+  notes: string | null;
   createdAt: string;
 }
 
@@ -38,6 +47,39 @@ const SOURCE_ICONS: Record<TaskItem["source"], React.ReactNode> = {
   line: <MessageCircle size={12} className="text-emerald-500" />,
   manual: <ClipboardEdit size={12} className="text-blue-500" />,
 };
+
+const STEP_CYCLE: WorkflowStepStatus[] = ["undetermined", "completed", "not_required"];
+
+const DEFAULT_STEPS: WorkflowSteps = {
+  salaryListReflection: "undetermined",
+  noticeExecution: "undetermined",
+  laborLawyerShare: "undetermined",
+  smartHRReflection: "undetermined",
+};
+
+const STEP_CONFIG: Record<WorkflowStepStatus, { label: string; cls: string }> = {
+  undetermined: { label: "ー", cls: "text-muted-foreground bg-muted/50 border border-border" },
+  completed: {
+    label: "✓",
+    cls: "text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold",
+  },
+  not_required: {
+    label: "✗",
+    cls: "text-muted-foreground bg-muted border border-border line-through",
+  },
+};
+
+const STEP_KEYS = [
+  "salaryListReflection",
+  "noticeExecution",
+  "laborLawyerShare",
+  "smartHRReflection",
+] as const;
+
+function nextInCycle<T>(arr: T[], current: T): T {
+  const idx = arr.indexOf(current);
+  return arr[(idx + 1) % arr.length] ?? arr[0]!;
+}
 
 export function TaskList({
   tasks,
@@ -60,7 +102,7 @@ export function TaskList({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1200px] text-xs">
+      <table className="w-full min-w-[1500px] text-xs">
         <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
           <tr>
             <th className="w-10 px-2 py-2.5 text-center font-semibold text-muted-foreground">No</th>
@@ -92,152 +134,261 @@ export function TaskList({
               ステータス
             </th>
             <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">期限</th>
+            <th
+              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
+              title="❶条件通知書SS反映"
+            >
+              ❶
+            </th>
+            <th
+              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
+              title="❷通知・締結"
+            >
+              ❷
+            </th>
+            <th
+              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
+              title="❸社労士共有"
+            >
+              ❸
+            </th>
+            <th
+              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
+              title="❹SmartHR反映"
+            >
+              ❹
+            </th>
+            <th className="min-w-[100px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
+              メモ
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/30">
-          {tasks.map((task, index) => {
-            const isCritical = task.taskPriority === "critical";
-            const compositeId = taskCompositeId(task);
-            const isSelected = compositeId === selectedId;
-
-            return (
-              <tr
-                key={compositeId}
-                tabIndex={0}
-                aria-selected={isSelected}
-                onClick={() => onSelect(isSelected ? null : compositeId)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onSelect(isSelected ? null : compositeId);
-                  }
-                }}
-                className={cn(
-                  "cursor-pointer transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isCritical && "bg-red-50/60 hover:bg-red-50",
-                  isSelected && !isCritical && "bg-accent",
-                  isSelected && isCritical && "bg-red-100/70",
-                )}
-              >
-                {/* No */}
-                <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
-                  {pageOffset + index + 1}
-                </td>
-
-                {/* 発生日 */}
-                <td className="px-2 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground">
-                  {formatDateTimeJST(task.createdAt)}
-                </td>
-
-                {/* 優先度 */}
-                <td className="px-2 py-2.5 text-center">
-                  <TaskPriorityDot priority={task.taskPriority} />
-                </td>
-
-                {/* 記事のコピー（メッセージ本文） */}
-                <td className="px-2 py-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className={cn("font-medium", isCritical && "text-red-800")}>
-                      {task.senderName}
-                    </span>
-                    {task.groupName && (
-                      <span className="text-muted-foreground">@ {task.groupName}</span>
-                    )}
-                  </div>
-                  <p
-                    className={cn(
-                      "mt-0.5 line-clamp-2 leading-relaxed",
-                      isCritical ? "text-red-700" : "text-muted-foreground",
-                    )}
-                  >
-                    {task.content}
-                  </p>
-                </td>
-
-                {/* チャットURL */}
-                <td className="px-2 py-2.5 text-center">
-                  {task.chatUrl ? (
-                    <a
-                      href={task.chatUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center text-blue-600 hover:text-blue-800"
-                      title="Google Chat で開く"
-                    >
-                      <ExternalLink size={13} />
-                    </a>
-                  ) : (
-                    <span className="text-muted-foreground/40">—</span>
-                  )}
-                </td>
-
-                {/* タスク（AI抽出要約） */}
-                <td className="px-2 py-2.5">
-                  {task.taskSummary ? (
-                    <p
-                      className={cn(
-                        "line-clamp-2 leading-relaxed font-medium",
-                        isCritical ? "text-red-700" : "text-foreground",
-                      )}
-                    >
-                      {task.taskSummary}
-                    </p>
-                  ) : (
-                    <span className="text-muted-foreground/40">—</span>
-                  )}
-                </td>
-
-                {/* ソース */}
-                <td className="px-2 py-2.5 text-center">
-                  <span className="inline-flex items-center gap-1">
-                    {SOURCE_ICONS[task.source]}
-                    <span className="text-muted-foreground">{SOURCE_LABELS[task.source]}</span>
-                  </span>
-                </td>
-
-                {/* カテゴリ */}
-                <td className="px-2 py-2.5 text-center">
-                  {task.category ? (
-                    <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
-                      {CATEGORY_LABELS[task.category] ?? task.category}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground/40">—</span>
-                  )}
-                </td>
-
-                {/* 割り振り */}
-                <td className="px-2 py-2.5 text-muted-foreground">
-                  {task.assignees || <span className="text-muted-foreground/40">—</span>}
-                </td>
-
-                {/* ステータス */}
-                <td className="px-2 py-2.5 text-center">
-                  <span
-                    className={cn(
-                      "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      RESPONSE_STATUS_BADGE_COLORS[task.responseStatus],
-                    )}
-                  >
-                    {RESPONSE_STATUS_LABELS[task.responseStatus]}
-                  </span>
-                </td>
-
-                {/* 期限 */}
-                <td className="px-2 py-2.5 whitespace-nowrap">
-                  {task.deadline ? (
-                    <DeadlineBadge deadline={task.deadline} />
-                  ) : (
-                    <span className="text-muted-foreground/40">—</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
+          {tasks.map((task, index) => (
+            <TaskRow
+              key={taskCompositeId(task)}
+              task={task}
+              index={index}
+              pageOffset={pageOffset}
+              selectedId={selectedId}
+              onSelect={onSelect}
+            />
+          ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+function TaskRow({
+  task,
+  index,
+  pageOffset,
+  selectedId,
+  onSelect,
+}: {
+  task: TaskItem;
+  index: number;
+  pageOffset: number;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  const isCritical = task.taskPriority === "critical";
+  const compositeId = taskCompositeId(task);
+  const isSelected = compositeId === selectedId;
+  const isGchat = task.source === "gchat";
+
+  const [isPending, startTransition] = useTransition();
+  const [localSteps, setLocalSteps] = useState<WorkflowSteps>(
+    task.workflowSteps ?? { ...DEFAULT_STEPS },
+  );
+  const [localNotes, setLocalNotes] = useState(task.notes ?? "");
+  const [savedNotes, setSavedNotes] = useState(task.notes ?? "");
+
+  const handleStep = (key: keyof WorkflowSteps) => {
+    const next = nextInCycle(STEP_CYCLE, localSteps[key]);
+    const newSteps = { ...localSteps, [key]: next };
+    setLocalSteps(newSteps);
+    startTransition(async () => {
+      await updateWorkflowFromTaskBoard(task.id, { workflowSteps: newSteps });
+    });
+  };
+
+  const handleNotesBlur = () => {
+    if (localNotes === savedNotes) return;
+    setSavedNotes(localNotes);
+    startTransition(async () => {
+      await updateWorkflowFromTaskBoard(task.id, { notes: localNotes || null });
+    });
+  };
+
+  return (
+    <tr
+      tabIndex={0}
+      aria-selected={isSelected}
+      onClick={() => onSelect(isSelected ? null : compositeId)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(isSelected ? null : compositeId);
+        }
+      }}
+      className={cn(
+        "cursor-pointer transition-colors hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        isCritical && "bg-red-50/60 hover:bg-red-50",
+        isSelected && !isCritical && "bg-accent",
+        isSelected && isCritical && "bg-red-100/70",
+        isPending && "opacity-60",
+      )}
+    >
+      {/* No */}
+      <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
+        {pageOffset + index + 1}
+      </td>
+
+      {/* 発生日 */}
+      <td className="px-2 py-2.5 whitespace-nowrap tabular-nums text-muted-foreground">
+        {formatDateTimeJST(task.createdAt)}
+      </td>
+
+      {/* 優先度 */}
+      <td className="px-2 py-2.5 text-center">
+        <TaskPriorityDot priority={task.taskPriority} />
+      </td>
+
+      {/* 記事のコピー（メッセージ本文） */}
+      <td className="px-2 py-2.5">
+        <div className="flex items-center gap-1.5">
+          <span className={cn("font-medium", isCritical && "text-red-800")}>{task.senderName}</span>
+          {task.groupName && <span className="text-muted-foreground">@ {task.groupName}</span>}
+        </div>
+        <p
+          className={cn(
+            "mt-0.5 line-clamp-2 leading-relaxed",
+            isCritical ? "text-red-700" : "text-muted-foreground",
+          )}
+        >
+          {task.content}
+        </p>
+      </td>
+
+      {/* チャットURL */}
+      <td className="px-2 py-2.5 text-center">
+        {task.chatUrl ? (
+          <a
+            href={task.chatUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center text-blue-600 hover:text-blue-800"
+            title="Google Chat で開く"
+          >
+            <ExternalLink size={13} />
+          </a>
+        ) : (
+          <span className="text-muted-foreground/40">—</span>
+        )}
+      </td>
+
+      {/* タスク（AI抽出要約） */}
+      <td className="px-2 py-2.5">
+        {task.taskSummary ? (
+          <p
+            className={cn(
+              "line-clamp-2 leading-relaxed font-medium",
+              isCritical ? "text-red-700" : "text-foreground",
+            )}
+          >
+            {task.taskSummary}
+          </p>
+        ) : (
+          <span className="text-muted-foreground/40">—</span>
+        )}
+      </td>
+
+      {/* ソース */}
+      <td className="px-2 py-2.5 text-center">
+        <span className="inline-flex items-center gap-1">
+          {SOURCE_ICONS[task.source]}
+          <span className="text-muted-foreground">{SOURCE_LABELS[task.source]}</span>
+        </span>
+      </td>
+
+      {/* カテゴリ */}
+      <td className="px-2 py-2.5 text-center">
+        {task.category ? (
+          <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+            {CATEGORY_LABELS[task.category] ?? task.category}
+          </span>
+        ) : (
+          <span className="text-muted-foreground/40">—</span>
+        )}
+      </td>
+
+      {/* 割り振り */}
+      <td className="px-2 py-2.5 text-muted-foreground">
+        {task.assignees || <span className="text-muted-foreground/40">—</span>}
+      </td>
+
+      {/* ステータス */}
+      <td className="px-2 py-2.5 text-center">
+        <span
+          className={cn(
+            "inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+            RESPONSE_STATUS_BADGE_COLORS[task.responseStatus],
+          )}
+        >
+          {RESPONSE_STATUS_LABELS[task.responseStatus]}
+        </span>
+      </td>
+
+      {/* 期限 */}
+      <td className="px-2 py-2.5 whitespace-nowrap">
+        {task.deadline ? (
+          <DeadlineBadge deadline={task.deadline} />
+        ) : (
+          <span className="text-muted-foreground/40">—</span>
+        )}
+      </td>
+
+      {/* ❶〜❹ ワークフローステップ */}
+      {STEP_KEYS.map((key) => (
+        <td key={key} className="px-1 py-2.5 text-center">
+          {isGchat ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStep(key);
+              }}
+              disabled={isPending}
+              className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[localSteps[key]].cls}`}
+            >
+              {STEP_CONFIG[localSteps[key]].label}
+            </button>
+          ) : (
+            <span className="text-muted-foreground/40">—</span>
+          )}
+        </td>
+      ))}
+
+      {/* メモ */}
+      <td className="px-2 py-1">
+        {isGchat ? (
+          <textarea
+            rows={1}
+            value={localNotes}
+            onChange={(e) => setLocalNotes(e.target.value)}
+            onBlur={handleNotesBlur}
+            onClick={(e) => e.stopPropagation()}
+            placeholder="メモ"
+            className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
+          />
+        ) : (
+          <span className="text-muted-foreground/40">—</span>
+        )}
+      </td>
+    </tr>
   );
 }
 
