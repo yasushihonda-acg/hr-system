@@ -47,6 +47,7 @@ vi.mock("lucide-react", () => ({
   MessageCircle: () => React.createElement("span", { "data-testid": "icon-line" }),
   ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
+  ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
@@ -88,6 +89,7 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     assignees: null,
     deadline: null,
     groupName: null,
+    chatUrl: null,
     createdAt: "2026-03-01T09:00:00Z",
     ...overrides,
   };
@@ -198,7 +200,7 @@ describe("TaskList", () => {
     expect(text).toContain("有川チーム");
   });
 
-  it("taskSummary がある場合は content の代わりに表示される", () => {
+  it("taskSummary と content が別々の列に表示される", () => {
     const text = renderToText(
       React.createElement(TaskList, {
         tasks: [makeTask({ taskSummary: "給与テーブル更新依頼", content: "元のメッセージ" })],
@@ -207,7 +209,7 @@ describe("TaskList", () => {
       }),
     );
     expect(text).toContain("給与テーブル更新依頼");
-    expect(text).not.toContain("元のメッセージ");
+    expect(text).toContain("元のメッセージ");
   });
 
   it("担当者がある場合に表示される", () => {
@@ -230,5 +232,42 @@ describe("TaskList", () => {
       }),
     );
     expect(text).toContain("対応中");
+  });
+
+  it("chatUrl がある場合にリンクが表示される", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask({ chatUrl: "https://chat.google.com/room/AAAA/msg-1" })],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    expect(html).toContain("https://chat.google.com/room/AAAA/msg-1");
+    expect(html).toContain('data-testid="icon-external-link"');
+  });
+
+  it("chatUrl が null の場合はダッシュが表示される", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask({ chatUrl: null, source: "line" })],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    // チャットURL列にダッシュ
+    expect(html).not.toContain('target="_blank"');
+  });
+
+  it("テーブルヘッダーに記事のコピー・URL・タスク列が存在する", () => {
+    const html = renderToHtml(
+      React.createElement(TaskList, {
+        tasks: [makeTask()],
+        selectedId: null,
+        onSelect: mockOnSelect,
+      }),
+    );
+    expect(html).toContain("記事のコピー");
+    expect(html).toContain("URL");
+    expect(html).toContain(">タスク<");
   });
 });
