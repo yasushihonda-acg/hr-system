@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-13（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `713dcc1` — feat: LINE・手入力タスクにワークフローステップとメモを追加 (#289)）
+**ブランチ**: `main`（最新コミット: `7b72d6d` — fix: intent_records に category+createdAt 複合インデックス追加）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (713dcc1) — success
+**CI**: Deploy to Cloud Run (7b72d6d) — **failure**（Firestore インデックスデプロイで 403 エラー）
 
 ---
 
@@ -32,24 +32,24 @@
 
 ## 直近の変更（最新5件）
 
+### fix: intent_records に category+createdAt 複合インデックス追加 (7b72d6d)
+- intent_records コレクションに category + createdAt の複合インデックスを追加
+- CI: Deploy to Cloud Run — **failure**（後述の要対応事項を参照）
+
+### fix: ワークフローステップUIの視認性・操作性を改善 (#294) (#297) (cfedb19)
+- ワークフローステップUIの視認性・操作性を改善
+- CI: Deploy to Cloud Run — success
+
+### feat: LINEメッセージにカテゴリフィルター追加 (#292) (#296) (c22c4cc)
+- LINEメッセージ一覧にカテゴリフィルターを追加
+- CI: Deploy to Cloud Run — failure（IAM 権限 403）
+
+### feat: 受信箱カテゴリフィルター追加 & 手入力タスクにカテゴリ選択追加 (#290, #291) (#295) (25e7d51)
+- 受信箱へカテゴリフィルターを追加、手入力タスクにカテゴリ選択機能を追加
+- CI: Deploy to Cloud Run — success
+
 ### feat: LINE・手入力タスクにワークフローステップとメモを追加 (#289) (713dcc1)
 - LINE メッセージ由来タスクと手入力タスクにもワークフローステップとメモ機能を追加（Chat由来タスクとの機能統一）
-- CI: Deploy to Cloud Run — success
-
-### fix: FilterSelectの関数props渡しによる本番Server Componentsエラーを修正 (#288) (b94b5b8)
-- FilterSelect に関数を props として渡していた箇所が本番 Server Components でエラーになる問題を修正
-- CI: Deploy to Cloud Run — success
-
-### fix: タスクボードのフィルターUIをドロップダウンに最適化 (#285) (#287) (883239d)
-- タスクボードのフィルターUI（優先度・ステータス等）をドロップダウン形式に変更して操作性改善
-- CI: Deploy to Cloud Run — success
-
-### fix: ❶❷❸❹ワークフローステップの仕様不整合修正 (#284) (#286) (14bc00f)
-- ワークフローステップの仕様不整合を修正
-- CI: Deploy to Cloud Run — success
-
-### fix: ワークフローステップのDRY違反解消とローカルステート同期バグ修正 (#283) (d06da0a)
-- ワークフローステップのDRY違反を解消し、ローカルステートの同期バグを修正
 - CI: Deploy to Cloud Run — success
 
 ### feat: タスクボードにワークフローステップ列とメモ列を追加 (#279) (#282) (e269d4c)
@@ -114,9 +114,10 @@
 
 ## 次のアクション候補
 
-1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-2. **E2E テスト自動化**（Playwright による本番フロー検証）
-3. **Node.js 20 Actions 非推奨対応**（GitHub Actions を Node.js 24 対応バージョンへ更新。期限: 2026-06-02）
+1. **CI 修正（P1 ブロッカー）**: Firestore インデックスデプロイ用の GHA SA に `roles/serviceusage.serviceUsageConsumer` 権限を付与（IAM 403 エラー）
+2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+3. **E2E テスト自動化**（Playwright による本番フロー検証）
+4. **Node.js 20 Actions 非推奨対応**（GitHub Actions を Node.js 24 対応バージョンへ更新。期限: 2026-06-02）
 
 ---
 
