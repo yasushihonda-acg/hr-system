@@ -217,7 +217,9 @@ function TaskRow({
   const allStepsResolved =
     showSteps &&
     STEP_KEYS.every((k) => localSteps[k] === "completed" || localSteps[k] === "not_required");
-  const showRespondedSuggestion = allStepsResolved && task.responseStatus !== "responded";
+  const showRespondedSuggestion =
+    allStepsResolved &&
+    (task.responseStatus === "unresponded" || task.responseStatus === "in_progress");
 
   const markResponded = (e: React.MouseEvent) => {
     e.stopPropagation();
