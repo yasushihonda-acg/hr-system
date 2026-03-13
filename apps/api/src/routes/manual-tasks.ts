@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import type { ManualTask } from "@hr-system/db";
 import { collections } from "@hr-system/db";
-import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
+import { CHAT_CATEGORIES, RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -15,6 +15,7 @@ const createSchema = z.object({
   content: z.string().max(2000).optional().default(""),
   taskPriority: z.enum(TASK_PRIORITIES),
   responseStatus: z.enum(RESPONSE_STATUSES).optional().default("unresponded"),
+  category: z.enum(CHAT_CATEGORIES).nullable().optional().default(null),
   assignees: z.string().max(200).nullable().optional().default(null),
   deadline: z.string().datetime({ offset: true }).nullable().optional().default(null),
 });
@@ -25,6 +26,7 @@ const updateSchema = z
     content: z.string().max(2000),
     taskPriority: z.enum(TASK_PRIORITIES),
     responseStatus: z.enum(RESPONSE_STATUSES),
+    category: z.enum(CHAT_CATEGORIES).nullable(),
     assignees: z.string().max(200).nullable(),
     deadline: z.string().datetime({ offset: true }).nullable(),
     notes: z.string().max(2000).nullable(),
@@ -38,6 +40,7 @@ const updateSchema = z
 const listQuerySchema = z.object({
   taskPriority: z.enum(TASK_PRIORITIES).optional(),
   responseStatus: z.enum(RESPONSE_STATUSES).optional(),
+  category: z.enum(CHAT_CATEGORIES).optional(),
   limit: z.string().optional(),
   offset: z.string().optional(),
 });
@@ -49,6 +52,7 @@ function serialize(id: string, data: ManualTask) {
     content: data.content,
     taskPriority: data.taskPriority,
     responseStatus: data.responseStatus,
+    category: data.category ?? null,
     assignees: data.assignees,
     deadline: toISOOrNull(data.deadline),
     workflowSteps: data.workflowSteps ?? null,
@@ -64,7 +68,7 @@ const app = new Hono();
 
 // GET /api/manual-tasks
 app.get("/", zValidator("query", listQuerySchema), async (c) => {
-  const { taskPriority, responseStatus } = c.req.valid("query");
+  const { taskPriority, responseStatus, category } = c.req.valid("query");
   const { limit, offset } = parsePagination(c.req.query());
 
   let query = collections.manualTasks.orderBy(
@@ -73,6 +77,7 @@ app.get("/", zValidator("query", listQuerySchema), async (c) => {
   ) as FirebaseFirestore.Query<ManualTask>;
   if (taskPriority) query = query.where("taskPriority", "==", taskPriority);
   if (responseStatus) query = query.where("responseStatus", "==", responseStatus);
+  if (category) query = query.where("category", "==", category);
 
   const [countSnap, docsSnap] = await Promise.all([
     query.count().get(),
@@ -100,6 +105,7 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     content: data.content,
     taskPriority: data.taskPriority,
     responseStatus: data.responseStatus,
+    category: data.category,
     assignees: data.assignees,
     deadline: data.deadline ? Timestamp.fromDate(new Date(data.deadline)) : null,
     createdBy: user.email,
@@ -153,6 +159,7 @@ app.patch("/:id", zValidator("json", updateSchema), async (c) => {
   if (body.content !== undefined) updateData.content = body.content;
   if (body.taskPriority !== undefined) updateData.taskPriority = body.taskPriority;
   if (body.responseStatus !== undefined) updateData.responseStatus = body.responseStatus;
+  if (body.category !== undefined) updateData.category = body.category;
   if (body.assignees !== undefined) updateData.assignees = body.assignees;
   if (body.deadline !== undefined)
     updateData.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;

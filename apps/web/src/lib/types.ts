@@ -387,6 +387,7 @@ export interface ManualTaskSummary {
   content: string;
   taskPriority: TaskPriority;
   responseStatus: ResponseStatus;
+  category: string | null;
   assignees: string | null;
   deadline: string | null;
   workflowSteps: WorkflowSteps | null;

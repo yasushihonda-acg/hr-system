@@ -1,4 +1,5 @@
-import type { ResponseStatus } from "@hr-system/shared";
+import type { ChatCategory, ResponseStatus } from "@hr-system/shared";
+
 import { ChevronLeft, ChevronRight, MessageCircle, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import {
@@ -10,6 +11,7 @@ import {
   getLineMessage,
   getLineMessages,
 } from "@/lib/api";
+import { CATEGORY_OPTIONS } from "@/lib/constants";
 import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
 import { Inbox3Pane } from "./inbox-3pane";
 import { LineInbox3Pane } from "./line-inbox-3pane";
@@ -20,6 +22,7 @@ interface Props {
   searchParams: Promise<{
     source?: string;
     status?: string;
+    category?: string;
     page?: string;
     id?: string;
   }>;
@@ -44,18 +47,27 @@ export default async function InboxPage({ searchParams }: Props) {
   const params = await searchParams;
   const source: Source = params.source === "line" ? "line" : "gchat";
   const activeStatus = (params.status as ResponseStatus | undefined) ?? undefined;
+  const activeCategory = (params.category as ChatCategory | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
   const selectedId = params.id ?? null;
 
-  function buildUrl(overrides: { source?: string; status?: string; page?: string; id?: string }) {
+  function buildUrl(overrides: {
+    source?: string;
+    status?: string;
+    category?: string;
+    page?: string;
+    id?: string;
+  }) {
     const sp = new URLSearchParams();
     const src = "source" in overrides ? overrides.source : params.source;
     const s = "status" in overrides ? overrides.status : params.status;
+    const cat = "category" in overrides ? overrides.category : params.category;
     const p = overrides.page;
     const id = "id" in overrides ? overrides.id : params.id;
     if (src && src !== "gchat") sp.set("source", src);
     if (s && s !== "all") sp.set("status", s);
+    if (cat && cat !== "all") sp.set("category", cat);
     if (p && p !== "1") sp.set("page", p);
     if (id) sp.set("id", id);
     const qs = sp.toString();
@@ -73,7 +85,12 @@ export default async function InboxPage({ searchParams }: Props) {
 
   if (source === "gchat") {
     const [msgResult, countResult, selectedResult] = await Promise.all([
-      getChatMessages({ responseStatus: activeStatus, limit: PAGE_SIZE, offset }),
+      getChatMessages({
+        responseStatus: activeStatus,
+        category: activeCategory,
+        limit: PAGE_SIZE,
+        offset,
+      }),
       getInboxCounts(),
       selectedId
         ? getChatMessage(selectedId).catch((err) => {
@@ -136,6 +153,7 @@ export default async function InboxPage({ searchParams }: Props) {
                 href={buildUrl({
                   source: tab.value,
                   status: undefined,
+                  category: undefined,
                   page: "1",
                   id: undefined,
                 })}
@@ -150,8 +168,8 @@ export default async function InboxPage({ searchParams }: Props) {
           })}
         </div>
 
-        {/* ステータスタブ */}
-        <div className="flex flex-wrap gap-1.5">
+        {/* ステータスタブ + カテゴリフィルター */}
+        <div className="flex flex-wrap items-center gap-1.5">
           {STATUS_TABS.map((tab) => {
             const isActive = tab.value === "all" ? !activeStatus : activeStatus === tab.value;
             const count = getCount(tab.value);
@@ -180,6 +198,36 @@ export default async function InboxPage({ searchParams }: Props) {
               </Link>
             );
           })}
+
+          {/* カテゴリフィルター（Google Chat のみ） */}
+          {source === "gchat" && (
+            <>
+              <span className="mx-1 h-4 w-px bg-slate-200" />
+              <div className="flex flex-wrap gap-1">
+                {CATEGORY_OPTIONS.map((opt) => {
+                  const isActive =
+                    opt.value === "all" ? !activeCategory : activeCategory === opt.value;
+                  return (
+                    <Link
+                      key={opt.value}
+                      href={buildUrl({
+                        category: opt.value === "all" ? undefined : opt.value,
+                        page: "1",
+                        id: undefined,
+                      })}
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                        isActive
+                          ? "bg-slate-700 text-white"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
