@@ -35,9 +35,32 @@ export function formatDate(iso: string): string {
   return `${yyyy}/${mm}/${dd}`;
 }
 
+/**
+ * メッセージ本文から Google Chat 検索クエリを生成する。
+ * Google Chat は形態素解析ベースで検索するため、文の途中（助詞など）で
+ * 切ると不完全なトークンとなり検索がヒットしない。
+ * 句読点・読点で自然に区切り、超過時は末尾ひらがな（助詞）を除去する。
+ */
+export function buildSearchQuery(content: string, maxLen = 25): string {
+  const trimmed = content.trim();
+  if (!trimmed) return "";
+
+  // 1. 最初の文（句点・改行区切り）
+  const firstSentence = trimmed.split(/[。！？\n]/)[0] ?? trimmed;
+  if (firstSentence.length <= maxLen) return firstSentence;
+
+  // 2. 最初の節（読点区切り）
+  const firstClause = firstSentence.split(/[、,]/)[0] ?? firstSentence;
+  if (firstClause.length <= maxLen) return firstClause;
+
+  // 3. maxLen文字で切って末尾ひらがな（助詞・助動詞）を除去
+  const sliced = firstClause.slice(0, maxLen);
+  return sliced.replace(/[ぁ-ん]+$/, "") || sliced;
+}
+
 /** メッセージ本文の先頭部分で Google Chat 内検索するURL */
 export function buildMessageSearchUrl(content: string): string {
-  const query = content.trim().slice(0, 30);
+  const query = buildSearchQuery(content);
   if (!query) return "";
   return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(query)}/cmembership=1`;
 }
