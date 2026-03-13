@@ -303,6 +303,8 @@ export interface LineMessage {
   assignees: string | null;
   /** 期限（ISO 8601 datetime） */
   deadline: Timestamp | null;
+  /** カテゴリ（手動選択） */
+  category?: ChatCategory | null;
   /** 対応状況（受信箱管理用） */
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   /** 対応状況の最終更新者 */

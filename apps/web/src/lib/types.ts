@@ -360,6 +360,7 @@ export interface LineMessageSummary {
   assignees: string | null;
   deadline: string | null;
   responseStatus: ResponseStatus;
+  category: string | null;
   workflowSteps: WorkflowSteps | null;
   notes: string | null;
   createdAt: string;

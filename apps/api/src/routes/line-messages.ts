@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections } from "@hr-system/db";
-import { RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
+import { CHAT_CATEGORIES, RESPONSE_STATUSES, TASK_PRIORITIES } from "@hr-system/shared";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -13,10 +13,32 @@ import { toISO } from "../lib/serialize.js";
 const listQuerySchema = z.object({
   groupId: z.string().optional(),
   responseStatus: z.enum(RESPONSE_STATUSES).optional(),
+  category: z.enum(CHAT_CATEGORIES).optional(),
   hasTaskPriority: z.enum(["true"]).optional(),
   limit: z.string().optional(),
   offset: z.string().optional(),
 });
+
+function serialize(id: string, msg: Record<string, unknown>) {
+  return {
+    id,
+    groupId: msg.groupId as string,
+    groupName: (msg.groupName as string) ?? null,
+    senderUserId: msg.senderUserId as string,
+    senderName: msg.senderName as string,
+    content: msg.content as string,
+    contentUrl: (msg.contentUrl as string) ?? null,
+    lineMessageType: msg.lineMessageType as string,
+    taskPriority: (msg.taskPriority as string) ?? null,
+    assignees: (msg.assignees as string) ?? null,
+    deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
+    responseStatus: (msg.responseStatus as string) ?? "unresponded",
+    category: (msg.category as string) ?? null,
+    workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
+    notes: (msg.notes as string) ?? null,
+    createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
+  };
+}
 
 export const lineMessageRoutes = new Hono();
 
@@ -24,7 +46,8 @@ export const lineMessageRoutes = new Hono();
 // GET /api/line-messages — LINE メッセージ一覧
 // ---------------------------------------------------------------------------
 lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
-  const { groupId, responseStatus, hasTaskPriority, limit, offset } = c.req.valid("query");
+  const { groupId, responseStatus, category, hasTaskPriority, limit, offset } =
+    c.req.valid("query");
   const { limit: lim, offset: off } = parsePagination({ limit, offset });
   const actorRole = c.get("actorRole");
 
@@ -40,6 +63,7 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     ]) as FirebaseFirestore.Query;
     if (groupId) tpQuery = tpQuery.where("groupId", "==", groupId);
     if (responseStatus) tpQuery = tpQuery.where("responseStatus", "==", responseStatus);
+    if (category) tpQuery = tpQuery.where("category", "==", category);
 
     const tpSnap = await tpQuery.limit(500).get();
     const allDocs = tpSnap.docs.sort((a, b) => {
@@ -50,29 +74,8 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     const paged = allDocs.slice(off, off + lim);
     const hasMore = off + lim < allDocs.length;
 
-    const data = paged.map((doc) => {
-      const msg = doc.data() as Record<string, unknown>;
-      return {
-        id: doc.id,
-        groupId: msg.groupId as string,
-        groupName: (msg.groupName as string) ?? null,
-        senderUserId: msg.senderUserId as string,
-        senderName: msg.senderName as string,
-        content: msg.content as string,
-        contentUrl: (msg.contentUrl as string) ?? null,
-        lineMessageType: msg.lineMessageType as string,
-        taskPriority: (msg.taskPriority as string) ?? null,
-        assignees: (msg.assignees as string) ?? null,
-        deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
-        responseStatus: (msg.responseStatus as string) ?? "unresponded",
-        workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
-        notes: (msg.notes as string) ?? null,
-        createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
-      };
-    });
-
     return c.json({
-      data,
+      data: paged.map((doc) => serialize(doc.id, doc.data() as Record<string, unknown>)),
       pagination: { limit: lim, offset: off, hasMore },
     });
   }
@@ -85,6 +88,9 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
   if (responseStatus) {
     query = query.where("responseStatus", "==", responseStatus);
   }
+  if (category) {
+    query = query.where("category", "==", category);
+  }
 
   const snapshot = await query
     .limit(lim + 1)
@@ -93,29 +99,8 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
   const hasMore = snapshot.docs.length > lim;
   const docs = snapshot.docs.slice(0, lim);
 
-  const data = docs.map((doc) => {
-    const msg = doc.data() as Record<string, unknown>;
-    return {
-      id: doc.id,
-      groupId: msg.groupId as string,
-      groupName: (msg.groupName as string) ?? null,
-      senderUserId: msg.senderUserId as string,
-      senderName: msg.senderName as string,
-      content: msg.content as string,
-      contentUrl: (msg.contentUrl as string) ?? null,
-      lineMessageType: msg.lineMessageType as string,
-      taskPriority: (msg.taskPriority as string) ?? null,
-      assignees: (msg.assignees as string) ?? null,
-      deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
-      responseStatus: (msg.responseStatus as string) ?? "unresponded",
-      workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
-      notes: (msg.notes as string) ?? null,
-      createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
-    };
-  });
-
   return c.json({
-    data,
+    data: docs.map((doc) => serialize(doc.id, doc.data() as Record<string, unknown>)),
     pagination: { limit: lim, offset: off, hasMore },
   });
 });
@@ -212,6 +197,7 @@ lineMessageRoutes.get("/:id", async (c) => {
     assignees: msg.assignees ?? null,
     deadline: msg.deadline ? toISO(msg.deadline) : null,
     responseStatus: msg.responseStatus ?? "unresponded",
+    category: msg.category ?? null,
     responseStatusUpdatedBy: msg.responseStatusUpdatedBy ?? null,
     responseStatusUpdatedAt: msg.responseStatusUpdatedAt
       ? toISO(msg.responseStatusUpdatedAt)
@@ -294,6 +280,7 @@ const updateWorkflowSchema = z
     deadline: z.string().datetime({ offset: true }).nullable().optional(),
     notes: z.string().max(2000).nullable().optional(),
     workflowSteps: workflowStepsSchema.optional(),
+    category: z.enum(CHAT_CATEGORIES).nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "更新するフィールドを1つ以上指定してください",
@@ -327,6 +314,9 @@ lineMessageRoutes.patch("/:id/workflow", zValidator("json", updateWorkflowSchema
     updates.workflowSteps = body.workflowSteps;
     updates.workflowUpdatedBy = actor.email;
     updates.workflowUpdatedAt = FieldValue.serverTimestamp();
+  }
+  if (body.category !== undefined) {
+    updates.category = body.category;
   }
 
   if (Object.keys(updates).length > 0) {

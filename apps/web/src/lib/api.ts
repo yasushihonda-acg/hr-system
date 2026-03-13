@@ -443,6 +443,7 @@ export function getOverridePatterns() {
 export interface LineMessageListParams {
   groupId?: string;
   responseStatus?: ResponseStatus;
+  category?: string;
   hasTaskPriority?: boolean;
   limit?: number;
   offset?: number;
@@ -452,6 +453,7 @@ export function getLineMessages(params?: LineMessageListParams) {
   const sp = new URLSearchParams();
   if (params?.groupId) sp.set("groupId", params.groupId);
   if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
+  if (params?.category) sp.set("category", params.category);
   if (params?.hasTaskPriority) sp.set("hasTaskPriority", "true");
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.offset) sp.set("offset", String(params.offset));
@@ -501,6 +503,7 @@ export function updateLineWorkflow(
     deadline?: string | null;
     notes?: string | null;
     workflowSteps?: WorkflowSteps;
+    category?: string | null;
   },
 ) {
   return request<{ success: boolean }>(`/api/line-messages/${encodeURIComponent(id)}/workflow`, {
