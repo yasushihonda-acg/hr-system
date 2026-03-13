@@ -514,6 +514,7 @@ export function updateLineWorkflow(
 export interface ManualTaskListParams {
   taskPriority?: TaskPriority;
   responseStatus?: ResponseStatus;
+  category?: string;
   limit?: number;
   offset?: number;
 }
@@ -522,6 +523,7 @@ export function getManualTasks(params?: ManualTaskListParams) {
   const sp = new URLSearchParams();
   if (params?.taskPriority) sp.set("taskPriority", params.taskPriority);
   if (params?.responseStatus) sp.set("responseStatus", params.responseStatus);
+  if (params?.category) sp.set("category", params.category);
   if (params?.limit) sp.set("limit", String(params.limit));
   if (params?.offset) sp.set("offset", String(params.offset));
   const qs = sp.toString();
@@ -542,6 +544,7 @@ export function createManualTask(body: {
   content?: string;
   taskPriority: TaskPriority;
   responseStatus?: ResponseStatus;
+  category?: string | null;
   assignees?: string | null;
   deadline?: string | null;
 }) {

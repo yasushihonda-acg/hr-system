@@ -87,6 +87,7 @@ export async function createManualTaskAction(body: {
   content?: string;
   taskPriority: TaskPriority;
   responseStatus?: ResponseStatus;
+  category?: string | null;
   assignees?: string | null;
   deadline?: string | null;
 }): Promise<ManualTaskSummary> {

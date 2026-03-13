@@ -1,4 +1,5 @@
-import type { ResponseStatus } from "@hr-system/shared";
+import type { ChatCategory, ResponseStatus } from "@hr-system/shared";
+import { CHAT_CATEGORIES } from "@hr-system/shared";
 
 /** カテゴリ日本語ラベル */
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -37,6 +38,12 @@ export const RESPONSE_STATUS_DOT_COLORS: Record<ResponseStatus, string> = {
   responded: "bg-green-500",
   not_required: "bg-gray-400",
 };
+
+/** カテゴリフィルター選択肢（"すべて" + 10カテゴリ） */
+export const CATEGORY_OPTIONS: { value: ChatCategory | "all"; label: string }[] = [
+  { value: "all", label: "すべて" },
+  ...CHAT_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] ?? c })),
+];
 
 /** 金額フォーマット */
 export function formatCurrency(n: number): string {

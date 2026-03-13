@@ -364,6 +364,8 @@ export interface ManualTask {
   taskPriority: TaskPriority;
   /** 対応状況 */
   responseStatus: ResponseStatus;
+  /** カテゴリ（手動選択） */
+  category?: ChatCategory | null;
   /** 担当者（自由入力） */
   assignees: string | null;
   /** 期限（任意） */

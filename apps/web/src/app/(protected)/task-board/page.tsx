@@ -1,9 +1,9 @@
 import type { ChatCategory, ResponseStatus, TaskPriority } from "@hr-system/shared";
-import { CHAT_CATEGORIES } from "@hr-system/shared";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
-import { CATEGORY_LABELS } from "@/lib/constants";
+import { CATEGORY_OPTIONS } from "@/lib/constants";
 import { FilterSelect } from "./filter-select";
 import { ManualTaskCreateButton } from "./manual-task-form";
 import { TaskBoardContent } from "./task-board-content";
@@ -31,11 +31,6 @@ const STATUS_TABS: { value: ResponseStatus | "all"; label: string }[] = [
   { value: "unresponded", label: "未対応" },
   { value: "in_progress", label: "対応中" },
   { value: "responded", label: "対応済" },
-];
-
-const CATEGORY_TABS: { value: ChatCategory | "all"; label: string }[] = [
-  { value: "all", label: "すべて" },
-  ...CHAT_CATEGORIES.map((c) => ({ value: c, label: CATEGORY_LABELS[c] ?? c })),
 ];
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = {
@@ -142,7 +137,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         deadline: task.deadline,
         groupName: null,
         chatUrl: null,
-        category: null,
+        category: task.category ?? null,
         workflowSteps: task.workflowSteps ?? null,
         notes: task.notes ?? null,
         createdAt: task.createdAt,
@@ -235,7 +230,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
               searchParams={filterParams}
             />
             <FilterSelect
-              options={CATEGORY_TABS}
+              options={CATEGORY_OPTIONS}
               currentValue={categoryFilter ?? "all"}
               paramKey="category"
               searchParams={filterParams}

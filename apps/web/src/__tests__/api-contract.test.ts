@@ -545,6 +545,7 @@ describe("ManualTaskSummary 契約", () => {
     content: "詳細メモ",
     taskPriority: "high",
     responseStatus: "unresponded",
+    category: null,
     assignees: null,
     deadline: null,
     workflowSteps: null,

@@ -1,6 +1,7 @@
 "use client";
 
-import type { TaskPriority } from "@hr-system/shared";
+import type { ChatCategory, TaskPriority } from "@hr-system/shared";
+import { CHAT_CATEGORIES } from "@hr-system/shared";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Calendar as CalendarIcon, Plus, Users } from "lucide-react";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAssigneeSuggestions } from "@/hooks/use-assignee-suggestions";
+import { CATEGORY_LABELS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { createManualTaskAction } from "./actions";
 import { useSelectTask } from "./task-board-content";
@@ -28,6 +30,7 @@ export function ManualTaskCreateButton() {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [priority, setPriority] = useState<TaskPriority>("medium");
+  const [category, setCategory] = useState<ChatCategory | null>(null);
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [assigneeValue, setAssigneeValue] = useState("");
@@ -45,6 +48,7 @@ export function ManualTaskCreateButton() {
 
   function resetForm() {
     setPriority("medium");
+    setCategory(null);
     setDeadline(undefined);
     setAssigneeValue("");
     setShowSuggestions(false);
@@ -108,6 +112,7 @@ export function ManualTaskCreateButton() {
         title,
         content: (formData.get("content") as string) || "",
         taskPriority: priority,
+        category,
         assignees: assigneeValue.trim() || null,
         deadline: deadline ? `${format(deadline, "yyyy-MM-dd")}T00:00:00+09:00` : null,
       });
@@ -278,10 +283,31 @@ export function ManualTaskCreateButton() {
               </div>
             </div>
 
-            {/* 優先度 */}
-            <div className="space-y-1.5">
-              <Label>優先度</Label>
-              <TaskPrioritySelector value={priority} onChange={(p) => setPriority(p ?? "medium")} />
+            {/* カテゴリ + 優先度（2カラム） */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="task-category">カテゴリ</Label>
+                <select
+                  id="task-category"
+                  value={category ?? ""}
+                  onChange={(e) => setCategory((e.target.value || null) as ChatCategory | null)}
+                  className="border-input h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[3px]"
+                >
+                  <option value="">未分類</option>
+                  {CHAT_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {CATEGORY_LABELS[c] ?? c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>優先度</Label>
+                <TaskPrioritySelector
+                  value={priority}
+                  onChange={(p) => setPriority(p ?? "medium")}
+                />
+              </div>
             </div>
 
             <DialogFooter>
