@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-12（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `883239d` — fix: タスクボードのフィルターUIをドロップダウンに最適化 (#285) (#287)）
+**最終更新**: 2026-03-13（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `713dcc1` — feat: LINE・手入力タスクにワークフローステップとメモを追加 (#289)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (883239d) — in_progress（確認中）
+**CI**: Deploy to Cloud Run (713dcc1) — success
 
 ---
 
@@ -32,9 +32,17 @@
 
 ## 直近の変更（最新5件）
 
+### feat: LINE・手入力タスクにワークフローステップとメモを追加 (#289) (713dcc1)
+- LINE メッセージ由来タスクと手入力タスクにもワークフローステップとメモ機能を追加（Chat由来タスクとの機能統一）
+- CI: Deploy to Cloud Run — success
+
+### fix: FilterSelectの関数props渡しによる本番Server Componentsエラーを修正 (#288) (b94b5b8)
+- FilterSelect に関数を props として渡していた箇所が本番 Server Components でエラーになる問題を修正
+- CI: Deploy to Cloud Run — success
+
 ### fix: タスクボードのフィルターUIをドロップダウンに最適化 (#285) (#287) (883239d)
 - タスクボードのフィルターUI（優先度・ステータス等）をドロップダウン形式に変更して操作性改善
-- CI: Deploy to Cloud Run — in_progress
+- CI: Deploy to Cloud Run — success
 
 ### fix: ❶❷❸❹ワークフローステップの仕様不整合修正 (#284) (#286) (14bc00f)
 - ワークフローステップの仕様不整合を修正
