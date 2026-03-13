@@ -73,8 +73,8 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             </span>
           )}
         </div>
-        {buildMessageSearchUrl(msg.content) && (
-          <ChatOpenButton url={buildMessageSearchUrl(msg.content)} />
+        {buildMessageSearchUrl(msg.content, msg.createdAt) && (
+          <ChatOpenButton url={buildMessageSearchUrl(msg.content, msg.createdAt)} />
         )}
       </div>
 
