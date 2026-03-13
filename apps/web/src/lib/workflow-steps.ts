@@ -39,6 +39,9 @@ export const STEP_KEYS = [
   "laborLawyerShare",
 ] as const;
 
+/** STEP_KEYS と同期した番号アイコン */
+export const STEP_NUMBERS = ["❶", "❷", "❸", "❹"] as const;
+
 /** 列ごとのステータスラベル（スプレッドシート準拠） */
 export const STEP_STATUS_LABELS: Record<keyof WorkflowSteps, Record<WorkflowStepStatus, string>> = {
   salaryListReflection: {
@@ -74,6 +77,11 @@ export const STEP_LABELS: Record<keyof WorkflowSteps, { label: string; shortLabe
   noticeExecution: { label: "通知・締結", shortLabel: "通知" },
   laborLawyerShare: { label: "社労士共有", shortLabel: "社労士" },
 };
+
+/** 給与関連カテゴリかどうか（ワークフローステップ表示判定用） */
+export function isSalaryCategory(category: string | null | undefined): boolean {
+  return category === "salary";
+}
 
 export function nextStepStatus(current: WorkflowStepStatus): WorkflowStepStatus {
   const idx = STEP_CYCLE.indexOf(current);
