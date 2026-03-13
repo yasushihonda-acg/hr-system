@@ -105,9 +105,9 @@ describe("buildMessageSearchUrl", () => {
 
   it("createdAt が指定された場合 after:/before: で日付絞り込みが追加される", () => {
     const url = buildMessageSearchUrl("テスト", "2026-03-10T05:00:00Z");
-    // after:2026/03/09 before:2026/03/11
-    expect(url).toContain("after%3A2026%2F03%2F09");
-    expect(url).toContain("before%3A2026%2F03%2F11");
+    // 演算子はエンコードせずそのまま渡す（エンコードすると about:blank になる）
+    expect(url).toContain("after:2026-03-09");
+    expect(url).toContain("before:2026-03-11");
   });
 
   it("createdAt なしの場合は日付フィルタなし（後方互換）", () => {

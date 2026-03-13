@@ -66,17 +66,19 @@ export function buildMessageSearchUrl(content: string, createdAt?: string): stri
   const query = buildSearchQuery(content);
   if (!query) return "";
 
-  let searchTerms = query;
+  // クエリテキストのみエンコード。after:/before: 演算子はエンコードすると
+  // Google Chat が解析できず about:blank になるため、そのまま渡す。
+  let searchPath = encodeURIComponent(query);
   if (createdAt) {
     const d = new Date(createdAt);
     if (!Number.isNaN(d.getTime())) {
       const before = new Date(d.getTime() + 24 * 60 * 60 * 1000);
       const after = new Date(d.getTime() - 24 * 60 * 60 * 1000);
       const fmt = (dt: Date) =>
-        `${dt.getUTCFullYear()}/${String(dt.getUTCMonth() + 1).padStart(2, "0")}/${String(dt.getUTCDate()).padStart(2, "0")}`;
-      searchTerms = `${query} after:${fmt(after)} before:${fmt(before)}`;
+        `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+      searchPath = `${searchPath} after:${fmt(after)} before:${fmt(before)}`;
     }
   }
 
-  return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(searchTerms)}/cmembership=1`;
+  return `https://mail.google.com/chat/u/0/#search/${searchPath}/cmembership=1`;
 }
