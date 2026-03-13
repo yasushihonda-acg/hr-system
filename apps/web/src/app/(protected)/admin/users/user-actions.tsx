@@ -27,7 +27,9 @@ import {
 
 export function UserActions({ user }: { user: AdminUser }) {
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleSaveDisplayName() {
@@ -40,6 +42,18 @@ export function UserActions({ user }: { user: AdminUser }) {
     await updateDisplayNameAction(user.id, newName);
     setSaving(false);
     setEditOpen(false);
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await removeUserAction(user.id);
+      setDeleteOpen(false);
+    } catch {
+      alert("削除に失敗しました。もう一度お試しください。");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -78,7 +92,7 @@ export function UserActions({ user }: { user: AdminUser }) {
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-destructive" onClick={() => removeUserAction(user.id)}>
+          <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             削除
           </DropdownMenuItem>
@@ -119,6 +133,26 @@ export function UserActions({ user }: { user: AdminUser }) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-sm" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>ユーザーを削除</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{user.email}</span>{" "}
+            を削除します。この操作は取り消せません。
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
+              キャンセル
+            </Button>
+            <Button type="button" variant="destructive" disabled={deleting} onClick={handleDelete}>
+              {deleting ? "削除中..." : "削除する"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

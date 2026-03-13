@@ -117,7 +117,7 @@ adminUserRoutes.patch("/:id", zValidator("json", updateUserSchema), async (c) =>
   return c.json({ success: true });
 });
 
-// DELETE /api/admin/users/:id — ユーザー無効化（論理削除）
+// DELETE /api/admin/users/:id — ユーザー物理削除
 adminUserRoutes.delete("/:id", async (c) => {
   requireAdmin(c);
   const id = c.req.param("id");
@@ -127,10 +127,9 @@ adminUserRoutes.delete("/:id", async (c) => {
   const doc = await docRef.get();
   if (!doc.exists) throw notFound("AllowedUser", id);
 
-  await docRef.update({
-    isActive: false,
-    updatedAt: FieldValue.serverTimestamp(),
-  });
+  const email = doc.data()?.email;
+
+  await docRef.delete();
 
   await collections.auditLogs.add({
     eventType: "user_removed",
@@ -138,7 +137,7 @@ adminUserRoutes.delete("/:id", async (c) => {
     entityId: id,
     actorEmail: actor.email,
     actorRole: c.get("actorRole"),
-    details: { email: doc.data()?.email },
+    details: { email },
     createdAt: FieldValue.serverTimestamp() as never,
   });
 
