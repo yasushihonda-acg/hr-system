@@ -77,7 +77,7 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
     });
   };
 
-  const chatUrl = buildMessageSearchUrl(msg.content);
+  const chatUrl = buildMessageSearchUrl(msg.content, msg.createdAt);
 
   return (
     <tr

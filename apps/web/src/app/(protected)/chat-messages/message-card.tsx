@@ -182,13 +182,13 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
                 <time className="font-mono text-xs text-muted-foreground tabular-nums">
                   {formatDateTime(msg.createdAt)}
                 </time>
-                {buildMessageSearchUrl(msg.content) && (
+                {buildMessageSearchUrl(msg.content, msg.createdAt) && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       window.open(
-                        buildMessageSearchUrl(msg.content),
+                        buildMessageSearchUrl(msg.content, msg.createdAt),
                         "_blank",
                         "noopener,noreferrer,width=1400,height=900",
                       );

@@ -293,13 +293,13 @@ function TaskRow({
 
       {/* チャットURL（検索で別ウィンドウを開く） */}
       <td className="px-2 py-2.5 text-center">
-        {task.source === "gchat" && buildMessageSearchUrl(task.content) ? (
+        {task.source === "gchat" && buildMessageSearchUrl(task.content, task.createdAt) ? (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               window.open(
-                buildMessageSearchUrl(task.content),
+                buildMessageSearchUrl(task.content, task.createdAt),
                 "_blank",
                 "noopener,noreferrer,width=1400,height=900",
               );

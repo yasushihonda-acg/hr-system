@@ -58,9 +58,25 @@ export function buildSearchQuery(content: string, maxLen = 25): string {
   return sliced.replace(/[ぁ-ん]+$/, "") || sliced;
 }
 
-/** メッセージ本文の先頭部分で Google Chat 内検索するURL */
-export function buildMessageSearchUrl(content: string): string {
+/**
+ * メッセージ本文 + 日付で Google Chat 内検索するURL を生成する。
+ * createdAt が指定された場合、after:/before: 演算子で前後1日に絞り込む。
+ */
+export function buildMessageSearchUrl(content: string, createdAt?: string): string {
   const query = buildSearchQuery(content);
   if (!query) return "";
-  return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(query)}/cmembership=1`;
+
+  let searchTerms = query;
+  if (createdAt) {
+    const d = new Date(createdAt);
+    if (!Number.isNaN(d.getTime())) {
+      const before = new Date(d.getTime() + 24 * 60 * 60 * 1000);
+      const after = new Date(d.getTime() - 24 * 60 * 60 * 1000);
+      const fmt = (dt: Date) =>
+        `${dt.getUTCFullYear()}/${String(dt.getUTCMonth() + 1).padStart(2, "0")}/${String(dt.getUTCDate()).padStart(2, "0")}`;
+      searchTerms = `${query} after:${fmt(after)} before:${fmt(before)}`;
+    }
+  }
+
+  return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(searchTerms)}/cmembership=1`;
 }
