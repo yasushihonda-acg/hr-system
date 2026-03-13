@@ -106,7 +106,12 @@ export default async function InboxPage({ searchParams }: Props) {
     selectedChatMessage = selectedResult;
   } else {
     const [msgResult, countResult, selectedResult] = await Promise.all([
-      getLineMessages({ responseStatus: activeStatus, limit: PAGE_SIZE, offset }),
+      getLineMessages({
+        responseStatus: activeStatus,
+        category: activeCategory,
+        limit: PAGE_SIZE,
+        offset,
+      }),
       getLineInboxCounts(),
       selectedId
         ? getLineMessage(selectedId).catch((err) => {
@@ -199,35 +204,30 @@ export default async function InboxPage({ searchParams }: Props) {
             );
           })}
 
-          {/* カテゴリフィルター（Google Chat のみ） */}
-          {source === "gchat" && (
-            <>
-              <span className="mx-1 h-4 w-px bg-slate-200" />
-              <div className="flex flex-wrap gap-1">
-                {CATEGORY_OPTIONS.map((opt) => {
-                  const isActive =
-                    opt.value === "all" ? !activeCategory : activeCategory === opt.value;
-                  return (
-                    <Link
-                      key={opt.value}
-                      href={buildUrl({
-                        category: opt.value === "all" ? undefined : opt.value,
-                        page: "1",
-                        id: undefined,
-                      })}
-                      className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
-                        isActive
-                          ? "bg-slate-700 text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                      }`}
-                    >
-                      {opt.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          {/* カテゴリフィルター */}
+          <span className="mx-1 h-4 w-px bg-slate-200" />
+          <div className="flex flex-wrap gap-1">
+            {CATEGORY_OPTIONS.map((opt) => {
+              const isActive = opt.value === "all" ? !activeCategory : activeCategory === opt.value;
+              return (
+                <Link
+                  key={opt.value}
+                  href={buildUrl({
+                    category: opt.value === "all" ? undefined : opt.value,
+                    page: "1",
+                    id: undefined,
+                  })}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
+                    isActive
+                      ? "bg-slate-700 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {opt.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </div>
 

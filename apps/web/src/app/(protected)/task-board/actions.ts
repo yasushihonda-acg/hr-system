@@ -154,7 +154,7 @@ export async function updateLineDeadlineFromTaskBoard(messageId: string, deadlin
 
 export async function updateLineWorkflowFromTaskBoard(
   messageId: string,
-  body: { workflowSteps?: WorkflowSteps; notes?: string | null },
+  body: { workflowSteps?: WorkflowSteps; notes?: string | null; category?: string | null },
 ) {
   await requireAccess();
   await updateLineWorkflow(messageId, body);

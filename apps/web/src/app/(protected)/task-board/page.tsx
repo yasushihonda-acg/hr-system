@@ -115,7 +115,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         deadline: msg.deadline ?? null,
         groupName: msg.groupName,
         chatUrl: null,
-        category: null,
+        category: msg.category ?? null,
         workflowSteps: msg.workflowSteps ?? null,
         notes: msg.notes ?? null,
         createdAt: msg.createdAt,

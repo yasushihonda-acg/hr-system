@@ -502,6 +502,7 @@ describe("LineMessageSummary 契約", () => {
     assignees: null,
     deadline: null,
     responseStatus: "unresponded",
+    category: null,
     workflowSteps: null,
     notes: null,
     createdAt: "2026-03-01T09:00:00.000Z",
@@ -509,6 +510,12 @@ describe("LineMessageSummary 契約", () => {
 
   it("workflowSteps と notes フィールドが存在すること", () => {
     expect(hasAllKeys(sampleLineMessage, ["workflowSteps", "notes"])).toBe(true);
+  });
+
+  it("category が null 許容で string を受け付けること", () => {
+    expect(sampleLineMessage.category).toBeNull();
+    const withCategory: LineMessageSummary = { ...sampleLineMessage, category: "salary" };
+    expect(withCategory.category).toBe("salary");
   });
 
   it("workflowSteps が null 許容で WorkflowSteps 型を受け付けること", () => {
