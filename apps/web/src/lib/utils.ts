@@ -42,11 +42,12 @@ export function formatDate(iso: string): string {
  * 句読点・読点で自然に区切り、超過時は名詞境界（漢字/カタカナの直後）で切断する。
  */
 export function buildSearchQuery(content: string, maxLen = 25): string {
-  const trimmed = content.trim();
+  // 改行をスペースに正規化（チャットメッセージは宛先行＋本文の複数行構成が多い）
+  const trimmed = content.trim().replace(/\n+/g, " ");
   if (!trimmed) return "";
 
-  // 1. 最初の文（句点・改行区切り）
-  const firstSentence = trimmed.split(/[。！？\n]/)[0] ?? trimmed;
+  // 1. 最初の文（句点区切り）
+  const firstSentence = trimmed.split(/[。！？]/)[0] ?? trimmed;
   if (firstSentence.length <= maxLen) return firstSentence;
 
   // 2. 最初の節（読点区切り）

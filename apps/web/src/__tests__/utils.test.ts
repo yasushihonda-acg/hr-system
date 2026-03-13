@@ -50,8 +50,8 @@ describe("buildSearchQuery", () => {
     );
   });
 
-  it("改行で区切られた最初の行を返す", () => {
-    expect(buildSearchQuery("1行目の内容\n2行目の内容")).toBe("1行目の内容");
+  it("改行はスペースに正規化して結合する", () => {
+    expect(buildSearchQuery("1行目の内容\n2行目の内容")).toBe("1行目の内容 2行目の内容");
   });
 
   it("句点がなく25文字以内ならそのまま返す", () => {
@@ -83,6 +83,14 @@ describe("buildSearchQuery", () => {
       "@社労士事務所：担当者 予定に対して別の配置をしたためです。次の手配をお願いします。";
     const result = buildSearchQuery(content);
     // 句点で切れるが25文字超え → 名詞境界で切断
+    expect(result).toBe("@社労士事務所：担当者 予定に対して別の配置");
+  });
+
+  it("改行区切りのメッセージでも名詞境界で切断する", () => {
+    const content =
+      "@社労士事務所：担当者\n予定に対して別の配置をしたためです。次の手配をお願いします。";
+    const result = buildSearchQuery(content);
+    // 改行→スペース正規化後、句点で切れるが25文字超え → 名詞境界で切断
     expect(result).toBe("@社労士事務所：担当者 予定に対して別の配置");
   });
 
