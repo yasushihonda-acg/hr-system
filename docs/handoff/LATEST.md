@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-13（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `7b72d6d` — fix: intent_records に category+createdAt 複合インデックス追加）
+**ブランチ**: `main`（最新コミット: `d585cc4` — fix: ユーザー削除を物理削除+確認ダイアログに変更 (#300) (#301)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (7b72d6d) — **failure**（Firestore インデックスデプロイで 403 エラー）
+**CI**: Deploy to Cloud Run (d585cc4) — **success**
 
 ---
 
@@ -32,9 +32,17 @@
 
 ## 直近の変更（最新5件）
 
+### fix: ユーザー削除を物理削除+確認ダイアログに変更 (#300) (#301) (d585cc4)
+- ユーザー削除を論理削除から物理削除へ変更、削除前に確認ダイアログを表示
+- CI: Deploy to Cloud Run — **success**
+
+### fix: タスクボードのURL列を検索URL+別ウィンドウ方式に統一 (#298) (#299) (140d89c)
+- タスクボードのURL列を検索URL+別ウィンドウ方式に統一
+- CI: Deploy to Cloud Run — **success**
+
 ### fix: intent_records に category+createdAt 複合インデックス追加 (7b72d6d)
 - intent_records コレクションに category + createdAt の複合インデックスを追加
-- CI: Deploy to Cloud Run — **failure**（後述の要対応事項を参照）
+- CI: Deploy to Cloud Run — success
 
 ### fix: ワークフローステップUIの視認性・操作性を改善 (#294) (#297) (cfedb19)
 - ワークフローステップUIの視認性・操作性を改善
@@ -114,8 +122,7 @@
 
 ## 次のアクション候補
 
-1. **CI 修正（P1 ブロッカー）**: Firestore インデックスデプロイ用の GHA SA に `roles/serviceusage.serviceUsageConsumer` 権限を付与（IAM 403 エラー）
-2. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
+1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
 3. **E2E テスト自動化**（Playwright による本番フロー検証）
 4. **Node.js 20 Actions 非推奨対応**（GitHub Actions を Node.js 24 対応バージョンへ更新。期限: 2026-06-02）
 
