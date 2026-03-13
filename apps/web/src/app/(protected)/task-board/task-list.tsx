@@ -10,10 +10,21 @@ import {
   RESPONSE_STATUS_LABELS,
 } from "@/lib/constants";
 import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
-import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG, STEP_KEYS } from "@/lib/workflow-steps";
 import {
+  DEFAULT_STEPS,
+  isSalaryCategory,
+  nextStepStatus,
+  STEP_CONFIG,
+  STEP_KEYS,
+  STEP_LABELS,
+  STEP_NUMBERS,
+} from "@/lib/workflow-steps";
+import {
+  updateLineResponseStatusFromTaskBoard,
   updateLineWorkflowFromTaskBoard,
+  updateManualTaskAction,
   updateManualWorkflowFromTaskBoard,
+  updateResponseStatusFromTaskBoard,
   updateWorkflowFromTaskBoard,
 } from "./actions";
 import { taskCompositeId } from "./task-composite-id";
@@ -101,30 +112,18 @@ export function TaskList({
               ステータス
             </th>
             <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">期限</th>
-            <th
-              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❶SS反映"
-            >
-              ❶
-            </th>
-            <th
-              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❷SmartHR反映"
-            >
-              ❷
-            </th>
-            <th
-              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❸通知・締結"
-            >
-              ❸
-            </th>
-            <th
-              className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground"
-              title="❹社労士共有"
-            >
-              ❹
-            </th>
+            {STEP_KEYS.map((key, i) => (
+              <th
+                key={key}
+                className="w-14 px-1 py-2.5 text-center font-semibold text-muted-foreground"
+                title={STEP_LABELS[key].label}
+              >
+                <span className="block text-[10px] leading-tight">
+                  {STEP_NUMBERS[i]}
+                  {STEP_LABELS[key].shortLabel}
+                </span>
+              </th>
+            ))}
             <th className="min-w-[100px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
               メモ
             </th>
@@ -208,6 +207,36 @@ function TaskRow({
     setSavedNotes(localNotes);
     startTransition(async () => {
       await saveWorkflow({ notes: localNotes || null });
+    });
+  };
+
+  // 給与カテゴリのみステップ列を表示
+  const showSteps = isSalaryCategory(task.category);
+
+  // ステップ全完了 かつ 対応済でない場合にサジェスト表示
+  const allStepsResolved =
+    showSteps &&
+    STEP_KEYS.every((k) => localSteps[k] === "completed" || localSteps[k] === "not_required");
+  const showRespondedSuggestion = allStepsResolved && task.responseStatus !== "responded";
+
+  const markResponded = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    startTransition(async () => {
+      switch (task.source) {
+        case "gchat":
+          await updateResponseStatusFromTaskBoard(task.id, "responded");
+          break;
+        case "line":
+          await updateLineResponseStatusFromTaskBoard(task.id, "responded");
+          break;
+        case "manual":
+          await updateManualTaskAction(task.id, { responseStatus: "responded" });
+          break;
+        default: {
+          const _exhaustive: never = task.source;
+          throw new Error(`Unknown source: ${_exhaustive}`);
+        }
+      }
     });
   };
 
@@ -340,24 +369,30 @@ function TaskRow({
         )}
       </td>
 
-      {/* ❶〜❹ ワークフローステップ */}
-      {STEP_KEYS.map((key) => (
-        <td key={key} className="px-1 py-2.5 text-center">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStep(key);
-            }}
-            disabled={isPending}
-            className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[localSteps[key]].cls}`}
-          >
-            {STEP_CONFIG[localSteps[key]].label}
-          </button>
-        </td>
-      ))}
+      {/* ❶〜❹ ワークフローステップ（給与カテゴリのみ操作可能） */}
+      {STEP_KEYS.map((key) => {
+        return (
+          <td key={key} className="px-1 py-2.5 text-center">
+            {showSteps ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStep(key);
+                }}
+                disabled={isPending}
+                className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[localSteps[key]].cls}`}
+              >
+                {STEP_CONFIG[localSteps[key]].label}
+              </button>
+            ) : (
+              <span className="text-muted-foreground/30">—</span>
+            )}
+          </td>
+        );
+      })}
 
-      {/* メモ */}
+      {/* メモ + ステップ全完了サジェスト */}
       <td className="px-2 py-1">
         <textarea
           rows={1}
@@ -368,6 +403,16 @@ function TaskRow({
           placeholder="メモ"
           className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
         />
+        {showRespondedSuggestion && (
+          <button
+            type="button"
+            onClick={markResponded}
+            disabled={isPending}
+            className="mt-0.5 rounded bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 hover:bg-green-100 transition-colors border border-green-200"
+          >
+            ✓ 対応済にする
+          </button>
+        )}
       </td>
     </tr>
   );

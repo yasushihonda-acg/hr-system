@@ -339,12 +339,13 @@ describe("TaskList", () => {
     expect(html).toContain("メモ");
   });
 
-  it("gchat タスクにワークフローステップボタンが表示される", () => {
+  it("給与カテゴリのタスクにワークフローステップボタンが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [
           makeTask({
             source: "gchat",
+            category: "salary",
             workflowSteps: {
               salaryListReflection: "completed",
               noticeExecution: "undetermined",
@@ -363,14 +364,16 @@ describe("TaskList", () => {
     expect(html).toContain("✗");
     // undetermined ステップの ー が表示される
     expect(html).toContain("ー");
+    expect(html).toContain("<button");
   });
 
-  it("LINE タスクでもワークフローステップボタンが表示される", () => {
+  it("非給与カテゴリのタスクではステップボタンが非表示", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [
           makeTask({
             source: "line",
+            category: "attendance",
             workflowSteps: {
               salaryListReflection: "completed",
               smartHRReflection: "undetermined",
@@ -383,17 +386,18 @@ describe("TaskList", () => {
         onSelect: mockOnSelect,
       }),
     );
-    // completed ステップの ✓ が表示される（ボタンとして）
-    expect(html).toContain("✓");
-    expect(html).toContain("<button");
+    // ステップボタンは表示されない（✓/✗/!がない）
+    expect(html).not.toContain("✓");
+    expect(html).not.toContain("✗");
   });
 
-  it("手入力タスクでもワークフローステップボタンが表示される", () => {
+  it("カテゴリ未設定のタスクではステップボタンが非表示", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [
           makeTask({
             source: "manual",
+            category: null,
             workflowSteps: {
               salaryListReflection: "undetermined",
               smartHRReflection: "undetermined",
@@ -406,8 +410,7 @@ describe("TaskList", () => {
         onSelect: mockOnSelect,
       }),
     );
-    expect(html).toContain("✓");
-    expect(html).toContain("<button");
+    expect(html).not.toContain("✓");
   });
 
   it("LINE タスクでもメモ textarea が表示される", () => {
