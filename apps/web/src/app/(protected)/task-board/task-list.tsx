@@ -9,7 +9,7 @@ import {
   RESPONSE_STATUS_BADGE_COLORS,
   RESPONSE_STATUS_LABELS,
 } from "@/lib/constants";
-import { cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
+import { buildMessageSearchUrl, cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
 import {
   DEFAULT_STEPS,
   isSalaryCategory,
@@ -40,7 +40,6 @@ export interface TaskItem {
   assignees: string | null;
   deadline: string | null;
   groupName: string | null;
-  chatUrl: string | null;
   category: string | null;
   workflowSteps: WorkflowSteps | null;
   notes: string | null;
@@ -292,19 +291,24 @@ function TaskRow({
         </p>
       </td>
 
-      {/* チャットURL */}
+      {/* チャットURL（検索で別ウィンドウを開く） */}
       <td className="px-2 py-2.5 text-center">
-        {task.chatUrl ? (
-          <a
-            href={task.chatUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center text-blue-600 hover:text-blue-800"
-            title="Google Chat で開く"
+        {task.source === "gchat" && buildMessageSearchUrl(task.content) ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(
+                buildMessageSearchUrl(task.content),
+                "_blank",
+                "noopener,noreferrer,width=1400,height=900",
+              );
+            }}
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 cursor-pointer"
+            title="Google Chat でメッセージを検索して開く（新しいウィンドウ）"
           >
             <ExternalLink size={13} />
-          </a>
+          </button>
         ) : (
           <span className="text-muted-foreground/40">—</span>
         )}

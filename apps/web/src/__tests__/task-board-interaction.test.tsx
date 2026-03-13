@@ -56,6 +56,11 @@ vi.mock("@/lib/utils", () => ({
     const date = new Date(d);
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
   },
+  buildMessageSearchUrl: (content: string) => {
+    const query = content.trim().slice(0, 30);
+    if (!query) return "";
+    return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(query)}/cmembership=1`;
+  },
 }));
 
 vi.mock("lucide-react", () => ({
@@ -100,7 +105,6 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     assignees: null,
     deadline: null,
     groupName: null,
-    chatUrl: null,
     category: null,
     workflowSteps: null,
     notes: null,

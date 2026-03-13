@@ -52,6 +52,11 @@ vi.mock("@/lib/utils", () => ({
     const date = new Date(d);
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
   },
+  buildMessageSearchUrl: (content: string) => {
+    const query = content.trim().slice(0, 30);
+    if (!query) return "";
+    return `https://mail.google.com/chat/u/0/#search/${encodeURIComponent(query)}/cmembership=1`;
+  },
 }));
 
 vi.mock("lucide-react", () => ({
@@ -105,7 +110,6 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     assignees: null,
     deadline: null,
     groupName: null,
-    chatUrl: null,
     category: null,
     workflowSteps: null,
     notes: null,
@@ -253,28 +257,27 @@ describe("TaskList", () => {
     expect(text).toContain("対応中");
   });
 
-  it("chatUrl がある場合にリンクが表示される", () => {
+  it("gchat タスクで検索URLボタンが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
-        tasks: [makeTask({ chatUrl: "https://chat.google.com/room/AAAA/msg-1" })],
+        tasks: [makeTask({ source: "gchat", content: "給与変更をお願いします" })],
         selectedId: null,
         onSelect: mockOnSelect,
       }),
     );
-    expect(html).toContain("https://chat.google.com/room/AAAA/msg-1");
     expect(html).toContain('data-testid="icon-external-link"');
+    expect(html).toContain("Google Chat でメッセージを検索して開く");
   });
 
-  it("chatUrl が null の場合はダッシュが表示される", () => {
+  it("LINE タスクではURL列がダッシュ表示になる", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
-        tasks: [makeTask({ chatUrl: null, source: "line" })],
+        tasks: [makeTask({ source: "line" })],
         selectedId: null,
         onSelect: mockOnSelect,
       }),
     );
-    // チャットURL列にダッシュ
-    expect(html).not.toContain('target="_blank"');
+    expect(html).not.toContain('data-testid="icon-external-link"');
   });
 
   it("テーブルヘッダーに記事のコピー・URL・タスク列が存在する", () => {
