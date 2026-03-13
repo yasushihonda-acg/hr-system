@@ -39,7 +39,7 @@ export function formatDate(iso: string): string {
  * メッセージ本文から Google Chat 検索クエリを生成する。
  * Google Chat は形態素解析ベースで検索するため、文の途中（助詞など）で
  * 切ると不完全なトークンとなり検索がヒットしない。
- * 句読点・読点で自然に区切り、超過時は末尾ひらがな（助詞）を除去する。
+ * 句読点・読点で自然に区切り、超過時は名詞境界（漢字/カタカナの直後）で切断する。
  */
 export function buildSearchQuery(content: string, maxLen = 25): string {
   const trimmed = content.trim();
@@ -53,9 +53,43 @@ export function buildSearchQuery(content: string, maxLen = 25): string {
   const firstClause = firstSentence.split(/[、,]/)[0] ?? firstSentence;
   if (firstClause.length <= maxLen) return firstClause;
 
-  // 3. maxLen文字で切って末尾ひらがな（助詞・助動詞）を除去
-  const sliced = firstClause.slice(0, maxLen);
-  return sliced.replace(/[ぁ-ん]+$/, "") || sliced;
+  // 3. maxLen文字で切り、名詞境界（漢字/カタカナ直後）を後方から探す
+  return truncateAtNounBoundary(firstClause, maxLen);
+}
+
+const MIN_QUERY_LEN = 8;
+
+/** 漢字/カタカナの直後（名詞の終端）で切断する */
+export function truncateAtNounBoundary(text: string, maxLen: number): string {
+  const sliced = text.slice(0, maxLen);
+
+  // 後ろから「漢字/カタカナ」の直後を探す
+  // 例: 「...別の配置をした」→「配置」(index 21) の直後で切る
+  for (let i = sliced.length - 1; i >= MIN_QUERY_LEN; i--) {
+    const ch = sliced[i] as string;
+    const prev = sliced[i - 1] as string;
+    // 現在の文字がひらがな/助詞で、直前が漢字/カタカナ → 直前の文字で切る
+    if (isHiragana(ch) && isKanjiOrKatakana(prev)) {
+      return sliced.slice(0, i);
+    }
+  }
+
+  // フォールバック: 末尾ひらがな一括除去
+  const trimmed = sliced.replace(/[ぁ-ん]+$/, "");
+  return trimmed.length >= MIN_QUERY_LEN ? trimmed : sliced;
+}
+
+function isHiragana(ch: string): boolean {
+  const code = ch.charCodeAt(0);
+  return code >= 0x3041 && code <= 0x3096; // ぁ-ゖ
+}
+
+function isKanjiOrKatakana(ch: string): boolean {
+  const code = ch.charCodeAt(0);
+  return (
+    (code >= 0x4e00 && code <= 0x9fff) || // CJK統合漢字
+    (code >= 0x30a0 && code <= 0x30ff) // カタカナ
+  );
 }
 
 /**

@@ -1,5 +1,47 @@
 import { describe, expect, it } from "vitest";
-import { buildMessageSearchUrl, buildSearchQuery } from "../lib/utils";
+import { buildMessageSearchUrl, buildSearchQuery, truncateAtNounBoundary } from "../lib/utils";
+
+describe("truncateAtNounBoundary", () => {
+  it("漢字の直後（助詞の直前）で切断する", () => {
+    // 「配置」の直後で切る（「を」は助詞＝ひらがな）
+    expect(truncateAtNounBoundary("予定に対して別の配置をしたためです", 20)).toBe(
+      "予定に対して別の配置",
+    );
+  });
+
+  it("カタカナの直後でも切断する", () => {
+    // 16文字: 「本日のミーティングについて確認し」→ i=15「し」(ひらがな)+「認」(漢字)→ 境界 →「確認」直後で切断
+    expect(truncateAtNounBoundary("本日のミーティングについて確認します", 16)).toBe(
+      "本日のミーティングについて確認",
+    );
+    // 15文字: 「本日のミーティングについて確認」→ 末尾「認」は漢字、後方探索で「グ」(カタカナ)+「に」(ひらがな)境界 → i=9で切断
+    expect(truncateAtNounBoundary("本日のミーティングについて確認します", 15)).toBe(
+      "本日のミーティング",
+    );
+  });
+
+  it("ユーザー報告ケース: 「配置」の直後で切断", () => {
+    expect(
+      truncateAtNounBoundary("@社労士事務所：担当者 予定に対して別の配置をしたためです", 25),
+    ).toBe("@社労士事務所：担当者 予定に対して別の配置");
+  });
+
+  it("最低8文字を保証する（短すぎる位置では切らない）", () => {
+    // 8文字未満の位置に境界があっても使わない
+    const result = truncateAtNounBoundary("漢字あいうえおかきくけこさしすせそ", 20);
+    expect(result.length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("名詞境界が見つからない場合は末尾ひらがな除去でフォールバック", () => {
+    const result = truncateAtNounBoundary("abcdefghijklmnopqrstuvwxyz1234567890", 25);
+    expect(result).toBe("abcdefghijklmnopqrstuvwxy");
+  });
+
+  it("全ひらがなの場合はそのまま返す（フォールバック）", () => {
+    const result = truncateAtNounBoundary("あ".repeat(30), 25);
+    expect(result).toBe("あ".repeat(25));
+  });
+});
 
 describe("buildSearchQuery", () => {
   it("句点で区切られた最初の文を返す", () => {
@@ -17,27 +59,15 @@ describe("buildSearchQuery", () => {
   });
 
   it("読点で区切って最初の節を返す（句点なし・25文字超え）", () => {
-    // 句点がなく25文字を超える場合、読点で区切る
     expect(
       buildSearchQuery("社労士事務所の担当者について、予定に対して別の配置をしたためです"),
     ).toBe("社労士事務所の担当者について");
   });
 
-  it("読点もなく25文字を超える場合、末尾ひらがな（助詞）を除去する", () => {
-    // 「別の配置をしたためで」→末尾の「ためで」を除去→「別の配置をし」→末尾の「をし」も除去→問題
-    // 実際には25文字で切ってから末尾ひらがなを除去
+  it("読点もなく25文字を超える場合、名詞境界で切断する", () => {
     const long = "@社労士事務所：担当者 予定に対して別の配置をしたためです";
     const result = buildSearchQuery(long);
-    // 末尾がひらがなで終わらない（助詞で切れない）
-    expect(result).not.toMatch(/[ぁ-ん]$/);
-    expect(result.length).toBeLessThanOrEqual(25);
-  });
-
-  it("25文字で切った結果が全てひらがなの場合はそのまま返す（フォールバック）", () => {
-    const allHiragana = "あ".repeat(30);
-    const result = buildSearchQuery(allHiragana);
-    // replace結果が空→フォールバックでslicedをそのまま返す
-    expect(result).toBe("あ".repeat(25));
+    expect(result).toBe("@社労士事務所：担当者 予定に対して別の配置");
   });
 
   it("空文字列の場合は空文字列を返す", () => {
@@ -48,14 +78,12 @@ describe("buildSearchQuery", () => {
     expect(buildSearchQuery("   ")).toBe("");
   });
 
-  it("ユーザー報告のケース: 中途半端な助詞で切れない", () => {
-    // 「@社労士事務所：担当者 予定に対して別の配置をしたためで」←こうならない
+  it("ユーザー報告のケース: 名詞の直後で切れる", () => {
     const content =
       "@社労士事務所：担当者 予定に対して別の配置をしたためです。次の手配をお願いします。";
     const result = buildSearchQuery(content);
-    // 句点で切れるので「@社労士事務所：担当者 予定に対して別の配置をしたためです」だが25文字超え
-    // → 読点がないので25文字で切って末尾ひらがな除去
-    expect(result).not.toMatch(/[ぁ-ん]$/);
+    // 句点で切れるが25文字超え → 名詞境界で切断
+    expect(result).toBe("@社労士事務所：担当者 予定に対して別の配置");
   });
 
   it("maxLen パラメータをカスタマイズできる", () => {
@@ -63,7 +91,7 @@ describe("buildSearchQuery", () => {
     expect(result.length).toBeLessThanOrEqual(10);
   });
 
-  it("英数字のみの場合はそのまま切断（ひらがな除去が影響しない）", () => {
+  it("英数字のみの場合はそのまま切断", () => {
     const result = buildSearchQuery("a".repeat(50));
     expect(result).toBe("a".repeat(25));
   });
@@ -105,7 +133,6 @@ describe("buildMessageSearchUrl", () => {
 
   it("createdAt が指定された場合 after:/before: で日付絞り込みが追加される", () => {
     const url = buildMessageSearchUrl("テスト", "2026-03-10T05:00:00Z");
-    // 演算子はエンコードせずそのまま渡す（エンコードすると about:blank になる）
     expect(url).toContain("after:2026-03-09");
     expect(url).toContain("before:2026-03-11");
   });
