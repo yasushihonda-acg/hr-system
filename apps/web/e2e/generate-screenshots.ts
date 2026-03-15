@@ -78,16 +78,6 @@ const PAGES: {
     path: "/admin/ai-settings",
     waitFor: "main",
   },
-  {
-    filename: "11-admin-employees.png",
-    path: "/admin/employees",
-    waitFor: "main",
-  },
-  {
-    filename: "12-admin-audit-logs.png",
-    path: "/admin/audit-logs",
-    waitFor: "main",
-  },
 ];
 
 async function main() {
