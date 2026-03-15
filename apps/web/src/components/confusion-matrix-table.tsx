@@ -45,7 +45,7 @@ export function ConfusionMatrixTable({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-background">
           <tr>
             <th className="px-2 py-1.5 text-left font-medium text-muted-foreground">
               修正前 \ 修正後

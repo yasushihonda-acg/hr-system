@@ -190,7 +190,7 @@ export function TableView({
   return (
     <div className="overflow-x-auto rounded-xl border border-border/60 bg-card shadow-sm">
       <table className="min-w-full border-collapse">
-        <thead>
+        <thead className="sticky top-0 z-10">
           <tr className="border-b border-border/60 bg-muted/50">
             <th className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
               No
