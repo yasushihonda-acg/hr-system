@@ -52,6 +52,9 @@ export function AddUserForm() {
           <div className="space-y-2">
             <Label htmlFor="email">メールアドレス</Label>
             <Input id="email" name="email" type="email" required placeholder="user@aozora-cg.com" />
+            <p className="text-xs text-muted-foreground">
+              aozora-cg.com / lend.aozora-cg.com のみ登録可能
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="displayName">表示名</Label>

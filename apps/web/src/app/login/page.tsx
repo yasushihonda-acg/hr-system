@@ -124,7 +124,7 @@ export default async function LoginPage({
 
       {/* フッター注記 */}
       <p className="relative z-10 mt-6 text-xs text-muted-foreground">
-        アクセスには管理者による許可が必要です
+        aozora-cg.com / lend.aozora-cg.com アカウント + 管理者による許可が必要です
       </p>
     </main>
   );
