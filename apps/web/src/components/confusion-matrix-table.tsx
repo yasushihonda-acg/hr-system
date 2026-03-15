@@ -43,7 +43,7 @@ export function ConfusionMatrixTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-auto max-h-[80vh]">
       <table className="w-full text-xs">
         <thead className="sticky top-0 z-10 bg-background">
           <tr>

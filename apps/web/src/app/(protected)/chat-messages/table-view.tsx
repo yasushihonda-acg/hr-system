@@ -188,7 +188,7 @@ export function TableView({
   offset?: number;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border/60 bg-card shadow-sm">
+    <div className="overflow-auto max-h-[80vh] rounded-xl border border-border/60 bg-card shadow-sm">
       <table className="min-w-full border-collapse">
         <thead className="sticky top-0 z-10">
           <tr className="border-b border-border/60 bg-muted/50">
