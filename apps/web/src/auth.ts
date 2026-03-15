@@ -1,3 +1,4 @@
+import { isAllowedDomain } from "@hr-system/shared";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -47,6 +48,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       : []),
   ],
   callbacks: {
+    signIn({ user }) {
+      const email = user.email;
+      if (!email) return false;
+      if (!isAllowedDomain(email)) {
+        return "/login?error=domain_not_allowed";
+      }
+      return true;
+    },
     async jwt({ token, account, user }) {
       if (account?.id_token) {
         // Google OAuth 初回ログイン: トークン一式を保存

@@ -2,7 +2,13 @@ import { signIn } from "@/auth";
 
 const isDev = process.env.NODE_ENV === "development";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const params = await searchParams;
+  const error = params.error;
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background">
       {/* 背景グリッドパターン */}
@@ -34,6 +40,17 @@ export default function LoginPage() {
               人事・給与変更の承認ダッシュボード
             </p>
           </div>
+
+          {/* ドメインエラー表示 */}
+          {error === "domain_not_allowed" && (
+            <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+              このメールドメインではログインできません。
+              <br />
+              <span className="text-xs text-muted-foreground">
+                aozora-cg.com または lend.aozora-cg.com のアカウントをご利用ください。
+              </span>
+            </div>
+          )}
 
           {/* Google ログイン */}
           <form
