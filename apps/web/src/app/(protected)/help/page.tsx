@@ -654,44 +654,8 @@ export default function HelpPage() {
             />
           </Section>
 
-          {/* 08 従業員一覧 */}
-          <Section id="admin-employees" num="08" title="管理: 従業員">
-            <p className="text-sm mb-3 text-muted-foreground leading-relaxed">
-              従業員マスタの一覧を表示します。
-              社員番号、名前、雇用形態、部署、入社日などを確認できます。
-            </p>
-            <div className="flex items-center gap-2 mb-4">
-              <RoleBadge label="管理者" />
-            </div>
-            <BrowserFrame
-              src="/screenshots/help/11-admin-employees.png"
-              alt="従業員一覧"
-              caption="従業員一覧 — 全従業員のマスタ情報"
-            />
-          </Section>
-
-          {/* 09 監査ログ */}
-          <Section id="admin-audit-logs" num="09" title="管理: 監査ログ">
-            <p className="text-sm mb-3 text-muted-foreground leading-relaxed">
-              システム上の全操作を記録した監査ログを閲覧できます。
-              ユーザーの追加・削除、ドラフトの承認など、重要な操作の履歴を確認できます。
-            </p>
-            <div className="flex items-center gap-2 mb-4">
-              <RoleBadge label="管理者" />
-            </div>
-            <BrowserFrame
-              src="/screenshots/help/12-admin-audit-logs.png"
-              alt="監査ログ"
-              caption="監査ログ — 管理者のみアクセス可能"
-            />
-            <Callout>
-              監査ログは管理者ロールのみ閲覧可能です。
-              閲覧権限がない場合はアクセス制限メッセージが表示されます。
-            </Callout>
-          </Section>
-
-          {/* 10 AI設定 */}
-          <Section id="admin-ai-settings" num="10" title="管理: AI設定">
+          {/* 08 AI設定 */}
+          <Section id="admin-ai-settings" num="08" title="管理: AI設定">
             <p className="text-sm mb-3 text-muted-foreground leading-relaxed">
               AI によるメッセージ分類の設定を調整します。 正規表現ルール、LLM
               ルール、テスト分類、精度分析の4つのタブで管理します。
@@ -714,7 +678,7 @@ export default function HelpPage() {
           </Section>
 
           {/* 11 権限一覧 */}
-          <Section id="roles" num="11" title="権限一覧">
+          <Section id="roles" num="09" title="権限一覧">
             <p className="text-sm mb-5 text-muted-foreground leading-relaxed">
               ユーザーのロールによってアクセスできる機能が異なります。
             </p>

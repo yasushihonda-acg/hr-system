@@ -51,9 +51,9 @@ describe("ヘルプページ", () => {
   });
 
   describe("tocItems", () => {
-    it("11セクション定義されている", async () => {
+    it("9セクション定義されている", async () => {
       const { tocItems } = await import("../app/(protected)/help/help-data");
-      expect(tocItems).toHaveLength(11);
+      expect(tocItems).toHaveLength(9);
     });
 
     it("各項目に id, num, label, icon が存在する", async () => {
@@ -66,10 +66,10 @@ describe("ヘルプページ", () => {
       }
     });
 
-    it("num が 01 から 11 まで連番である", async () => {
+    it("num が 01 から 09 まで連番である", async () => {
       const { tocItems } = await import("../app/(protected)/help/help-data");
       const nums = tocItems.map((t) => t.num);
-      const expected = Array.from({ length: 11 }, (_, i) => String(i + 1).padStart(2, "0"));
+      const expected = Array.from({ length: 9 }, (_, i) => String(i + 1).padStart(2, "0"));
       expect(nums).toEqual(expected);
     });
 
@@ -81,9 +81,9 @@ describe("ヘルプページ", () => {
   });
 
   describe("permissionData", () => {
-    it("9つの機能が定義されている", async () => {
+    it("7つの機能が定義されている", async () => {
       const { permissionData } = await import("../app/(protected)/help/help-data");
-      expect(permissionData).toHaveLength(9);
+      expect(permissionData).toHaveLength(7);
     });
 
     it("各項目に feature, desc, admin, hr, viewer が存在する", async () => {

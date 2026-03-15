@@ -4,14 +4,12 @@ import {
   BarChart3,
   BotMessageSquare,
   ClipboardList,
-  FileText,
   Inbox,
   KeyRound,
   ListTodo,
   LogIn,
   type LucideIcon,
   MessageSquare,
-  Shield,
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -43,10 +41,8 @@ export const tocItems: TocEntry[] = [
   { id: "dashboard", num: "05", label: "ダッシュボード", icon: BarChart3 },
   { id: "admin-users", num: "06", label: "ユーザー管理", icon: Users },
   { id: "admin-spaces", num: "07", label: "スペース管理", icon: MessageSquare },
-  { id: "admin-employees", num: "08", label: "従業員一覧", icon: FileText },
-  { id: "admin-audit-logs", num: "09", label: "監査ログ", icon: Shield },
-  { id: "admin-ai-settings", num: "10", label: "AI設定", icon: BotMessageSquare },
-  { id: "roles", num: "11", label: "権限一覧", icon: KeyRound },
+  { id: "admin-ai-settings", num: "08", label: "AI設定", icon: BotMessageSquare },
+  { id: "roles", num: "09", label: "権限一覧", icon: KeyRound },
 ];
 
 export const permissionData: PermissionEntry[] = [
@@ -88,20 +84,6 @@ export const permissionData: PermissionEntry[] = [
   {
     feature: "スペース管理",
     desc: "Chat同期対象の管理",
-    admin: true,
-    hr: false,
-    viewer: false,
-  },
-  {
-    feature: "従業員一覧",
-    desc: "従業員マスタの閲覧",
-    admin: true,
-    hr: false,
-    viewer: false,
-  },
-  {
-    feature: "監査ログ",
-    desc: "操作履歴の閲覧",
     admin: true,
     hr: false,
     viewer: false,

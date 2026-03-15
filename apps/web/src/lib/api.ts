@@ -2,7 +2,6 @@ import type { DraftStatus, ResponseStatus, TaskPriority } from "@hr-system/share
 import { auth } from "@/auth";
 import type {
   AdminUser,
-  AuditLogEntry,
   CategoryStat,
   ChatMessageDetail,
   ChatMessageSummary,
@@ -12,8 +11,6 @@ import type {
   ConfusionMatrixEntry,
   DraftDetail,
   DraftSummary,
-  EmployeeDetail,
-  EmployeeSummary,
   IntentStatsSummary,
   LineGroupStat,
   LineMessageDetail,
@@ -104,60 +101,6 @@ export function transitionDraft(id: string, body: { toStatus: DraftStatus; comme
     method: "POST",
     body: JSON.stringify(body),
   });
-}
-
-// --- Employees ---
-
-export interface EmployeeListParams {
-  employmentType?: string;
-  department?: string;
-  isActive?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export function getEmployees(params?: EmployeeListParams) {
-  const sp = new URLSearchParams();
-  if (params?.employmentType) sp.set("employmentType", params.employmentType);
-  if (params?.department) sp.set("department", params.department);
-  if (params?.isActive) sp.set("isActive", params.isActive);
-  if (params?.limit) sp.set("limit", String(params.limit));
-  if (params?.offset) sp.set("offset", String(params.offset));
-  const qs = sp.toString();
-  return request<{
-    employees: EmployeeSummary[];
-    total: number;
-    limit: number;
-    offset: number;
-  }>(`/api/employees${qs ? `?${qs}` : ""}`);
-}
-
-export function getEmployee(id: string) {
-  return request<EmployeeDetail>(`/api/employees/${id}`);
-}
-
-// --- Audit Logs ---
-
-export interface AuditLogListParams {
-  entityType?: string;
-  entityId?: string;
-  limit?: number;
-  offset?: number;
-}
-
-export function getAuditLogs(params?: AuditLogListParams) {
-  const sp = new URLSearchParams();
-  if (params?.entityType) sp.set("entityType", params.entityType);
-  if (params?.entityId) sp.set("entityId", params.entityId);
-  if (params?.limit) sp.set("limit", String(params.limit));
-  if (params?.offset) sp.set("offset", String(params.offset));
-  const qs = sp.toString();
-  return request<{
-    logs: AuditLogEntry[];
-    total: number;
-    limit: number;
-    offset: number;
-  }>(`/api/audit-logs${qs ? `?${qs}` : ""}`);
 }
 
 // --- Chat Messages ---
