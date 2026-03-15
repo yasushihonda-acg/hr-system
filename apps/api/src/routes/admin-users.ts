@@ -1,6 +1,6 @@
 import { zValidator } from "@hono/zod-validator";
 import { collections } from "@hr-system/db";
-import { USER_ROLES } from "@hr-system/shared";
+import { isAllowedDomain, USER_ROLES } from "@hr-system/shared";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -55,6 +55,11 @@ adminUserRoutes.post("/", zValidator("json", createUserSchema), async (c) => {
   requireAdmin(c);
   const actor = c.get("user");
   const { email, displayName, role } = c.req.valid("json");
+
+  // ドメインチェック
+  if (!isAllowedDomain(email)) {
+    return c.json({ error: "許可されていないメールドメインです" }, 400);
+  }
 
   // 重複チェック
   const existing = await collections.allowedUsers.where("email", "==", email).limit(1).get();

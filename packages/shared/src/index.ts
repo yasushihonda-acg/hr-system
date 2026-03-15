@@ -1,4 +1,5 @@
 export { getNextActions, validateTransition } from "./approval.js";
+export { getAllowedDomains, isAllowedDomain } from "./domain.js";
 export type {
   ActorRole,
   AllowanceType,
