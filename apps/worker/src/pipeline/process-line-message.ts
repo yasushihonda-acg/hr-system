@@ -1,5 +1,7 @@
+import { classifyIntent } from "@hr-system/ai";
 import { collections } from "@hr-system/db";
 import { Timestamp } from "firebase-admin/firestore";
+import { getClassificationConfig } from "../lib/classification-config.js";
 import { getGroupMemberProfile, getGroupSummary, getMessageContent } from "../lib/line-api.js";
 import { uploadLineMedia } from "../lib/storage.js";
 
@@ -71,13 +73,15 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     }
   }
 
-  await collections.lineMessages.add({
+  const textContent = message.text ?? "";
+
+  const docRef = await collections.lineMessages.add({
     groupId,
     groupName: groupName ?? null,
     lineMessageId,
     senderUserId: userId,
     senderName: senderName ?? "unknown",
-    content: message.text ?? "",
+    content: textContent,
     contentUrl,
     lineMessageType: message.type,
     rawPayload: event as unknown as Record<string, unknown>,
@@ -91,4 +95,18 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
   });
 
   console.log(`[LineWorker] Saved message: ${lineMessageId} (group: ${groupId})`);
+
+  // カテゴリ自動分類（テキストメッセージのみ、best-effort）
+  if (message.type === "text" && textContent.length > 0) {
+    try {
+      const config = await getClassificationConfig();
+      const result = await classifyIntent(textContent, undefined, config);
+      await docRef.update({ category: result.category });
+      console.log(
+        `[LineWorker] Classified: ${lineMessageId} → ${result.category} (${result.classificationMethod}, confidence: ${result.confidence})`,
+      );
+    } catch (e) {
+      console.warn(`[LineWorker] Category classification failed (non-blocking): ${String(e)}`);
+    }
+  }
 }
