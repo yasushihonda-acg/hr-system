@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-16（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `3dd2488` — feat: ユーザー追加フォームとログインページに許可ドメインのガイド表示を追加 (#315) (#316)）
+**ブランチ**: `main`（最新コミット: `0c781a4` — fix: タスクボードのテーブルヘッダーがスクロール時に固定されない問題を修正 (#319)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (3dd2488) — **success**
+**CI**: Deploy to Cloud Run (0c781a4) — **success**
 
 ---
 
@@ -31,6 +31,19 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: タスクボードのテーブルヘッダーがスクロール時に固定されない問題を修正 (#319) (0c781a4)
+- task-list.tsx の `overflow-x-auto` ラッパーが sticky を阻害していた問題を修正
+- 親コンテナ（task-board-content.tsx）の `overflow-y-auto` → `overflow-auto` に変更し水平スクロールを委譲
+- CI: Deploy to Cloud Run — **success**
+
+### fix: テーブルコンテナにmax-h+overflow-auto追加でstickyヘッダー修正 (8215e8f)
+- shadcn/ui Table コンポーネントに `max-h-[80vh]` + `overflow-auto` を追加
+- CI: Deploy to Cloud Run — **success**
+
+### feat: 全テーブルヘッダーをスティッキー固定化 (#317) (#318) (93d828e)
+- 全テーブルの `<thead>` に `sticky top-0 z-10` を追加してヘッダーを固定
+- CI: Deploy to Cloud Run — **success**
 
 ### feat: ユーザー追加フォームとログインページに許可ドメインのガイド表示を追加 (#315) (#316) (3dd2488)
 - ユーザー追加フォームとログインページに、管理者が設定した許可ドメインをガイドとして表示
