@@ -78,7 +78,7 @@ export function TaskList({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="w-full min-w-[1500px] text-xs">
         <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
           <tr>
