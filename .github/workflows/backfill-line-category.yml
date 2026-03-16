@@ -48,7 +48,7 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ env.PROJECT_ID }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            pnpm exec tsx apps/worker/src/scripts/backfill-line-category.ts --dry-run
+            pnpm --filter @hr-system/worker exec tsx src/scripts/backfill-line-category.ts --dry-run
           else
-            pnpm exec tsx apps/worker/src/scripts/backfill-line-category.ts
+            pnpm --filter @hr-system/worker exec tsx src/scripts/backfill-line-category.ts
           fi
