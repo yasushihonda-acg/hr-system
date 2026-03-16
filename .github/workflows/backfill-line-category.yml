@@ -1,0 +1,54 @@
+name: Backfill LINE Category
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (対象件数のみ確認)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: hr-system-487809
+
+jobs:
+  backfill:
+    name: Backfill LINE message categories
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Run backfill
+        env:
+          GCP_PROJECT_ID: ${{ env.PROJECT_ID }}
+          GOOGLE_CLOUD_PROJECT: ${{ env.PROJECT_ID }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npx tsx apps/worker/src/scripts/backfill-line-category.ts --dry-run
+          else
+            npx tsx apps/worker/src/scripts/backfill-line-category.ts
+          fi
