@@ -168,7 +168,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
         {/* テーブル一覧 (選択中はモバイルで非表示) */}
         <div
           className={cn(
-            "flex-1 overflow-y-auto",
+            "flex-1 overflow-auto",
             selectedTask && "hidden md:block md:border-r md:border-border/60",
           )}
         >
