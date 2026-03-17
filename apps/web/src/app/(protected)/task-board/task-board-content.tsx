@@ -15,11 +15,11 @@ import {
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
+import { NotesField } from "@/components/notes-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
-import { HandoverForm } from "../inbox/handover-form";
 import {
   deleteManualTaskAction,
   fetchChatMessageDetailAction,
@@ -202,17 +202,17 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
                 onUpdateAssignees={handleChatAssignees}
                 onUpdateDeadline={handleChatDeadline}
                 extraContent={
-                  chatDetail.intent && (
-                    <div className="mt-4">
-                      <HandoverForm
-                        chatMessageId={chatDetail.id}
-                        taskSummary={chatDetail.intent.taskSummary ?? null}
-                        assignees={chatDetail.intent.assignees ?? null}
-                        deadline={chatDetail.intent.deadline ?? null}
-                        notes={chatDetail.intent.notes ?? null}
-                      />
-                    </div>
-                  )
+                  <div className="mt-4">
+                    <NotesField
+                      value={chatDetail.intent?.notes ?? null}
+                      onSave={async (notes) => {
+                        const { updateChatNotesAction } = await import(
+                          "@/app/(protected)/inbox/actions"
+                        );
+                        await updateChatNotesAction(chatDetail.id, notes);
+                      }}
+                    />
+                  </div>
                 }
               />
             ) : lineDetail ? (
@@ -228,6 +228,10 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
                     "@/app/(protected)/inbox/actions"
                   );
                   await updateLineCategoriesAction(id, cats);
+                }}
+                onUpdateNotes={async (id, notes) => {
+                  const { updateLineNotesAction } = await import("@/app/(protected)/inbox/actions");
+                  await updateLineNotesAction(id, notes);
                 }}
               />
             ) : isManualTask && selectedTask ? (

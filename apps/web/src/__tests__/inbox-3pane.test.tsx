@@ -110,13 +110,9 @@ vi.mock("@/components/task-priority-selector", () => ({
       : null,
 }));
 
-vi.mock("../app/(protected)/inbox/handover-form", () => ({
-  HandoverForm: ({ taskSummary, assignees, deadline, notes }: Record<string, unknown>) =>
-    React.createElement(
-      "div",
-      { "data-testid": "handover-form" },
-      [taskSummary, assignees, deadline, notes].filter(Boolean).join(","),
-    ),
+vi.mock("../components/notes-field", () => ({
+  NotesField: ({ value }: Record<string, unknown>) =>
+    React.createElement("div", { "data-testid": "notes-field" }, String(value ?? "")),
 }));
 
 vi.mock("../app/(protected)/inbox/use-select-message", () => ({
@@ -130,6 +126,7 @@ vi.mock("../app/(protected)/inbox/actions", () => ({
   updateChatAssigneesAction: vi.fn(),
   updateChatCategoriesAction: vi.fn(),
   updateChatDeadlineAction: vi.fn(),
+  updateChatNotesAction: vi.fn(),
 }));
 
 vi.mock("@/components/chat/attachment-list", () => ({
@@ -497,7 +494,7 @@ describe("Inbox3Pane", () => {
       expect(html).toContain("bg-red-500");
     });
 
-    it("intentがnullの場合、引き継ぎメモが表示されない", () => {
+    it("intentがnullの場合でもメモフィールドが表示される", () => {
       const html = renderToHtml(
         React.createElement(Inbox3Pane, {
           messages: [makeSummary({ intent: null })],
@@ -505,12 +502,12 @@ describe("Inbox3Pane", () => {
           selectedId: "msg-1",
         }),
       );
-      expect(html).not.toContain('data-testid="handover-form"');
+      expect(html).toContain('data-testid="notes-field"');
     });
   });
 
-  describe("引き継ぎメモ", () => {
-    it("intentがある場合にHandoverFormが表示される", () => {
+  describe("メモフィールド", () => {
+    it("intentがある場合にNotesFieldが表示される", () => {
       const html = renderToHtml(
         React.createElement(Inbox3Pane, {
           messages: [makeSummary()],
@@ -518,13 +515,13 @@ describe("Inbox3Pane", () => {
           selectedId: "msg-1",
         }),
       );
-      expect(html).toContain('data-testid="handover-form"');
+      expect(html).toContain('data-testid="notes-field"');
     });
 
-    it("taskSummaryがHandoverFormに渡される", () => {
+    it("notesがNotesFieldに渡される", () => {
       const base = makeDetail();
       const detail = makeDetail({
-        intent: base.intent ? { ...base.intent, taskSummary: "給与テーブル更新" } : null,
+        intent: base.intent ? { ...base.intent, notes: "要確認メモ" } : null,
       });
       const text = renderToText(
         React.createElement(Inbox3Pane, {
@@ -533,7 +530,7 @@ describe("Inbox3Pane", () => {
           selectedId: "msg-1",
         }),
       );
-      expect(text).toContain("給与テーブル更新");
+      expect(text).toContain("要確認メモ");
     });
   });
 });

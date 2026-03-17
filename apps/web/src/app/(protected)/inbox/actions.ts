@@ -107,3 +107,18 @@ export async function updateLineCategoriesAction(messageId: string, categories: 
   revalidatePath("/inbox");
   revalidatePath("/task-board");
 }
+
+export async function updateLineNotesAction(messageId: string, notes: string | null) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, { notes });
+  revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateChatNotesAction(chatMessageId: string, notes: string | null) {
+  await requireAccess();
+  await updateWorkflow(chatMessageId, { notes });
+  revalidatePath("/inbox");
+  revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
