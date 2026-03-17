@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-17（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `c6253e6` — chore: 未使用FilterSelectコンポーネント削除 + devポート3000→3005に変更 (#334)）
+**最終更新**: 2026-03-18（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `631d0cf` — feat: 受信箱・タスクボードのメモ機能統一 (#336) (#337)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (4b72be7) — **success**
+**CI**: Deploy to Cloud Run (631d0cf) — **success**
 
 ---
 
@@ -27,10 +27,15 @@
 | Phase 8 | タスク優先度・手動タスク・セキュリティ強化・パフォーマンス改善 | 完了 |
 | Phase 9 | 担当者・期限インライン編集・手動タスクUI改善・AI判定パネル削除 | 完了 |
 | Phase 10 | タスクテーブルビュー拡充（列分離・カテゴリタグ/フィルタ・ワークフローステップ列・メモ列） | 完了 |
+| Phase 11 | 受信箱・タスクボードのメモ機能統一（notes フィールド統合） | 完了 |
 
 ---
 
 ## 直近の変更（最新5件）
+
+### feat: 受信箱・タスクボードのメモ機能統一 (#336) (#337) (631d0cf)
+- 受信箱（Inbox）とタスクボードの `notes` フィールドを統一し、メモ機能を両画面で一貫して利用可能に
+- CI: Deploy to Cloud Run — **success**
 
 ### chore: 未使用FilterSelectコンポーネント削除 + devポート3000→3005に変更 (#334) (c6253e6)
 - `filter-select.tsx` を `filter-utils.ts` にリネーム（`buildFilterUrl` のみ残す）
@@ -252,7 +257,7 @@
 apps/
   api/          Hono (TypeScript) — Cloud Run API サーバー (port 3001)
   worker/       Hono (TypeScript) — Chat Webhook Worker (port 3002)
-  web/          Next.js 15 App Router — 承認ダッシュボード (port 3000)
+  web/          Next.js 15 App Router — 承認ダッシュボード (port 3005)
 packages/
   db/           Firestore 型定義・コレクション・クライアント
   shared/       DraftStatus, ApprovalAction, validateTransition 等
@@ -285,7 +290,7 @@ draft → reviewed → approved → processing → completed
 ```bash
 cd /Users/yyyhhh/ACG/hr-system
 
-# 開発サーバー起動（API: 3001, Web: 3000, Worker: 3002）
+# 開発サーバー起動（API: 3001, Web: 3005, Worker: 3002）
 pnpm dev
 
 # Firebase Emulator（別ターミナル）
