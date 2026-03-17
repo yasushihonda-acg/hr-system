@@ -4,6 +4,7 @@ import type { ResponseStatus } from "@hr-system/shared";
 import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { NotesField } from "@/components/notes-field";
 import { WorkflowPanel } from "@/components/workflow-panel";
 import {
   CATEGORY_LABELS,
@@ -12,8 +13,7 @@ import {
 } from "@/lib/constants";
 import type { ChatMessageSummary, WorkflowSteps } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
-import { updateResponseStatusAction, updateWorkflowAction } from "./actions";
-import { HandoverForm } from "./handover-form";
+import { updateChatNotesAction, updateResponseStatusAction, updateWorkflowAction } from "./actions";
 
 interface InboxListProps {
   messages: ChatMessageSummary[];
@@ -175,14 +175,11 @@ function InboxCard({
               />
             </div>
 
-            {/* Handover notes */}
+            {/* メモ */}
             <div>
-              <HandoverForm
-                chatMessageId={message.id}
-                taskSummary={intent?.taskSummary ?? null}
-                assignees={intent?.assignees ?? null}
-                deadline={intent?.deadline ?? null}
-                notes={intent?.notes ?? null}
+              <NotesField
+                value={intent?.notes ?? null}
+                onSave={(notes) => updateChatNotesAction(message.id, notes)}
               />
             </div>
           </div>

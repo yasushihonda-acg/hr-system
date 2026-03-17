@@ -4,6 +4,7 @@ import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
 import { CategoriesField } from "@/components/categories-field";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
+import { NotesField } from "@/components/notes-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import type { LineMessageDetail } from "@/lib/types";
@@ -17,6 +18,7 @@ interface LineMessageDetailPaneProps {
   onUpdateAssignees: (id: string, assignees: string | null) => Promise<void>;
   onUpdateDeadline: (id: string, deadline: string | null) => Promise<void>;
   onUpdateCategories: (id: string, categories: string[]) => Promise<void>;
+  onUpdateNotes?: (id: string, notes: string | null) => Promise<void>;
 }
 
 export function LineMessageDetailPane({
@@ -27,6 +29,7 @@ export function LineMessageDetailPane({
   onUpdateAssignees,
   onUpdateDeadline,
   onUpdateCategories,
+  onUpdateNotes,
 }: LineMessageDetailPaneProps) {
   const responseStatus = message.responseStatus;
 
@@ -97,6 +100,16 @@ export function LineMessageDetailPane({
           />
           <DeadlineField value={message.deadline} onSave={(v) => onUpdateDeadline(message.id, v)} />
         </div>
+
+        {/* メモ */}
+        {onUpdateNotes && (
+          <div className="mt-4">
+            <NotesField
+              value={message.notes ?? null}
+              onSave={(notes) => onUpdateNotes(message.id, notes)}
+            />
+          </div>
+        )}
 
         {/* メタ情報 */}
         <div className="mt-6 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">

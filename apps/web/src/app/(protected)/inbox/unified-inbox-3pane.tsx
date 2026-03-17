@@ -5,6 +5,7 @@ import { Image as ImageIcon, MessageSquare, Paperclip } from "lucide-react";
 import { CategoryBadge } from "@/components/category-badge";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
+import { NotesField } from "@/components/notes-field";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type { UnifiedMessageDetail, UnifiedMessageSummary } from "@/lib/types";
@@ -13,16 +14,17 @@ import {
   updateChatAssigneesAction,
   updateChatCategoriesAction,
   updateChatDeadlineAction,
+  updateChatNotesAction,
   updateLineAssigneesAction,
   updateLineCategoriesAction,
   updateLineDeadlineAction,
+  updateLineNotesAction,
   updateLineResponseStatusAction,
   updateLineTaskPriorityAction,
   updateResponseStatusAction,
   updateTaskPriorityAction,
   updateWorkflowAction,
 } from "./actions";
-import { HandoverForm } from "./handover-form";
 import { useSelectMessage } from "./use-select-message";
 
 interface UnifiedInbox3PaneProps {
@@ -128,17 +130,12 @@ function DetailPane({ message, onClose }: { message: UnifiedMessageDetail; onClo
         onUpdateDeadline={updateChatDeadlineAction}
         onUpdateCategories={updateChatCategoriesAction}
         extraContent={
-          message.intent && (
-            <div className="mt-4">
-              <HandoverForm
-                chatMessageId={message.id}
-                taskSummary={message.intent.taskSummary ?? null}
-                assignees={message.intent.assignees ?? null}
-                deadline={message.intent.deadline ?? null}
-                notes={message.intent.notes ?? null}
-              />
-            </div>
-          )
+          <div className="mt-4">
+            <NotesField
+              value={message.intent?.notes ?? null}
+              onSave={(notes) => updateChatNotesAction(message.id, notes)}
+            />
+          </div>
         }
       />
     );
@@ -153,6 +150,7 @@ function DetailPane({ message, onClose }: { message: UnifiedMessageDetail; onClo
       onUpdateAssignees={updateLineAssigneesAction}
       onUpdateDeadline={updateLineDeadlineAction}
       onUpdateCategories={updateLineCategoriesAction}
+      onUpdateNotes={updateLineNotesAction}
     />
   );
 }

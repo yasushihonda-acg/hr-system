@@ -3,6 +3,7 @@
 import type { ResponseStatus } from "@hr-system/shared";
 import { MessageSquare, Paperclip } from "lucide-react";
 import { ChatMessageDetailPane } from "@/components/message-detail-pane";
+import { NotesField } from "@/components/notes-field";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { CATEGORY_LABELS, RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type { ChatMessageDetail, ChatMessageSummary } from "@/lib/types";
@@ -11,11 +12,11 @@ import {
   updateChatAssigneesAction,
   updateChatCategoriesAction,
   updateChatDeadlineAction,
+  updateChatNotesAction,
   updateResponseStatusAction,
   updateTaskPriorityAction,
   updateWorkflowAction,
 } from "./actions";
-import { HandoverForm } from "./handover-form";
 import { useSelectMessage } from "./use-select-message";
 
 interface Inbox3PaneProps {
@@ -120,17 +121,12 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
           onUpdateDeadline={updateChatDeadlineAction}
           onUpdateCategories={updateChatCategoriesAction}
           extraContent={
-            selectedMessage.intent && (
-              <div className="mt-4">
-                <HandoverForm
-                  chatMessageId={selectedMessage.id}
-                  taskSummary={selectedMessage.intent.taskSummary ?? null}
-                  assignees={selectedMessage.intent.assignees ?? null}
-                  deadline={selectedMessage.intent.deadline ?? null}
-                  notes={selectedMessage.intent.notes ?? null}
-                />
-              </div>
-            )
+            <div className="mt-4">
+              <NotesField
+                value={selectedMessage.intent?.notes ?? null}
+                onSave={(notes) => updateChatNotesAction(selectedMessage.id, notes)}
+              />
+            </div>
           }
         />
       ) : (

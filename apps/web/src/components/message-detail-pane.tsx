@@ -24,7 +24,7 @@ export interface ChatMessageDetailPaneProps {
   onUpdateResponseStatus: (id: string, status: ResponseStatus) => Promise<void>;
   onUpdateTaskPriority: (id: string, priority: TaskPriority | null) => Promise<void>;
   onUpdateWorkflow: (id: string, body: WorkflowUpdateRequest) => Promise<void>;
-  /** Optional slot rendered after the workflow section (e.g. HandoverForm) */
+  /** Optional slot rendered after the workflow section (e.g. NotesField) */
   extraContent?: ReactNode;
   /** Assignees value from intent (for inline editing) */
   assignees?: string | null;
@@ -159,7 +159,7 @@ export function ChatMessageDetailPane({
               </div>
             )}
 
-            {/* Extra content slot (e.g. HandoverForm) */}
+            {/* Extra content slot (e.g. NotesField) */}
             {extraContent}
           </TabsContent>
 

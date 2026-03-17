@@ -11,6 +11,7 @@ import {
   updateLineAssigneesAction,
   updateLineCategoriesAction,
   updateLineDeadlineAction,
+  updateLineNotesAction,
   updateLineResponseStatusAction,
   updateLineTaskPriorityAction,
 } from "./actions";
@@ -111,6 +112,7 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
           onUpdateAssignees={updateLineAssigneesAction}
           onUpdateDeadline={updateLineDeadlineAction}
           onUpdateCategories={updateLineCategoriesAction}
+          onUpdateNotes={updateLineNotesAction}
         />
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">
