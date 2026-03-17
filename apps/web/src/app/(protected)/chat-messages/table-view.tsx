@@ -5,7 +5,13 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ChatMessageSummary, WorkflowSteps } from "@/lib/types";
 import { buildMessageSearchUrl, formatDateJST } from "@/lib/utils";
-import { DEFAULT_STEPS, nextStepStatus, STEP_CONFIG, STEP_KEYS } from "@/lib/workflow-steps";
+import {
+  DEFAULT_STEPS,
+  nextStepStatus,
+  STEP_CONFIG,
+  STEP_KEYS,
+  STEP_LABELS,
+} from "@/lib/workflow-steps";
 import { updateResponseStatusAction, updateWorkflowAction } from "./[id]/actions";
 
 type ResponseStatus = NonNullable<ChatMessageSummary["intent"]>["responseStatus"];
@@ -151,7 +157,7 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
         </button>
       </td>
 
-      {/* ❶〜❹ */}
+      {/* ワークフローステップ */}
       {STEP_KEYS.map((key) => (
         <td key={key} className="w-10 px-1 py-2 text-center">
           <button
@@ -210,30 +216,15 @@ export function TableView({
             <th className="whitespace-nowrap px-2 py-2 text-center text-xs font-semibold text-muted-foreground">
               対応状況
             </th>
-            <th
-              className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❶SmartHR更新"
-            >
-              ❶
-            </th>
-            <th
-              className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❷本人通知"
-            >
-              ❷
-            </th>
-            <th
-              className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❸社労士共有"
-            >
-              ❸
-            </th>
-            <th
-              className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❹給与DB反映"
-            >
-              ❹
-            </th>
+            {STEP_KEYS.map((key) => (
+              <th
+                key={key}
+                className="px-1 py-2 text-center text-[10px] font-semibold text-muted-foreground"
+                title={STEP_LABELS[key].label}
+              >
+                {STEP_LABELS[key].shortLabel}
+              </th>
+            ))}
             <th className="px-2 py-2 text-left text-xs font-semibold text-muted-foreground">
               メモ
             </th>
