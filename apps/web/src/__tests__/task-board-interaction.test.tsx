@@ -15,6 +15,7 @@ import { describe, expect, it, vi } from "vitest";
 // --- モック設定 ---
 
 const mockOnSelect = vi.fn();
+const mockOnOpenDialog = vi.fn();
 
 vi.mock("@/lib/constants", () => ({
   RESPONSE_STATUS_DOT_COLORS: {
@@ -69,6 +70,7 @@ vi.mock("lucide-react", () => ({
   ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
+  Maximize2: () => React.createElement("span", { "data-testid": "icon-maximize" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
@@ -129,6 +131,7 @@ describe("TaskList onSelect コールバック", () => {
         ],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     // tbody 内に 2つの tr が存在（thead 1 + tbody 2）
@@ -142,6 +145,7 @@ describe("TaskList onSelect コールバック", () => {
         tasks: [makeTask({ id: "msg-42", source: "gchat" })],
         selectedId: "gchat-msg-42",
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     // selectedId が gchat-msg-42 でマッチし、bg-accent が適用される
@@ -154,6 +158,7 @@ describe("TaskList onSelect コールバック", () => {
         tasks: [makeTask({ id: "line-msg-99", source: "line" })],
         selectedId: "line-line-msg-99",
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("bg-accent");

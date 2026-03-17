@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // --- モック設定 ---
 
 const mockOnSelect = vi.fn();
+const mockOnOpenDialog = vi.fn();
 
 vi.mock("@/lib/constants", () => ({
   RESPONSE_STATUS_DOT_COLORS: {
@@ -65,6 +66,7 @@ vi.mock("lucide-react", () => ({
   ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
+  Maximize2: () => React.createElement("span", { "data-testid": "icon-maximize" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
@@ -127,7 +129,12 @@ describe("TaskList", () => {
 
   it("タスクが0件の場合「タスクはありません」が表示される", () => {
     const text = renderToText(
-      React.createElement(TaskList, { tasks: [], selectedId: null, onSelect: mockOnSelect }),
+      React.createElement(TaskList, {
+        tasks: [],
+        selectedId: null,
+        onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
+      }),
     );
     expect(text).toContain("タスクはありません");
   });
@@ -138,6 +145,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ senderName: "田中太郎", content: "給与変更をお願いします" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(text).toContain("田中太郎");
@@ -150,6 +158,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ taskPriority: "high" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain('data-testid="task-priority-dot"');
@@ -162,6 +171,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "gchat" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain('data-testid="icon-gchat"');
@@ -173,6 +183,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "line" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain('data-testid="icon-line"');
@@ -184,6 +195,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ id: "msg-42", source: "gchat" })],
         selectedId: "gchat-msg-42",
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("<tr");
@@ -196,6 +208,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ id: "msg-1", source: "gchat", taskPriority: "medium" })],
         selectedId: "gchat-msg-1",
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("bg-accent");
@@ -207,6 +220,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ taskPriority: "critical" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("bg-red-50");
@@ -218,6 +232,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "line", groupName: "有川チーム" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(text).toContain("有川チーム");
@@ -229,6 +244,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ taskSummary: "給与テーブル更新依頼", content: "元のメッセージ" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(text).toContain("給与テーブル更新依頼");
@@ -241,6 +257,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ assignees: "佐藤花子" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(text).toContain("佐藤花子");
@@ -252,6 +269,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ responseStatus: "in_progress" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(text).toContain("対応中");
@@ -263,6 +281,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "gchat", content: "給与変更をお願いします" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain('data-testid="icon-external-link"');
@@ -275,6 +294,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "line" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).not.toContain('data-testid="icon-external-link"');
@@ -286,6 +306,7 @@ describe("TaskList", () => {
         tasks: [makeTask()],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("記事のコピー");
@@ -299,6 +320,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ categories: ["salary"] })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("給与・社保");
@@ -310,6 +332,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ categories: [] })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("カテゴリ");
@@ -323,6 +346,7 @@ describe("TaskList", () => {
         tasks: [makeTask()],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("SmartHR更新");
@@ -337,6 +361,7 @@ describe("TaskList", () => {
         tasks: [makeTask()],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("メモ");
@@ -359,6 +384,7 @@ describe("TaskList", () => {
         ],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     // completed ステップの ✓ が表示される
@@ -387,6 +413,7 @@ describe("TaskList", () => {
         ],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     // ステップボタンは表示されない（✓/✗/!がない）
@@ -411,6 +438,7 @@ describe("TaskList", () => {
         ],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).not.toContain("✓");
@@ -422,6 +450,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "line", notes: "LINEメモ" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("LINEメモ");
@@ -434,6 +463,7 @@ describe("TaskList", () => {
         tasks: [makeTask({ source: "gchat", notes: "テストメモ" })],
         selectedId: null,
         onSelect: mockOnSelect,
+        onOpenDialog: mockOnOpenDialog,
       }),
     );
     expect(html).toContain("テストメモ");

@@ -18,8 +18,15 @@ import { ChatMessageDetailPane } from "@/components/message-detail-pane";
 import { NotesField } from "@/components/notes-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
-import { cn, formatDateTimeJST } from "@/lib/utils";
+import { formatDateTimeJST } from "@/lib/utils";
 import {
   deleteManualTaskAction,
   fetchChatMessageDetailAction,
@@ -60,6 +67,7 @@ export const useSelectTask = () => useContext(SelectTaskContext);
 export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, children }: Props) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(initialSelectedId);
+  const [dialogTaskId, setDialogTaskId] = useState<string | null>(null);
   const [chatDetail, setChatDetail] = useState<ChatMessageDetail | null>(null);
   const [lineDetail, setLineDetail] = useState<LineMessageDetail | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -144,47 +152,58 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
     setLineDetail(updated);
   }, []);
 
-  const handleClose = useCallback(() => {
-    setSelectedId(null);
+  const handleDialogClose = useCallback(() => {
+    setDialogTaskId(null);
   }, []);
+
+  const handleOpenDialog = useCallback((id: string) => {
+    setSelectedId(id);
+    setDialogTaskId(id);
+  }, []);
+
+  const dialogTask = dialogTaskId
+    ? (tasks.find((t) => taskCompositeId(t) === dialogTaskId) ?? null)
+    : null;
 
   const isManualTask = selectedTask?.source === "manual";
   const hasDetail = chatDetail || lineDetail || isManualTask;
 
   return (
     <SelectTaskContext.Provider value={setSelectedId}>
-      {/* フィルターヘッダー（選択中はモバイルで非表示） */}
-      <div
-        className={cn(
-          "flex-shrink-0 border-b border-border/60 bg-white px-5 py-3",
-          selectedTask && "hidden md:block",
-        )}
-      >
-        {children}
-      </div>
+      {/* フィルターヘッダー */}
+      <div className="flex-shrink-0 border-b border-border/60 bg-white px-5 py-3">{children}</div>
 
-      {/* メインエリア: テーブル + 詳細ペイン */}
+      {/* メインエリア: テーブル全幅 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* テーブル一覧 (選択中はモバイルで非表示) */}
-        <div
-          className={cn(
-            "flex-1 overflow-auto",
-            selectedTask && "hidden md:block md:border-r md:border-border/60",
-          )}
-        >
+        <div className="flex-1 overflow-auto">
           <TaskList
             tasks={tasks}
             selectedId={selectedTask ? selectedId : null}
             onSelect={setSelectedId}
+            onOpenDialog={handleOpenDialog}
             pageOffset={pageOffset}
           />
         </div>
+      </div>
 
-        {/* 右: 詳細ペイン（タスク選択時のみ表示） */}
-        {selectedTask && (
-          <div className="flex w-full md:w-[420px] md:flex-shrink-0 overflow-hidden">
-            {isPending || !hasDetail ? (
-              <div className="flex flex-1 items-center justify-center">
+      {/* 詳細ダイアログ */}
+      <Dialog
+        open={!!dialogTaskId}
+        onOpenChange={(open) => {
+          if (!open) setDialogTaskId(null);
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-4xl max-h-[85vh] overflow-y-auto p-0"
+          showCloseButton={false}
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>タスク詳細</DialogTitle>
+            <DialogDescription>タスクの詳細情報</DialogDescription>
+          </DialogHeader>
+          {dialogTask &&
+            (isPending || !hasDetail ? (
+              <div className="flex items-center justify-center py-20">
                 <div className="text-center">
                   <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground/50" />
                   <p className="mt-2 text-sm text-muted-foreground">読み込み中...</p>
@@ -193,7 +212,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
             ) : chatDetail ? (
               <ChatMessageDetailPane
                 message={chatDetail}
-                onClose={handleClose}
+                onClose={handleDialogClose}
                 onUpdateResponseStatus={updateResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateTaskPriorityFromTaskBoard}
                 onUpdateWorkflow={updateWorkflowFromTaskBoard}
@@ -218,7 +237,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
             ) : lineDetail ? (
               <LineMessageDetailPane
                 message={lineDetail}
-                onClose={handleClose}
+                onClose={handleDialogClose}
                 onUpdateResponseStatus={updateLineResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
                 onUpdateAssignees={handleLineAssignees}
@@ -235,11 +254,10 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
                 }}
               />
             ) : isManualTask && selectedTask ? (
-              <ManualTaskDetailPane task={selectedTask} onClose={handleClose} />
-            ) : null}
-          </div>
-        )}
-      </div>
+              <ManualTaskDetailPane task={selectedTask} onClose={handleDialogClose} />
+            ) : null)}
+        </DialogContent>
+      </Dialog>
     </SelectTaskContext.Provider>
   );
 }
