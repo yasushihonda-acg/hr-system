@@ -22,6 +22,28 @@ interface LineWebhookEvent {
   };
 }
 
+const MAX_UPLOAD_RETRIES = 3;
+
+export async function uploadWithRetry(
+  messageId: string,
+  messageType: string,
+  data: Buffer,
+): Promise<string> {
+  for (let attempt = 0; attempt < MAX_UPLOAD_RETRIES; attempt++) {
+    try {
+      return await uploadLineMedia(messageId, messageType, data);
+    } catch (e) {
+      if (attempt === MAX_UPLOAD_RETRIES - 1) throw e;
+      const delay = 2 ** attempt * 1000; // 1s, 2s, 4s
+      console.warn(
+        `[LineWorker] Upload attempt ${attempt + 1}/${MAX_UPLOAD_RETRIES} failed, retrying in ${delay}ms...`,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("unreachable");
+}
+
 /**
  * LINE Webhook イベントを処理し、Firestore に保存する。
  * Google Chat の processMessage と同じ役割。
@@ -65,10 +87,12 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     const binary = await getMessageContent(lineMessageId);
     if (binary) {
       try {
-        contentUrl = await uploadLineMedia(lineMessageId, message.type, binary);
+        contentUrl = await uploadWithRetry(lineMessageId, message.type, binary);
         console.log(`[LineWorker] Uploaded media: ${contentUrl}`);
       } catch (e) {
-        console.warn(`[LineWorker] Media upload failed: ${String(e)}`);
+        console.warn(
+          `[LineWorker] Media upload failed after ${MAX_UPLOAD_RETRIES} attempts: ${String(e)}`,
+        );
       }
     }
   }
