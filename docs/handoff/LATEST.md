@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-17（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `8bee185` — fix: LINEメディアアップロードにリトライ追加 + 修復スクリプト (#329)）
+**ブランチ**: `main`（最新コミット: `4b72be7` — feat: category → categories 複数カテゴリ対応 (#330) (#331)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (8bee185) — **success**
+**CI**: Deploy to Cloud Run (4b72be7) — **success**
 
 ---
 
@@ -31,6 +31,11 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### feat: category → categories 複数カテゴリ対応 (#330) (#331) (4b72be7)
+- `LineMessage` の `category` フィールドを単一文字列から `categories` 配列に変更
+- Worker・API・Web全レイヤーを複数カテゴリ対応に更新
+- CI: Deploy to Cloud Run — **success**
 
 ### fix: LINEメディアアップロードにリトライ追加 + 修復スクリプト (#327, #328) (#329) (8bee185)
 - `uploadWithRetry`: 3回リトライ（指数バックオフ 1s/2s/4s）を追加
