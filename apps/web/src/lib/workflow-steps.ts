@@ -14,7 +14,34 @@ export const DEFAULT_STEPS: WorkflowSteps = {
   salaryListReflection: "undetermined",
 };
 
-/** テーブルセル用の共通スタイル（列に依存しないアイコン・色） */
+/** ステータスの色分け設定（セル表示 + ドロップダウン選択肢共通） */
+export const STEP_STATUS_COLORS: Record<
+  WorkflowStepStatus,
+  { badge: string; triggerBg: string; text: string }
+> = {
+  undetermined: {
+    badge: "bg-gray-100 text-gray-600",
+    triggerBg: "bg-gray-50 border-gray-200",
+    text: "text-gray-600",
+  },
+  not_required: {
+    badge: "bg-blue-100 text-blue-700",
+    triggerBg: "bg-blue-50 border-blue-200",
+    text: "text-blue-700",
+  },
+  completed: {
+    badge: "bg-green-100 text-green-700",
+    triggerBg: "bg-green-50 border-green-200",
+    text: "text-green-700",
+  },
+  pending: {
+    badge: "bg-red-100 text-red-700",
+    triggerBg: "bg-red-50 border-red-200",
+    text: "text-red-700",
+  },
+};
+
+/** テーブルセル用の共通スタイル（列に依存しないアイコン・色） — 後方互換用 */
 export const STEP_CONFIG: Record<WorkflowStepStatus, { label: string; cls: string }> = {
   undetermined: { label: "ー", cls: "text-muted-foreground bg-muted/50 border border-border" },
   completed: {
@@ -39,31 +66,31 @@ export const STEP_KEYS = [
   "salaryListReflection",
 ] as const;
 
-/** 列ごとのステータスラベル */
+/** 列ごとのステータスラベル（スプレッドシート準拠） */
 export const STEP_STATUS_LABELS: Record<keyof WorkflowSteps, Record<WorkflowStepStatus, string>> = {
   smartHRReflection: {
     undetermined: "未判定",
-    not_required: "更新不要と判定",
-    completed: "更新済み",
-    pending: "要更新で未対応",
+    not_required: "反映不要と判定",
+    completed: "要反映で反映済み",
+    pending: "要対応で未反映",
   },
   noticeExecution: {
     undetermined: "未判定",
-    not_required: "通知不要と判定",
-    completed: "通知済み",
-    pending: "要通知で未対応",
+    not_required: "対応不要と判定",
+    completed: "要対応で反映済み",
+    pending: "要対応で未対応",
   },
   laborLawyerShare: {
     undetermined: "未判定",
-    not_required: "共有不要と判定",
-    completed: "共有済み",
-    pending: "要共有で未対応",
+    not_required: "対応不要と判定",
+    completed: "要対応で反映済み",
+    pending: "要対応で未対応",
   },
   salaryListReflection: {
     undetermined: "未判定",
-    not_required: "反映不要と判定",
-    completed: "反映済み",
-    pending: "要反映で未対応",
+    not_required: "対応不要と判定",
+    completed: "要対応で反映済み",
+    pending: "要対応で未対応",
   },
 };
 

@@ -67,6 +67,9 @@ vi.mock("lucide-react", () => ({
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
   FileText: () => React.createElement("span", { "data-testid": "icon-file-text" }),
+  CheckIcon: () => React.createElement("span", { "data-testid": "icon-check" }),
+  ChevronDownIcon: () => React.createElement("span", { "data-testid": "icon-chevron-down" }),
+  ChevronUpIcon: () => React.createElement("span", { "data-testid": "icon-chevron-up" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
@@ -387,13 +390,14 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    // completed ステップの ✓ が表示される
-    expect(html).toContain("✓");
-    // not_required ステップの ✗ が表示される
-    expect(html).toContain("✗");
-    // undetermined ステップの ー が表示される
-    expect(html).toContain("ー");
-    expect(html).toContain("<button");
+    // Select ドロップダウンが表示される（role="combobox"）
+    expect(html).toContain('role="combobox"');
+    // completed ステップに緑の色分けが適用される
+    expect(html).toContain("bg-green-50");
+    // not_required ステップに青の色分けが適用される
+    expect(html).toContain("bg-blue-50");
+    // undetermined ステップにグレーの色分けが適用される
+    expect(html).toContain("bg-gray-50");
   });
 
   it("非給与カテゴリのタスクではステップボタンが非表示", () => {
@@ -416,9 +420,9 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    // ステップボタンは表示されない（✓/✗/!がない）
-    expect(html).not.toContain("✓");
-    expect(html).not.toContain("✗");
+    // ステップSelectは表示されない（ステータスラベルがない）
+    expect(html).not.toContain("要対応で反映済み");
+    expect(html).not.toContain("反映不要と判定");
   });
 
   it("カテゴリ未設定のタスクではステップボタンが非表示", () => {
@@ -441,7 +445,7 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    expect(html).not.toContain("✓");
+    expect(html).not.toContain("要対応で反映済み");
   });
 
   it("LINE タスクでもメモ textarea が表示される", () => {
