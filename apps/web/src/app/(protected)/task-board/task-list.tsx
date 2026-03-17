@@ -1,7 +1,14 @@
 "use client";
 
 import type { ResponseStatus, TaskPriority, WorkflowSteps } from "@hr-system/shared";
-import { ClipboardEdit, Clock, ExternalLink, MessageCircle, MessageSquareText } from "lucide-react";
+import {
+  ClipboardEdit,
+  Clock,
+  ExternalLink,
+  Maximize2,
+  MessageCircle,
+  MessageSquareText,
+} from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import {
@@ -61,11 +68,13 @@ export function TaskList({
   tasks,
   selectedId,
   onSelect,
+  onOpenDialog,
   pageOffset = 0,
 }: {
   tasks: TaskItem[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onOpenDialog: (id: string) => void;
   pageOffset?: number;
 }) {
   if (tasks.length === 0) {
@@ -124,6 +133,9 @@ export function TaskList({
             <th className="min-w-[100px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
               メモ
             </th>
+            <th className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground">
+              <span className="sr-only">詳細</span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/30">
@@ -135,6 +147,7 @@ export function TaskList({
               pageOffset={pageOffset}
               selectedId={selectedId}
               onSelect={onSelect}
+              onOpenDialog={onOpenDialog}
             />
           ))}
         </tbody>
@@ -149,12 +162,14 @@ function TaskRow({
   pageOffset,
   selectedId,
   onSelect,
+  onOpenDialog,
 }: {
   task: TaskItem;
   index: number;
   pageOffset: number;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  onOpenDialog: (id: string) => void;
 }) {
   const isCritical = task.taskPriority === "critical";
   const compositeId = taskCompositeId(task);
@@ -424,6 +439,21 @@ function TaskRow({
             ✓ 対応済にする
           </button>
         )}
+      </td>
+
+      {/* 詳細ダイアログ展開 */}
+      <td className="px-1 py-2.5 text-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDialog(compositeId);
+          }}
+          className="inline-flex items-center justify-center rounded p-1 text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+          title="詳細をダイアログで表示"
+        >
+          <Maximize2 size={14} />
+        </button>
       </td>
     </tr>
   );
