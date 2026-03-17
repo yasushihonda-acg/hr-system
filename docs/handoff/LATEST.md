@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-18（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `631d0cf` — feat: 受信箱・タスクボードのメモ機能統一 (#336) (#337)）
+**ブランチ**: `main`（最新コミット: `f7236ef` — feat: 記事のコピー列を折り返し全表示に変更 (#341)）
 
 ---
 
@@ -32,6 +32,15 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### feat: 記事のコピー列を折り返し全表示に変更 (#341) (f7236ef)
+- `table-view.tsx` と `task-list.tsx` の記事コピー列を `line-clamp-2` → `whitespace-pre-wrap` に変更し全文表示
+- CI: Deploy to Cloud Run — **success**
+
+### feat: ワークフローステップのラベル・並び順変更 (#338) (#339) (463cded)
+- ワークフローステップを「❶SmartHR更新 → ❷本人通知 → ❸社労士共有 → ❹給与DB反映」の順に変更
+- `chat-messages/table-view.tsx` と `task-board/task-list.tsx` の列を整理
+- CI: Deploy to Cloud Run — **success**
 
 ### feat: 受信箱・タスクボードのメモ機能統一 (#336) (#337) (631d0cf)
 - 受信箱（Inbox）とタスクボードの `notes` フィールドを統一し、メモ機能を両画面で一貫して利用可能に
