@@ -374,6 +374,16 @@ export interface LineMessageDetail extends LineMessageSummary {
   rawPayload: Record<string, unknown> | null;
 }
 
+/** 受信箱統合ビュー: Google Chat + LINE の共通型 */
+export type UnifiedMessageSummary =
+  | (ChatMessageSummary & { source: "gchat" })
+  | (LineMessageSummary & { source: "line" });
+
+/** 受信箱統合ビュー: 詳細型 */
+export type UnifiedMessageDetail =
+  | (ChatMessageDetail & { source: "gchat" })
+  | (LineMessageDetail & { source: "line" });
+
 /** GET /api/line-messages/stats のグループ統計 */
 export interface LineGroupStat {
   groupId: string;

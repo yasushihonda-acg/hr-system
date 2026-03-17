@@ -1,6 +1,6 @@
 import type { ChatCategory, ResponseStatus } from "@hr-system/shared";
 
-import { ChevronLeft, ChevronRight, MessageCircle, MessageSquareText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Inbox, MessageCircle, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import {
   ApiError,
@@ -12,11 +12,17 @@ import {
   getLineMessages,
 } from "@/lib/api";
 import { CATEGORY_OPTIONS } from "@/lib/constants";
-import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
+import type {
+  ChatMessageDetail,
+  LineMessageDetail,
+  UnifiedMessageDetail,
+  UnifiedMessageSummary,
+} from "@/lib/types";
 import { Inbox3Pane } from "./inbox-3pane";
 import { LineInbox3Pane } from "./line-inbox-3pane";
+import { UnifiedInbox3Pane } from "./unified-inbox-3pane";
 
-type Source = "gchat" | "line";
+type Source = "all" | "gchat" | "line";
 
 interface Props {
   searchParams: Promise<{
@@ -29,6 +35,7 @@ interface Props {
 }
 
 const SOURCE_TABS: { value: Source; label: string; icon: typeof MessageSquareText }[] = [
+  { value: "all", label: "すべて", icon: Inbox },
   { value: "gchat", label: "Google Chat", icon: MessageSquareText },
   { value: "line", label: "LINE", icon: MessageCircle },
 ];
@@ -45,7 +52,8 @@ const PAGE_SIZE = 30;
 
 export default async function InboxPage({ searchParams }: Props) {
   const params = await searchParams;
-  const source: Source = params.source === "line" ? "line" : "gchat";
+  const source: Source =
+    params.source === "line" ? "line" : params.source === "gchat" ? "gchat" : "all";
   const activeStatus = (params.status as ResponseStatus | undefined) ?? undefined;
   const activeCategory = (params.category as ChatCategory | undefined) ?? undefined;
   const page = Math.max(1, Number(params.page) || 1);
@@ -65,7 +73,7 @@ export default async function InboxPage({ searchParams }: Props) {
     const cat = "category" in overrides ? overrides.category : params.category;
     const p = overrides.page;
     const id = "id" in overrides ? overrides.id : params.id;
-    if (src && src !== "gchat") sp.set("source", src);
+    if (src && src !== "all") sp.set("source", src);
     if (s && s !== "all") sp.set("status", s);
     if (cat && cat !== "all") sp.set("category", cat);
     if (p && p !== "1") sp.set("page", p);
@@ -74,7 +82,7 @@ export default async function InboxPage({ searchParams }: Props) {
     return `/inbox${qs ? `?${qs}` : ""}`;
   }
 
-  // ソース別のデータ取得
+  // --- データ取得 ---
   let gchatMessages: Awaited<ReturnType<typeof getChatMessages>> | null = null;
   let gchatCounts: Awaited<ReturnType<typeof getInboxCounts>> | null = null;
   let selectedChatMessage: ChatMessageDetail | null = null;
@@ -83,7 +91,38 @@ export default async function InboxPage({ searchParams }: Props) {
   let lineCounts: Awaited<ReturnType<typeof getLineInboxCounts>> | null = null;
   let selectedLineMessage: LineMessageDetail | null = null;
 
-  if (source === "gchat") {
+  if (source === "all") {
+    // 両ソースを並列取得
+    const halfLimit = Math.ceil(PAGE_SIZE / 2);
+    const halfOffset = (page - 1) * halfLimit;
+
+    const [gchatResult, lineResult, gchatCountResult, lineCountResult, chatSel, lineSel] =
+      await Promise.all([
+        getChatMessages({
+          responseStatus: activeStatus,
+          category: activeCategory,
+          limit: halfLimit,
+          offset: halfOffset,
+        }),
+        getLineMessages({
+          responseStatus: activeStatus,
+          category: activeCategory,
+          limit: halfLimit,
+          offset: halfOffset,
+        }),
+        getInboxCounts(),
+        getLineInboxCounts(),
+        selectedId ? getChatMessage(selectedId).catch(() => null) : Promise.resolve(null),
+        selectedId ? getLineMessage(selectedId).catch(() => null) : Promise.resolve(null),
+      ]);
+
+    gchatMessages = gchatResult;
+    lineMessages = lineResult;
+    gchatCounts = gchatCountResult;
+    lineCounts = lineCountResult;
+    selectedChatMessage = chatSel;
+    selectedLineMessage = lineSel;
+  } else if (source === "gchat") {
     const [msgResult, countResult, selectedResult] = await Promise.all([
       getChatMessages({
         responseStatus: activeStatus,
@@ -127,8 +166,27 @@ export default async function InboxPage({ searchParams }: Props) {
     selectedLineMessage = selectedResult;
   }
 
-  const counts = source === "gchat" ? gchatCounts!.counts : lineCounts!.counts;
-  const pagination = source === "gchat" ? gchatMessages!.pagination : lineMessages!.pagination;
+  // --- カウント・ページネーション算出 ---
+  let counts: { unresponded: number; in_progress: number; responded: number; not_required: number };
+  let hasMore: boolean;
+
+  if (source === "all") {
+    const gc = gchatCounts!.counts;
+    const lc = lineCounts!.counts;
+    counts = {
+      unresponded: gc.unresponded + lc.unresponded,
+      in_progress: gc.in_progress + lc.in_progress,
+      responded: gc.responded + lc.responded,
+      not_required: gc.not_required + lc.not_required,
+    };
+    hasMore = gchatMessages!.pagination.hasMore || lineMessages!.pagination.hasMore;
+  } else if (source === "gchat") {
+    counts = gchatCounts!.counts;
+    hasMore = gchatMessages!.pagination.hasMore;
+  } else {
+    counts = lineCounts!.counts;
+    hasMore = lineMessages!.pagination.hasMore;
+  }
 
   const totalActive =
     counts.unresponded + counts.in_progress + counts.responded + counts.not_required;
@@ -136,6 +194,30 @@ export default async function InboxPage({ searchParams }: Props) {
   function getCount(value: string): number {
     if (value === "all") return totalActive;
     return counts[value as keyof typeof counts] ?? 0;
+  }
+
+  // --- 統合ビュー用のデータ構築 ---
+  let unifiedMessages: UnifiedMessageSummary[] = [];
+  let unifiedSelected: UnifiedMessageDetail | null = null;
+
+  if (source === "all") {
+    const gchatTagged: UnifiedMessageSummary[] = (gchatMessages?.data ?? []).map((m) => ({
+      ...m,
+      source: "gchat" as const,
+    }));
+    const lineTagged: UnifiedMessageSummary[] = (lineMessages?.data ?? []).map((m) => ({
+      ...m,
+      source: "line" as const,
+    }));
+    unifiedMessages = [...gchatTagged, ...lineTagged].sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt),
+    );
+
+    if (selectedChatMessage) {
+      unifiedSelected = { ...selectedChatMessage, source: "gchat" as const };
+    } else if (selectedLineMessage) {
+      unifiedSelected = { ...selectedLineMessage, source: "line" as const };
+    }
   }
 
   return (
@@ -232,7 +314,13 @@ export default async function InboxPage({ searchParams }: Props) {
       </div>
 
       {/* 3ペインレイアウト */}
-      {source === "gchat" ? (
+      {source === "all" ? (
+        <UnifiedInbox3Pane
+          messages={unifiedMessages}
+          selectedMessage={unifiedSelected}
+          selectedId={selectedId}
+        />
+      ) : source === "gchat" ? (
         <Inbox3Pane
           messages={gchatMessages!.data}
           selectedMessage={selectedChatMessage}
@@ -263,12 +351,10 @@ export default async function InboxPage({ searchParams }: Props) {
             ページ {page}
           </span>
           <Link
-            href={pagination.hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
-            aria-disabled={!pagination.hasMore}
+            href={hasMore ? buildUrl({ page: String(page + 1) }) : "#"}
+            aria-disabled={!hasMore}
             className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              !pagination.hasMore
-                ? "pointer-events-none text-slate-300"
-                : "text-slate-600 hover:bg-slate-100"
+              !hasMore ? "pointer-events-none text-slate-300" : "text-slate-600 hover:bg-slate-100"
             }`}
           >
             次へ
