@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-16（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `0c781a4` — fix: タスクボードのテーブルヘッダーがスクロール時に固定されない問題を修正 (#319)）
+**最終更新**: 2026-03-17（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `8bee185` — fix: LINEメディアアップロードにリトライ追加 + 修復スクリプト (#329)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (0c781a4) — **success**
+**CI**: Deploy to Cloud Run (8bee185) — **success**
 
 ---
 
@@ -31,6 +31,25 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: LINEメディアアップロードにリトライ追加 + 修復スクリプト (#327, #328) (#329) (8bee185)
+- `uploadWithRetry`: 3回リトライ（指数バックオフ 1s/2s/4s）を追加
+- `scripts/repair-line-images.ts`: contentUrl=null のメディアを修復するスクリプト
+- テスト4件追加（Worker計80テスト）
+- CI: Deploy to Cloud Run — **success**
+
+### feat: 受信箱に Google Chat + LINE 統合「すべて」タブを追加 (#323) (#324) (54f55e9)
+- 受信箱に「すべて」「Google Chat」「LINE」の3タブを追加し、統合表示を実現
+- CI: Deploy to Cloud Run — **success**
+
+### feat: カテゴリバッジをDRY化し、LINE全画面に表示 (#320) (#322) (5f00d15)
+- `CategoryBadge` コンポーネントを共通化し、LINE関連の全画面でカテゴリバッジを表示
+- CI: Deploy to Cloud Run — **success**
+
+### feat: LINEメッセージの自動カテゴリ分類を実装 (#320) (#321) (0ea17f4)
+- LINE Webhook 受信時に `classifyIntent()` で10カテゴリの自動分類を実行
+- 分類結果を `line_messages.category` フィールドに保存（best-effort）
+- CI: Deploy to Cloud Run — **success**
 
 ### fix: タスクボードのテーブルヘッダーがスクロール時に固定されない問題を修正 (#319) (0c781a4)
 - task-list.tsx の `overflow-x-auto` ラッパーが sticky を阻害していた問題を修正
@@ -196,9 +215,9 @@
 | apps/api | auth.test.ts + health.test.ts + salary-drafts.test.ts + intent-stats.test.ts | 22+ |
 | apps/api (integration) | firestore-queries.integration.test.ts | 17 |
 | apps/api (integration) | auth-authz.integration.test.ts | 追加済み |
-| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts + worker.integration.test.ts | 41+ |
-| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx + help.test.tsx 等 | 92+ |
-| **合計** | | **297+（統合テスト追加後）** |
+| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts + line-webhook.test.ts + upload-retry.test.ts | 80 |
+| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx + help.test.tsx 等 | 201 |
+| **合計** | | **全テストパス** |
 
 ---
 
