@@ -3,8 +3,14 @@ import type { ChatCategory, ResponseStatus, TaskPriority } from "@hr-system/shar
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
-import { CATEGORY_OPTIONS } from "@/lib/constants";
-import { FilterSelect } from "./filter-select";
+import {
+  CATEGORY_CONFIG,
+  CATEGORY_OPTIONS,
+  PRIORITY_PILL_COLORS,
+  RESPONSE_STATUS_DOT_COLORS,
+  RESPONSE_STATUS_PILL_COLORS,
+  SOURCE_PILL_COLORS,
+} from "@/lib/constants";
 import { ManualTaskCreateButton } from "./manual-task-form";
 import { TaskBoardContent } from "./task-board-content";
 import type { TaskItem } from "./task-list";
@@ -169,14 +175,6 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const paged = filtered.slice(offset, offset + PAGE_SIZE);
   const hasMore = offset + PAGE_SIZE < totalCount;
 
-  // FilterSelect（Client Component）に渡すシリアライズ可能なsearchParams
-  const filterParams: Record<string, string> = {};
-  if (params.priority) filterParams.priority = params.priority;
-  if (params.source) filterParams.source = params.source;
-  if (params.status) filterParams.status = params.status;
-  if (params.category) filterParams.category = params.category;
-  if (params.id) filterParams.id = params.id;
-
   function buildUrl(overrides: {
     priority?: string;
     source?: string;
@@ -204,38 +202,137 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
       <TaskBoardContent tasks={paged} initialSelectedId={selectedId} pageOffset={offset}>
-        <div className="flex items-center gap-3">
-          <h1 className="text-base font-bold tracking-tight">タスク一覧</h1>
-          <ManualTaskCreateButton />
-          <div className="flex items-center gap-2">
-            <FilterSelect
-              options={PRIORITY_TABS}
-              currentValue={priorityFilter ?? "all"}
-              paramKey="priority"
-              searchParams={filterParams}
-            />
-            <FilterSelect
-              options={SOURCE_TABS}
-              currentValue={sourceFilter}
-              paramKey="source"
-              searchParams={filterParams}
-            />
-            <FilterSelect
-              options={STATUS_TABS}
-              currentValue={statusFilter ?? "all"}
-              paramKey="status"
-              searchParams={filterParams}
-            />
-            <FilterSelect
-              options={CATEGORY_OPTIONS}
-              currentValue={categoryFilter ?? "all"}
-              paramKey="category"
-              searchParams={filterParams}
-            />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-base font-bold tracking-tight">タスク一覧</h1>
+            <ManualTaskCreateButton />
+            <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+              {totalCount}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
+            </span>
           </div>
-          <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-            {totalCount}件{criticalCount > 0 && ` (極高 ${criticalCount}件)`}
-          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* 優先度 */}
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              優先度
+            </span>
+            {PRIORITY_TABS.map((tab) => {
+              const isActive = tab.value === "all" ? !priorityFilter : priorityFilter === tab.value;
+              const colors = tab.value !== "all" ? PRIORITY_PILL_COLORS[tab.value] : null;
+              return (
+                <Link
+                  key={tab.value}
+                  href={buildUrl({
+                    priority: tab.value === "all" ? undefined : tab.value,
+                    page: "1",
+                  })}
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    isActive
+                      ? (colors?.active ?? "bg-slate-800 text-white ring-2 ring-slate-300")
+                      : (colors?.inactive ??
+                        "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-200 hover:bg-slate-100")
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+
+            <span className="mx-1.5 h-4 w-px bg-slate-200" />
+
+            {/* ソース */}
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              ソース
+            </span>
+            {SOURCE_TABS.map((tab) => {
+              const isActive = sourceFilter === tab.value;
+              const colors = tab.value !== "all" ? SOURCE_PILL_COLORS[tab.value] : null;
+              return (
+                <Link
+                  key={tab.value}
+                  href={buildUrl({
+                    source: tab.value === "all" ? undefined : tab.value,
+                    page: "1",
+                  })}
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    isActive
+                      ? (colors?.active ?? "bg-slate-800 text-white ring-2 ring-slate-300")
+                      : (colors?.inactive ??
+                        "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-200 hover:bg-slate-100")
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+
+            <span className="mx-1.5 h-4 w-px bg-slate-200" />
+
+            {/* ステータス */}
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              状態
+            </span>
+            {STATUS_TABS.map((tab) => {
+              const isActive = tab.value === "all" ? !statusFilter : statusFilter === tab.value;
+              const colors = tab.value !== "all" ? RESPONSE_STATUS_PILL_COLORS[tab.value] : null;
+              const dotColor =
+                tab.value !== "all"
+                  ? RESPONSE_STATUS_DOT_COLORS[tab.value as keyof typeof RESPONSE_STATUS_DOT_COLORS]
+                  : null;
+              return (
+                <Link
+                  key={tab.value}
+                  href={buildUrl({
+                    status: tab.value === "all" ? undefined : tab.value,
+                    page: "1",
+                  })}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    isActive
+                      ? (colors?.active ?? "bg-slate-800 text-white ring-2 ring-slate-300")
+                      : (colors?.inactive ??
+                        "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-200 hover:bg-slate-100")
+                  }`}
+                >
+                  {dotColor && (
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${isActive ? "bg-white/70" : dotColor}`}
+                    />
+                  )}
+                  {tab.label}
+                </Link>
+              );
+            })}
+
+            <span className="mx-1.5 h-4 w-px bg-slate-200" />
+
+            {/* カテゴリ */}
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              分類
+            </span>
+            {CATEGORY_OPTIONS.map((opt) => {
+              const isActive = opt.value === "all" ? !categoryFilter : categoryFilter === opt.value;
+              const cfg = opt.value !== "all" ? CATEGORY_CONFIG[opt.value] : null;
+              return (
+                <Link
+                  key={opt.value}
+                  href={buildUrl({
+                    category: opt.value === "all" ? undefined : opt.value,
+                    page: "1",
+                  })}
+                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    isActive
+                      ? cfg
+                        ? `${cfg.pill} ring-2`
+                        : "bg-slate-800 text-white ring-2 ring-slate-300"
+                      : cfg
+                        ? `${cfg.pill} opacity-60 hover:opacity-100`
+                        : "bg-slate-50 text-slate-500 ring-1 ring-inset ring-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {opt.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </TaskBoardContent>
 

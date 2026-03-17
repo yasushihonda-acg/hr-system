@@ -11,7 +11,7 @@ import {
   getLineMessage,
   getLineMessages,
 } from "@/lib/api";
-import { CATEGORY_OPTIONS } from "@/lib/constants";
+import { CATEGORY_CONFIG, CATEGORY_OPTIONS, RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
 import type {
   ChatMessageDetail,
   LineMessageDetail,
@@ -260,6 +260,10 @@ export default async function InboxPage({ searchParams }: Props) {
           {STATUS_TABS.map((tab) => {
             const isActive = tab.value === "all" ? !activeStatus : activeStatus === tab.value;
             const count = getCount(tab.value);
+            const dotColor =
+              tab.value !== "all"
+                ? RESPONSE_STATUS_DOT_COLORS[tab.value as keyof typeof RESPONSE_STATUS_DOT_COLORS]
+                : null;
             return (
               <Link
                 key={tab.value}
@@ -274,6 +278,11 @@ export default async function InboxPage({ searchParams }: Props) {
                     : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
                 }`}
               >
+                {dotColor && (
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${isActive ? "bg-white/60" : dotColor}`}
+                  />
+                )}
                 {tab.label}
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-xs tabular-nums ${
@@ -291,6 +300,7 @@ export default async function InboxPage({ searchParams }: Props) {
           <div className="flex flex-wrap gap-1">
             {CATEGORY_OPTIONS.map((opt) => {
               const isActive = opt.value === "all" ? !activeCategory : activeCategory === opt.value;
+              const cfg = opt.value !== "all" ? CATEGORY_CONFIG[opt.value] : null;
               return (
                 <Link
                   key={opt.value}
@@ -301,8 +311,12 @@ export default async function InboxPage({ searchParams }: Props) {
                   })}
                   className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors ${
                     isActive
-                      ? "bg-slate-700 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      ? cfg
+                        ? `${cfg.pill} ring-2`
+                        : "bg-slate-700 text-white"
+                      : cfg
+                        ? `${cfg.pill} opacity-60 hover:opacity-100`
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
                   {opt.label}

@@ -84,6 +84,63 @@ export const RESPONSE_STATUS_DOT_COLORS: Record<ResponseStatus, string> = {
   not_required: "bg-gray-400",
 };
 
+/** 優先度ピル色 */
+export const PRIORITY_PILL_COLORS: Record<string, { active: string; inactive: string }> = {
+  critical: {
+    active: "bg-red-600 text-white ring-2 ring-red-300",
+    inactive: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200 hover:bg-red-100",
+  },
+  high: {
+    active: "bg-orange-500 text-white ring-2 ring-orange-300",
+    inactive: "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200 hover:bg-orange-100",
+  },
+  medium: {
+    active: "bg-blue-600 text-white ring-2 ring-blue-300",
+    inactive: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100",
+  },
+  low: {
+    active: "bg-slate-500 text-white ring-2 ring-slate-300",
+    inactive: "bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-100",
+  },
+};
+
+/** ソースピル色 */
+export const SOURCE_PILL_COLORS: Record<string, { active: string; inactive: string }> = {
+  gchat: {
+    active: "bg-blue-600 text-white ring-2 ring-blue-300",
+    inactive: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200 hover:bg-blue-100",
+  },
+  line: {
+    active: "bg-emerald-600 text-white ring-2 ring-emerald-300",
+    inactive:
+      "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100",
+  },
+  manual: {
+    active: "bg-amber-500 text-white ring-2 ring-amber-300",
+    inactive: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200 hover:bg-amber-100",
+  },
+};
+
+/** 対応状況ピル色（フィルター用） */
+export const RESPONSE_STATUS_PILL_COLORS: Record<string, { active: string; inactive: string }> = {
+  unresponded: {
+    active: "bg-rose-600 text-white ring-2 ring-rose-300",
+    inactive: "bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-100",
+  },
+  in_progress: {
+    active: "bg-amber-500 text-white ring-2 ring-amber-300",
+    inactive: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200 hover:bg-amber-100",
+  },
+  responded: {
+    active: "bg-green-600 text-white ring-2 ring-green-300",
+    inactive: "bg-green-50 text-green-700 ring-1 ring-inset ring-green-200 hover:bg-green-100",
+  },
+  not_required: {
+    active: "bg-gray-500 text-white ring-2 ring-gray-300",
+    inactive: "bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200 hover:bg-gray-100",
+  },
+};
+
 /** カテゴリフィルター選択肢（"すべて" + 10カテゴリ） */
 export const CATEGORY_OPTIONS: { value: ChatCategory | "all"; label: string }[] = [
   { value: "all", label: "すべて" },
