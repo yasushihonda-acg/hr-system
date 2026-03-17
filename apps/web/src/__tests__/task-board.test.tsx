@@ -110,7 +110,7 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     assignees: null,
     deadline: null,
     groupName: null,
-    category: null,
+    categories: [],
     workflowSteps: null,
     notes: null,
     createdAt: "2026-03-01T09:00:00Z",
@@ -296,7 +296,7 @@ describe("TaskList", () => {
   it("カテゴリがある場合にバッジが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
-        tasks: [makeTask({ category: "salary" })],
+        tasks: [makeTask({ categories: ["salary"] })],
         selectedId: null,
         onSelect: mockOnSelect,
       }),
@@ -307,7 +307,7 @@ describe("TaskList", () => {
   it("カテゴリが null の場合はダッシュが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
-        tasks: [makeTask({ category: null })],
+        tasks: [makeTask({ categories: [] })],
         selectedId: null,
         onSelect: mockOnSelect,
       }),
@@ -348,7 +348,7 @@ describe("TaskList", () => {
         tasks: [
           makeTask({
             source: "gchat",
-            category: "salary",
+            categories: ["salary"],
             workflowSteps: {
               salaryListReflection: "completed",
               noticeExecution: "undetermined",
@@ -376,7 +376,7 @@ describe("TaskList", () => {
         tasks: [
           makeTask({
             source: "line",
-            category: "attendance",
+            categories: ["attendance"],
             workflowSteps: {
               salaryListReflection: "completed",
               smartHRReflection: "undetermined",
@@ -400,7 +400,7 @@ describe("TaskList", () => {
         tasks: [
           makeTask({
             source: "manual",
-            category: null,
+            categories: [],
             workflowSteps: {
               salaryListReflection: "undetermined",
               smartHRReflection: "undetermined",

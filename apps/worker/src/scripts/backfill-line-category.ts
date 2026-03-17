@@ -32,7 +32,12 @@ async function main() {
   const snapshot = await collections.lineMessages.get();
   const targets = snapshot.docs.filter((doc) => {
     const d = doc.data();
-    return !d.category && d.lineMessageType === "text" && d.content && d.content.length > 0;
+    return (
+      (!d.categories || d.categories.length === 0) &&
+      d.lineMessageType === "text" &&
+      d.content &&
+      d.content.length > 0
+    );
   });
 
   console.log(`[Backfill] Found ${targets.length} / ${snapshot.size} messages to classify`);
@@ -55,10 +60,10 @@ async function main() {
     const d = doc.data();
     try {
       const result = await classifyIntent(d.content, undefined, config);
-      await doc.ref.update({ category: result.category });
+      await doc.ref.update({ categories: result.categories });
       classified++;
       console.log(
-        `  [${classified + failed}/${targets.length}] ${doc.id} → ${result.category} (${result.classificationMethod}, ${result.confidence.toFixed(2)})`,
+        `  [${classified + failed}/${targets.length}] ${doc.id} → ${result.categories.join(",")} (${result.classificationMethod}, ${result.confidence.toFixed(2)})`,
       );
     } catch (e) {
       failed++;

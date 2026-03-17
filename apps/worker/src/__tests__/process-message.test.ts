@@ -150,7 +150,7 @@ describe("processMessage", () => {
     mockGetClassificationConfig.mockResolvedValue({});
     // デフォルト: 非給与カテゴリ
     mockClassifyIntent.mockResolvedValue({
-      category: "other",
+      categories: ["other"],
       confidence: 0.9,
       reasoning: "その他の指示",
       classificationMethod: "ai",
@@ -197,7 +197,7 @@ describe("processMessage", () => {
 
     it("給与カテゴリ: handleSalary を呼ぶ", async () => {
       mockClassifyIntent.mockResolvedValue({
-        category: "salary",
+        categories: ["salary"],
         confidence: 0.95,
         reasoning: "給与変更指示",
         classificationMethod: "ai",
@@ -211,7 +211,7 @@ describe("processMessage", () => {
       expect(mockHandleSalary).toHaveBeenCalledWith(
         mockChatMessageRef.id,
         expect.objectContaining({ text: "山田さんの給与を2ピッチ上げてください" }),
-        expect.objectContaining({ category: "salary" }),
+        expect.objectContaining({ categories: ["salary"] }),
       );
     });
 
@@ -285,7 +285,7 @@ describe("processMessage", () => {
         makeQuerySnapshot([
           makeDocSnapshot("intent-parent-001", {
             chatMessageId: PARENT_DOC_ID,
-            category: "salary",
+            categories: ["salary"],
             confidenceScore: 0.95,
           }),
         ]),
@@ -356,7 +356,7 @@ describe("processMessage", () => {
         makeQuerySnapshot([
           makeDocSnapshot("intent-parent-many", {
             chatMessageId: PARENT_DOC_ID,
-            category: "salary",
+            categories: ["salary"],
             confidenceScore: 0.9,
           }),
         ]),

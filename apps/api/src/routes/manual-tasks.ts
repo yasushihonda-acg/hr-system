@@ -15,7 +15,7 @@ const createSchema = z.object({
   content: z.string().max(2000).optional().default(""),
   taskPriority: z.enum(TASK_PRIORITIES),
   responseStatus: z.enum(RESPONSE_STATUSES).optional().default("unresponded"),
-  category: z.enum(CHAT_CATEGORIES).nullable().optional().default(null),
+  categories: z.array(z.enum(CHAT_CATEGORIES)).optional().default([]),
   assignees: z.string().max(200).nullable().optional().default(null),
   deadline: z.string().datetime({ offset: true }).nullable().optional().default(null),
 });
@@ -26,7 +26,7 @@ const updateSchema = z
     content: z.string().max(2000),
     taskPriority: z.enum(TASK_PRIORITIES),
     responseStatus: z.enum(RESPONSE_STATUSES),
-    category: z.enum(CHAT_CATEGORIES).nullable(),
+    categories: z.array(z.enum(CHAT_CATEGORIES)),
     assignees: z.string().max(200).nullable(),
     deadline: z.string().datetime({ offset: true }).nullable(),
     notes: z.string().max(2000).nullable(),
@@ -52,7 +52,7 @@ function serialize(id: string, data: ManualTask) {
     content: data.content,
     taskPriority: data.taskPriority,
     responseStatus: data.responseStatus,
-    category: data.category ?? null,
+    categories: data.categories ?? [],
     assignees: data.assignees,
     deadline: toISOOrNull(data.deadline),
     workflowSteps: data.workflowSteps ?? null,
@@ -77,7 +77,7 @@ app.get("/", zValidator("query", listQuerySchema), async (c) => {
   ) as FirebaseFirestore.Query<ManualTask>;
   if (taskPriority) query = query.where("taskPriority", "==", taskPriority);
   if (responseStatus) query = query.where("responseStatus", "==", responseStatus);
-  if (category) query = query.where("category", "==", category);
+  if (category) query = query.where("categories", "array-contains", category);
 
   const [countSnap, docsSnap] = await Promise.all([
     query.count().get(),
@@ -105,7 +105,7 @@ app.post("/", zValidator("json", createSchema), async (c) => {
     content: data.content,
     taskPriority: data.taskPriority,
     responseStatus: data.responseStatus,
-    category: data.category,
+    categories: data.categories,
     assignees: data.assignees,
     deadline: data.deadline ? Timestamp.fromDate(new Date(data.deadline)) : null,
     createdBy: user.email,
@@ -159,7 +159,7 @@ app.patch("/:id", zValidator("json", updateSchema), async (c) => {
   if (body.content !== undefined) updateData.content = body.content;
   if (body.taskPriority !== undefined) updateData.taskPriority = body.taskPriority;
   if (body.responseStatus !== undefined) updateData.responseStatus = body.responseStatus;
-  if (body.category !== undefined) updateData.category = body.category;
+  if (body.categories !== undefined) updateData.categories = body.categories;
   if (body.assignees !== undefined) updateData.assignees = body.assignees;
   if (body.deadline !== undefined)
     updateData.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;

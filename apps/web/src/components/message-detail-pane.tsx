@@ -3,6 +3,7 @@
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { CategoriesField } from "@/components/categories-field";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
@@ -33,6 +34,8 @@ export interface ChatMessageDetailPaneProps {
   onUpdateAssignees?: (id: string, assignees: string | null) => Promise<void>;
   /** Save deadline callback */
   onUpdateDeadline?: (id: string, deadline: string | null) => Promise<void>;
+  /** Save categories callback */
+  onUpdateCategories?: (id: string, categories: string[]) => Promise<void>;
 }
 
 export function ChatMessageDetailPane({
@@ -46,6 +49,7 @@ export function ChatMessageDetailPane({
   deadline,
   onUpdateAssignees,
   onUpdateDeadline,
+  onUpdateCategories,
 }: ChatMessageDetailPaneProps) {
   const intent = message.intent as IntentDetail | null;
   const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
@@ -97,6 +101,17 @@ export function ChatMessageDetailPane({
             {message.attachments.length > 0 && (
               <div className="mt-3">
                 <AttachmentList attachments={message.attachments} />
+              </div>
+            )}
+
+            {/* カテゴリ */}
+            {intent && onUpdateCategories && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold text-muted-foreground">カテゴリ</p>
+                <CategoriesField
+                  categories={intent.categories}
+                  onSave={(cats) => onUpdateCategories(message.id, cats)}
+                />
               </div>
             )}
 

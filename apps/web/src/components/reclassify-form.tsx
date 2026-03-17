@@ -19,20 +19,31 @@ const CATEGORY_OPTIONS = [
 
 export function ReclassifyForm({
   chatMessageId,
-  currentCategory,
+  currentCategories,
 }: {
   chatMessageId: string;
-  currentCategory: string;
+  currentCategories: string[];
 }) {
   const router = useRouter();
-  const [category, setCategory] = useState(currentCategory);
+  const [selected, setSelected] = useState<string[]>(currentCategories);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  function toggleCategory(value: string) {
+    setSelected((prev) =>
+      prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value],
+    );
+  }
+
+  const hasChanged =
+    selected.length !== currentCategories.length ||
+    selected.some((c) => !currentCategories.includes(c));
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (selected.length === 0) return;
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -40,7 +51,7 @@ export function ReclassifyForm({
       const res = await fetch(`/api/chat-messages/${chatMessageId}/intent`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, comment: comment || undefined }),
+        body: JSON.stringify({ categories: selected, comment: comment || undefined }),
       });
       if (!res.ok) {
         const body = await res.json();
@@ -63,9 +74,9 @@ export function ReclassifyForm({
           <button
             key={opt.value}
             type="button"
-            onClick={() => setCategory(opt.value)}
+            onClick={() => toggleCategory(opt.value)}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              category === opt.value
+              selected.includes(opt.value)
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:bg-accent"
             }`}
@@ -74,6 +85,10 @@ export function ReclassifyForm({
           </button>
         ))}
       </div>
+
+      {selected.length === 0 && (
+        <p className="text-xs text-destructive">最低1つのカテゴリを選択してください</p>
+      )}
 
       <textarea
         value={comment}
@@ -85,7 +100,7 @@ export function ReclassifyForm({
       />
 
       <div className="flex items-center gap-3">
-        <Button type="submit" size="sm" disabled={loading || category === currentCategory}>
+        <Button type="submit" size="sm" disabled={loading || !hasChanged || selected.length === 0}>
           {loading ? "保存中..." : "再分類を保存"}
         </Button>
         {success && <span className="text-sm text-green-600">保存しました</span>}

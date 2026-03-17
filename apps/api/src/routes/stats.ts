@@ -87,9 +87,11 @@ statsRoutes.get("/categories", async (c) => {
   }
 
   for (const doc of intentSnap.docs) {
-    const cat = doc.data().category;
-    if (cat in counts && counts[cat] !== undefined) {
-      counts[cat]++;
+    const cats = doc.data().categories ?? [];
+    for (const cat of cats) {
+      if (cat in counts && counts[cat] !== undefined) {
+        counts[cat]++;
+      }
     }
   }
 

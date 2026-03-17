@@ -87,7 +87,7 @@ export async function createManualTaskAction(body: {
   content?: string;
   taskPriority: TaskPriority;
   responseStatus?: ResponseStatus;
-  category?: string | null;
+  categories?: string[];
   assignees?: string | null;
   deadline?: string | null;
 }): Promise<ManualTaskSummary> {
@@ -154,7 +154,7 @@ export async function updateLineDeadlineFromTaskBoard(messageId: string, deadlin
 
 export async function updateLineWorkflowFromTaskBoard(
   messageId: string,
-  body: { workflowSteps?: WorkflowSteps; notes?: string | null; category?: string | null },
+  body: { workflowSteps?: WorkflowSteps; notes?: string | null; categories?: string[] },
 ) {
   await requireAccess();
   await updateLineWorkflow(messageId, body);

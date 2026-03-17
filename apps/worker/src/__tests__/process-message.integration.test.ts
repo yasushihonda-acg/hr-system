@@ -100,7 +100,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
       const intentRef = db.collection("intent_records").doc();
       await intentRef.set({
         chatMessageId: chatRef.id,
-        category: "salary",
+        categories: ["salary"],
         confidenceScore: 0.95,
         extractedParams: null,
         classificationMethod: "ai",
@@ -108,7 +108,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
         llmInput: "テスト",
         llmOutput: "給与変更の指示",
         isManualOverride: false,
-        originalCategory: null,
+        originalCategories: null,
         overriddenBy: null,
         overriddenAt: null,
         responseStatus: "unresponded",
@@ -128,7 +128,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
       expect(doc.exists).toBe(true);
       const data = doc.data()!;
       expect(data.chatMessageId).toBe(chatRef.id);
-      expect(data.category).toBe("salary");
+      expect(data.categories).toEqual(["salary"]);
       expect(data.confidenceScore).toBe(0.95);
       expect(data.classificationMethod).toBe("ai");
       expect(data.responseStatus).toBe("unresponded");
@@ -139,7 +139,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
 
       await db.collection("intent_records").add({
         chatMessageId,
-        category: "other",
+        categories: ["other"],
         confidenceScore: 0.8,
         createdAt: FieldValue.serverTimestamp(),
       });
@@ -151,7 +151,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
         .get();
 
       expect(snap.empty).toBe(false);
-      expect(snap.docs[0]!.data().category).toBe("other");
+      expect(snap.docs[0]!.data().categories).toEqual(["other"]);
     });
   });
 
@@ -278,7 +278,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
       // 親の IntentRecord
       await db.collection("intent_records").add({
         chatMessageId: parentChatId,
-        category: "salary",
+        categories: ["salary"],
         confidenceScore: 0.95,
         createdAt: FieldValue.serverTimestamp(),
       });
@@ -291,7 +291,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
 
       expect(snap.empty).toBe(false);
       const data = snap.docs[0]!.data();
-      expect(data.category).toBe("salary");
+      expect(data.categories).toEqual(["salary"]);
       expect(data.confidenceScore).toBe(0.95);
     });
   });
@@ -327,7 +327,7 @@ describe("processMessage Firestore 操作 — Emulator 統合テスト", () => {
       const intentRef = db.collection("intent_records").doc();
       await intentRef.set({
         chatMessageId: chatRef.id,
-        category: "salary",
+        categories: ["salary"],
         confidenceScore: 0.95,
         classificationMethod: "ai",
         responseStatus: "unresponded",

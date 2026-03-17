@@ -2,7 +2,7 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
-import { CategoryBadge } from "@/components/category-badge";
+import { CategoriesField } from "@/components/categories-field";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
@@ -16,6 +16,7 @@ interface LineMessageDetailPaneProps {
   onUpdateTaskPriority: (id: string, priority: TaskPriority | null) => Promise<void>;
   onUpdateAssignees: (id: string, assignees: string | null) => Promise<void>;
   onUpdateDeadline: (id: string, deadline: string | null) => Promise<void>;
+  onUpdateCategories: (id: string, categories: string[]) => Promise<void>;
 }
 
 export function LineMessageDetailPane({
@@ -25,6 +26,7 @@ export function LineMessageDetailPane({
   onUpdateTaskPriority,
   onUpdateAssignees,
   onUpdateDeadline,
+  onUpdateCategories,
 }: LineMessageDetailPaneProps) {
   const responseStatus = message.responseStatus;
 
@@ -45,7 +47,10 @@ export function LineMessageDetailPane({
             {message.groupName && (
               <span className="text-xs text-muted-foreground">@ {message.groupName}</span>
             )}
-            <CategoryBadge category={message.category} />
+            <CategoriesField
+              categories={message.categories}
+              onSave={(cats) => onUpdateCategories(message.id, cats)}
+            />
             <span className="text-xs text-muted-foreground">
               {formatDateTimeJST(message.createdAt)}
             </span>

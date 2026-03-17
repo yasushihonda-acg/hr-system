@@ -40,7 +40,7 @@ export interface TaskItem {
   assignees: string | null;
   deadline: string | null;
   groupName: string | null;
-  category: string | null;
+  categories: string[];
   workflowSteps: WorkflowSteps | null;
   notes: string | null;
   createdAt: string;
@@ -210,7 +210,7 @@ function TaskRow({
   };
 
   // 給与カテゴリのみステップ列を表示
-  const showSteps = isSalaryCategory(task.category);
+  const showSteps = task.categories.some(isSalaryCategory);
 
   // ステップ全完了 かつ 対応済でない場合にサジェスト表示
   const allStepsResolved =
@@ -340,9 +340,16 @@ function TaskRow({
 
       {/* カテゴリ */}
       <td className="px-2 py-2.5 text-center">
-        {task.category ? (
-          <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
-            {CATEGORY_LABELS[task.category] ?? task.category}
+        {task.categories.length > 0 ? (
+          <span className="inline-flex flex-wrap gap-0.5">
+            {task.categories.map((cat) => (
+              <span
+                key={cat}
+                className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700"
+              >
+                {CATEGORY_LABELS[cat] ?? cat}
+              </span>
+            ))}
           </span>
         ) : (
           <span className="text-muted-foreground/40">—</span>

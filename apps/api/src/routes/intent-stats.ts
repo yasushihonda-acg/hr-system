@@ -148,8 +148,8 @@ intentStatsRoutes.get("/confusion-matrix", zValidator("query", periodQuerySchema
     const matrix: Record<string, Record<string, number>> = {};
     for (const doc of snapshot.docs) {
       const d = doc.data();
-      const original = d.originalCategory ?? "unknown";
-      const corrected = d.category;
+      const original = (d.originalCategories ?? ["unknown"])[0] ?? "unknown";
+      const corrected = (d.categories ?? ["unknown"])[0] ?? "unknown";
       if (!matrix[original]) matrix[original] = {};
       matrix[original][corrected] = (matrix[original][corrected] ?? 0) + 1;
     }
@@ -302,7 +302,7 @@ intentStatsRoutes.get("/override-patterns", async (c) => {
 
     for (const doc of overrideSnap.docs) {
       const d = doc.data();
-      const key = `${d.originalCategory ?? "unknown"}->${d.category}`;
+      const key = `${(d.originalCategories ?? ["unknown"])[0] ?? "unknown"}->${(d.categories ?? ["unknown"])[0] ?? "unknown"}`;
       if (!patternsMap[key]) {
         patternsMap[key] = { count: 0, chatMessageIds: [] };
       }

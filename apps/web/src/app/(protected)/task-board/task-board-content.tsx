@@ -223,6 +223,12 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
                 onUpdateAssignees={handleLineAssignees}
                 onUpdateDeadline={handleLineDeadline}
+                onUpdateCategories={async (id, cats) => {
+                  const { updateLineCategoriesAction } = await import(
+                    "@/app/(protected)/inbox/actions"
+                  );
+                  await updateLineCategoriesAction(id, cats);
+                }}
               />
             ) : isManualTask && selectedTask ? (
               <ManualTaskDetailPane task={selectedTask} onClose={handleClose} />

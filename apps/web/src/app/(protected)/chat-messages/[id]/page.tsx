@@ -42,7 +42,7 @@ export default async function ChatMessageDetailPage({ params }: Props) {
 
   // 同カテゴリの類似メッセージ取得
   const similarMessages = intent
-    ? await getChatMessages({ category: intent.category, limit: 6 }).then((res) =>
+    ? await getChatMessages({ category: intent.categories[0], limit: 6 }).then((res) =>
         res.data.filter((m) => m.id !== id).slice(0, 5),
       )
     : [];
@@ -139,21 +139,25 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             {intent ? (
               <>
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-sm font-medium ${getCategoryPill(
-                      intent.category,
-                    )}`}
-                  >
-                    {getCategoryLabel(intent.category)}
-                  </span>
+                  {intent.categories.map((cat) => (
+                    <span
+                      key={cat}
+                      className={`rounded-full px-3 py-1 text-sm font-medium ${getCategoryPill(cat)}`}
+                    >
+                      {getCategoryLabel(cat)}
+                    </span>
+                  ))}
                   {intent.isManualOverride && (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
                       手動修正済
                     </span>
                   )}
                 </div>
-                {intent.isManualOverride && intent.originalCategory && (
-                  <Row label="元のカテゴリ" value={getCategoryLabel(intent.originalCategory)} />
+                {intent.isManualOverride && intent.originalCategories && (
+                  <Row
+                    label="元のカテゴリ"
+                    value={intent.originalCategories.map(getCategoryLabel).join(", ")}
+                  />
                 )}
                 {intent.overriddenBy && <Row label="修正者" value={intent.overriddenBy} />}
                 {intent.overriddenAt && (
@@ -183,7 +187,10 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             <CardTitle className="text-lg">手動再分類</CardTitle>
           </CardHeader>
           <CardContent>
-            <ReclassifyForm chatMessageId={id} currentCategory={intent?.category ?? "other"} />
+            <ReclassifyForm
+              chatMessageId={id}
+              currentCategories={intent?.categories ?? ["other"]}
+            />
           </CardContent>
         </Card>
 
@@ -227,7 +234,7 @@ export default async function ChatMessageDetailPage({ params }: Props) {
             <CardTitle className="text-lg">
               同カテゴリの最近のメッセージ
               <span className="ml-2 text-sm font-normal text-muted-foreground">
-                {getCategoryLabel(intent.category)}
+                {intent.categories.map(getCategoryLabel).join(", ")}
               </span>
             </CardTitle>
           </CardHeader>

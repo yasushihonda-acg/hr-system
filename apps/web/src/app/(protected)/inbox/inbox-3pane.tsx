@@ -9,6 +9,7 @@ import type { ChatMessageDetail, ChatMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import {
   updateChatAssigneesAction,
+  updateChatCategoriesAction,
   updateChatDeadlineAction,
   updateResponseStatusAction,
   updateTaskPriorityAction,
@@ -47,7 +48,7 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
         {messages.map((msg) => {
           const intent = msg.intent;
           const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
-          const category = intent?.category ?? "other";
+          const categories = intent?.categories ?? ["other"];
           const isSelected = msg.id === selectedId;
 
           return (
@@ -82,9 +83,14 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
               <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{msg.content}</p>
 
               <div className="mt-1.5 flex items-center gap-1.5">
-                <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                  {CATEGORY_LABELS[category] ?? category}
-                </span>
+                {categories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                  >
+                    {CATEGORY_LABELS[cat] ?? cat}
+                  </span>
+                ))}
                 {intent?.confidenceScore != null && (
                   <span className="text-xs tabular-nums text-muted-foreground">
                     {(intent.confidenceScore * 100).toFixed(0)}%
@@ -112,6 +118,7 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
           deadline={selectedMessage.intent?.deadline ?? null}
           onUpdateAssignees={updateChatAssigneesAction}
           onUpdateDeadline={updateChatDeadlineAction}
+          onUpdateCategories={updateChatCategoriesAction}
           extraContent={
             selectedMessage.intent && (
               <div className="mt-4">

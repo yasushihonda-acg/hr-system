@@ -25,7 +25,7 @@ vi.mock("@hr-system/db", () => ({
 
 vi.mock("@hr-system/ai", () => ({
   classifyIntent: vi.fn().mockResolvedValue({
-    category: "attendance",
+    categories: ["attendance"],
     confidence: 0.92,
     reasoning: "勤務表に関する相談",
     classificationMethod: "regex",
@@ -179,7 +179,7 @@ describe("LINE Webhook", () => {
       undefined,
       expect.any(Object),
     );
-    expect(mockUpdate).toHaveBeenCalledWith({ category: "attendance" });
+    expect(mockUpdate).toHaveBeenCalledWith({ categories: ["attendance"] });
   });
 
   it("カテゴリ分類が失敗してもメッセージ保存は成功する", async () => {

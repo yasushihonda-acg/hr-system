@@ -191,12 +191,12 @@ export interface AdminUser {
 /** Intent 分類結果（一覧・詳細共通） */
 export interface IntentSummary {
   id: string;
-  category: string;
+  categories: string[];
   confidenceScore: number;
   classificationMethod: "ai" | "regex" | "manual";
   regexPattern: string | null;
   isManualOverride: boolean;
-  originalCategory: string | null;
+  originalCategories: string[] | null;
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   taskPriority: TaskPriority | null;
   taskSummary: string | null;
@@ -360,7 +360,7 @@ export interface LineMessageSummary {
   assignees: string | null;
   deadline: string | null;
   responseStatus: ResponseStatus;
-  category: string | null;
+  categories: string[];
   workflowSteps: WorkflowSteps | null;
   notes: string | null;
   createdAt: string;
@@ -398,7 +398,7 @@ export interface ManualTaskSummary {
   content: string;
   taskPriority: TaskPriority;
   responseStatus: ResponseStatus;
-  category: string | null;
+  categories: string[];
   assignees: string | null;
   deadline: string | null;
   workflowSteps: WorkflowSteps | null;

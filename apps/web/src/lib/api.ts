@@ -139,8 +139,8 @@ export function getChatMessage(id: string) {
   return request<ChatMessageDetail>(`/api/chat-messages/${id}`);
 }
 
-export function reclassifyIntent(id: string, body: { category: string; comment?: string }) {
-  return request<{ success: boolean; chatMessageId: string; category: string }>(
+export function reclassifyIntent(id: string, body: { categories: string[]; comment?: string }) {
+  return request<{ success: boolean; chatMessageId: string; categories: string[] }>(
     `/api/chat-messages/${id}/intent`,
     { method: "PATCH", body: JSON.stringify(body) },
   );
@@ -446,7 +446,7 @@ export function updateLineWorkflow(
     deadline?: string | null;
     notes?: string | null;
     workflowSteps?: WorkflowSteps;
-    category?: string | null;
+    categories?: string[];
   },
 ) {
   return request<{ success: boolean }>(`/api/line-messages/${encodeURIComponent(id)}/workflow`, {
@@ -490,7 +490,7 @@ export function createManualTask(body: {
   content?: string;
   taskPriority: TaskPriority;
   responseStatus?: ResponseStatus;
-  category?: string | null;
+  categories?: string[];
   assignees?: string | null;
   deadline?: string | null;
 }) {

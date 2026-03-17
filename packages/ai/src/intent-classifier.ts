@@ -3,7 +3,7 @@ import { getGenerativeModel } from "./gemini-client.js";
 import { INTENT_CLASSIFICATION_PROMPT } from "./prompts.js";
 
 export interface IntentClassificationResult {
-  category: ChatCategory;
+  categories: ChatCategory[];
   confidence: number;
   reasoning: string;
   /** 分類方法: "regex"=正規表現による高確信分類, "ai"=LLMによる分類 */
@@ -191,7 +191,7 @@ function tryRegexClassify(
   if (!best || best.confidence < 0.85) return null;
 
   return {
-    category: best.rule.category,
+    categories: [best.rule.category],
     confidence: best.confidence,
     reasoning: `正規表現パターン "${best.rule.name}" にマッチ`,
     classificationMethod: "regex",
@@ -240,7 +240,7 @@ export async function classifyIntent(
   // スレッドコンテキスト継承: 親の確信度が高い場合は返信も同カテゴリとみなす
   if (context && context.parentConfidence >= 0.9) {
     return {
-      category: context.parentCategory,
+      categories: [context.parentCategory],
       confidence: context.parentConfidence * 0.9,
       reasoning: `親スレッドのカテゴリ "${context.parentCategory}" を継承（親confidence: ${context.parentConfidence.toFixed(2)}）`,
       classificationMethod: "regex",
@@ -312,7 +312,7 @@ export async function classifyIntent(
   const confidence = Math.max(0, Math.min(1, Number(result.confidence) || 0));
 
   return {
-    category: result.category as ChatCategory,
+    categories: [result.category as ChatCategory],
     confidence,
     reasoning: String(result.reasoning ?? ""),
     classificationMethod: "ai",

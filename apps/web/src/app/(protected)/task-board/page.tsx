@@ -91,7 +91,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: msg.intent?.assignees ?? null,
         deadline: msg.intent?.deadline ?? null,
         groupName: null,
-        category: msg.intent?.category ?? null,
+        categories: msg.intent?.categories ?? [],
         workflowSteps: msg.intent?.workflowSteps ?? null,
         notes: msg.intent?.notes ?? null,
         createdAt: msg.createdAt,
@@ -113,7 +113,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: msg.assignees ?? null,
         deadline: msg.deadline ?? null,
         groupName: msg.groupName,
-        category: msg.category ?? null,
+        categories: msg.categories ?? [],
         workflowSteps: msg.workflowSteps ?? null,
         notes: msg.notes ?? null,
         createdAt: msg.createdAt,
@@ -134,7 +134,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
         assignees: task.assignees,
         deadline: task.deadline,
         groupName: null,
-        category: task.category ?? null,
+        categories: task.categories ?? [],
         workflowSteps: task.workflowSteps ?? null,
         notes: task.notes ?? null,
         createdAt: task.createdAt,
@@ -151,7 +151,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
     filtered = filtered.filter((t) => t.responseStatus === statusFilter);
   }
   if (categoryFilter) {
-    filtered = filtered.filter((t) => t.category === categoryFilter);
+    filtered = filtered.filter((t) => t.categories.includes(categoryFilter));
   }
 
   // 優先度順 → 日時降順でソート

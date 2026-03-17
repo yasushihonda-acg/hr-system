@@ -32,7 +32,7 @@ vi.mock("google-auth-library", () => ({
 // @hr-system/ai モック
 vi.mock("@hr-system/ai", () => ({
   classifyIntent: vi.fn().mockResolvedValue({
-    category: "salary",
+    categories: ["salary"],
     confidence: 0.9,
     classificationMethod: "regex",
     regexPattern: "給与",
@@ -565,7 +565,7 @@ describe("chat-sync service", () => {
       expect(mockBatchSet).toHaveBeenCalledWith(
         { id: "intent-new" },
         expect.objectContaining({
-          category: "salary",
+          categories: ["salary"],
           confidenceScore: 0.9,
           classificationMethod: "regex",
         }),
