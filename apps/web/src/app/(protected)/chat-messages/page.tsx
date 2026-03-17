@@ -31,15 +31,27 @@ interface Props {
 
 const PAGE_SIZE = 30;
 
-function FilterPill({ href, label, active }: { href: string; label: string; active: boolean }) {
+function FilterPill({
+  href,
+  label,
+  active,
+  activeClass,
+  inactiveClass,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  activeClass?: string;
+  inactiveClass?: string;
+}) {
   return (
     <Link
       href={href}
       className={cn(
         "inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
         active
-          ? "bg-[var(--gradient-from)] text-white"
-          : "bg-muted text-muted-foreground hover:bg-accent",
+          ? (activeClass ?? "bg-[var(--gradient-from)] text-white")
+          : (inactiveClass ?? "bg-muted text-muted-foreground hover:bg-accent"),
       )}
     >
       {label}
@@ -272,6 +284,8 @@ export default async function ChatMessagesPage({ searchParams }: Props) {
                 href={buildUrl({ category: value, page: "1" })}
                 label={cfg.label}
                 active={params.category === value}
+                activeClass={`${cfg.pill} ring-2`}
+                inactiveClass={`${cfg.pill} opacity-60 hover:opacity-100`}
               />
             ))}
           </FilterRow>
