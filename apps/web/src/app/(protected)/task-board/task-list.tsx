@@ -5,7 +5,7 @@ import {
   ClipboardEdit,
   Clock,
   ExternalLink,
-  Maximize2,
+  FileText,
   MessageCircle,
   MessageSquareText,
 } from "lucide-react";
@@ -452,7 +452,7 @@ function TaskRow({
           className="inline-flex items-center justify-center rounded p-1 text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
           title="詳細をダイアログで表示"
         >
-          <Maximize2 size={14} />
+          <FileText size={14} />
         </button>
       </td>
     </tr>

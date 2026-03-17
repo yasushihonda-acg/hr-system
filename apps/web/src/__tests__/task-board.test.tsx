@@ -66,7 +66,7 @@ vi.mock("lucide-react", () => ({
   ClipboardEdit: () => React.createElement("span", { "data-testid": "icon-manual" }),
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
-  Maximize2: () => React.createElement("span", { "data-testid": "icon-maximize" }),
+  FileText: () => React.createElement("span", { "data-testid": "icon-file-text" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({
