@@ -8,10 +8,10 @@ export const STEP_CYCLE: WorkflowStepStatus[] = [
 ];
 
 export const DEFAULT_STEPS: WorkflowSteps = {
-  salaryListReflection: "undetermined",
   smartHRReflection: "undetermined",
   noticeExecution: "undetermined",
   laborLawyerShare: "undetermined",
+  salaryListReflection: "undetermined",
 };
 
 /** テーブルセル用の共通スタイル（列に依存しないアイコン・色） */
@@ -31,51 +31,51 @@ export const STEP_CONFIG: Record<WorkflowStepStatus, { label: string; cls: strin
   },
 };
 
-/** 表示順序（スプレッドシート準拠）: ❶SS反映 → ❷SmartHR → ❸通知・締結 → ❹社労士共有 */
+/** 表示順序: ❶SmartHR更新 → ❷本人通知 → ❸社労士共有 → ❹給与DB反映 */
 export const STEP_KEYS = [
-  "salaryListReflection",
   "smartHRReflection",
   "noticeExecution",
   "laborLawyerShare",
+  "salaryListReflection",
 ] as const;
 
 /** STEP_KEYS と同期した番号アイコン */
 export const STEP_NUMBERS = ["❶", "❷", "❸", "❹"] as const;
 
-/** 列ごとのステータスラベル（スプレッドシート準拠） */
+/** 列ごとのステータスラベル */
 export const STEP_STATUS_LABELS: Record<keyof WorkflowSteps, Record<WorkflowStepStatus, string>> = {
-  salaryListReflection: {
-    undetermined: "未判定",
-    not_required: "対応不要と判定",
-    completed: "要対応で反映済み",
-    pending: "要対応で未対応",
-  },
   smartHRReflection: {
     undetermined: "未判定",
-    not_required: "反映不要と判定",
-    completed: "要反映で反映済み",
-    pending: "要対応で未反映",
+    not_required: "更新不要と判定",
+    completed: "更新済み",
+    pending: "要更新で未対応",
   },
   noticeExecution: {
     undetermined: "未判定",
-    not_required: "対応不要と判定",
-    completed: "要対応で反映済み",
-    pending: "要対応で未反映",
+    not_required: "通知不要と判定",
+    completed: "通知済み",
+    pending: "要通知で未対応",
   },
   laborLawyerShare: {
     undetermined: "未判定",
-    not_required: "対応不要と判定",
-    completed: "要対応で反映済み",
-    pending: "要対応で未反映",
+    not_required: "共有不要と判定",
+    completed: "共有済み",
+    pending: "要共有で未対応",
+  },
+  salaryListReflection: {
+    undetermined: "未判定",
+    not_required: "反映不要と判定",
+    completed: "反映済み",
+    pending: "要反映で未対応",
   },
 };
 
 /** 列の表示名 */
 export const STEP_LABELS: Record<keyof WorkflowSteps, { label: string; shortLabel: string }> = {
-  salaryListReflection: { label: "職員給与一覧SSへの反映", shortLabel: "SS反映" },
-  smartHRReflection: { label: "SmartHRへの反映", shortLabel: "SmartHR" },
-  noticeExecution: { label: "通知・締結", shortLabel: "通知" },
-  laborLawyerShare: { label: "社労士共有", shortLabel: "社労士" },
+  smartHRReflection: { label: "SmartHR更新", shortLabel: "SmartHR更新" },
+  noticeExecution: { label: "本人通知", shortLabel: "本人通知" },
+  laborLawyerShare: { label: "社労士共有", shortLabel: "社労士共有" },
+  salaryListReflection: { label: "給与DB反映", shortLabel: "給与DB反映" },
 };
 
 /** 給与関連カテゴリかどうか（ワークフローステップ表示判定用） */
