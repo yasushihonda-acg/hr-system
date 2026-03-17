@@ -20,6 +20,7 @@ export function NotesField({ value, onSave }: NotesFieldProps) {
   }, [value]);
 
   async function handleBlur() {
+    if (saving) return;
     const trimmed = localNotes.trim();
     const next = trimmed || null;
     const prev = savedValue.current || null;
