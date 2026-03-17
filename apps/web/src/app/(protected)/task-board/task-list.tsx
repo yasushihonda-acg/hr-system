@@ -281,7 +281,7 @@ function TaskRow({
         </div>
         <p
           className={cn(
-            "mt-0.5 line-clamp-2 leading-relaxed",
+            "mt-0.5 whitespace-pre-wrap leading-relaxed",
             isCritical ? "text-red-700" : "text-muted-foreground",
           )}
         >

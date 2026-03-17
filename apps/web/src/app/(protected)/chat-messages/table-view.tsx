@@ -100,11 +100,11 @@ function TableRow({ msg, rowNo }: { msg: ChatMessageSummary; rowNo: number }) {
       </td>
 
       {/* 記事のコピー */}
-      <td className="max-w-[240px] px-2 py-2">
+      <td className="px-2 py-2">
         <div className="flex items-start gap-1">
           <Link
             href={`/chat-messages/${msg.id}`}
-            className="line-clamp-2 text-xs text-foreground/80 hover:text-foreground hover:underline"
+            className="whitespace-pre-wrap text-xs text-foreground/80 hover:text-foreground hover:underline"
           >
             {msg.content}
           </Link>
