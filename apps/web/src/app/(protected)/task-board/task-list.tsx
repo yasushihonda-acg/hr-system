@@ -17,7 +17,6 @@ import {
   STEP_CONFIG,
   STEP_KEYS,
   STEP_LABELS,
-  STEP_NUMBERS,
 } from "@/lib/workflow-steps";
 import {
   updateLineResponseStatusFromTaskBoard,
@@ -111,14 +110,13 @@ export function TaskList({
               ステータス
             </th>
             <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">期限</th>
-            {STEP_KEYS.map((key, i) => (
+            {STEP_KEYS.map((key) => (
               <th
                 key={key}
                 className="w-14 px-1 py-2.5 text-center font-semibold text-muted-foreground"
                 title={STEP_LABELS[key].label}
               >
                 <span className="block text-[10px] leading-tight">
-                  {STEP_NUMBERS[i]}
                   {STEP_LABELS[key].shortLabel}
                 </span>
               </th>
@@ -382,7 +380,7 @@ function TaskRow({
         )}
       </td>
 
-      {/* ❶〜❹ ワークフローステップ（給与カテゴリのみ操作可能） */}
+      {/* ワークフローステップ（給与カテゴリのみ操作可能） */}
       {STEP_KEYS.map((key) => {
         return (
           <td key={key} className="px-1 py-2.5 text-center">

@@ -317,7 +317,7 @@ describe("TaskList", () => {
     expect(html).not.toContain("給与・社保");
   });
 
-  it("テーブルヘッダーにワークフローステップ列（❶❷❸❹）が存在する", () => {
+  it("テーブルヘッダーにワークフローステップ列が存在する", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask()],
@@ -325,10 +325,10 @@ describe("TaskList", () => {
         onSelect: mockOnSelect,
       }),
     );
-    expect(html).toContain("❶");
-    expect(html).toContain("❷");
-    expect(html).toContain("❸");
-    expect(html).toContain("❹");
+    expect(html).toContain("SmartHR更新");
+    expect(html).toContain("本人通知");
+    expect(html).toContain("社労士共有");
+    expect(html).toContain("給与DB反映");
   });
 
   it("テーブルヘッダーにメモ列が存在する", () => {

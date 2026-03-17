@@ -39,9 +39,6 @@ export const STEP_KEYS = [
   "salaryListReflection",
 ] as const;
 
-/** STEP_KEYS と同期した番号アイコン */
-export const STEP_NUMBERS = ["❶", "❷", "❸", "❹"] as const;
-
 /** 列ごとのステータスラベル */
 export const STEP_STATUS_LABELS: Record<keyof WorkflowSteps, Record<WorkflowStepStatus, string>> = {
   smartHRReflection: {
