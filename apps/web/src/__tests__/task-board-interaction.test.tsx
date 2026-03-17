@@ -71,6 +71,9 @@ vi.mock("lucide-react", () => ({
   Clock: () => React.createElement("span", { "data-testid": "icon-clock" }),
   ExternalLink: () => React.createElement("span", { "data-testid": "icon-external-link" }),
   FileText: () => React.createElement("span", { "data-testid": "icon-file-text" }),
+  CheckIcon: () => React.createElement("span", { "data-testid": "icon-check" }),
+  ChevronDownIcon: () => React.createElement("span", { "data-testid": "icon-chevron-down" }),
+  ChevronUpIcon: () => React.createElement("span", { "data-testid": "icon-chevron-up" }),
 }));
 
 vi.mock("@/components/task-priority-selector", () => ({

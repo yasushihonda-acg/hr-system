@@ -9,8 +9,16 @@ import {
   MessageCircle,
   MessageSquareText,
 } from "lucide-react";
+import type { WorkflowStepStatus } from "@hr-system/shared";
 import { useEffect, useState, useTransition } from "react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   CATEGORY_LABELS,
   RESPONSE_STATUS_BADGE_COLORS,
@@ -20,10 +28,11 @@ import { buildMessageSearchUrl, cn, formatDateJST, formatDateTimeJST } from "@/l
 import {
   DEFAULT_STEPS,
   isSalaryCategory,
-  nextStepStatus,
-  STEP_CONFIG,
+  STEP_CYCLE,
   STEP_KEYS,
   STEP_LABELS,
+  STEP_STATUS_COLORS,
+  STEP_STATUS_LABELS,
 } from "@/lib/workflow-steps";
 import {
   updateLineResponseStatusFromTaskBoard,
@@ -87,7 +96,7 @@ export function TaskList({
 
   return (
     <div>
-      <table className="w-full min-w-[1500px] text-xs">
+      <table className="w-full min-w-[1800px] text-xs">
         <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
           <tr>
             <th className="w-10 px-2 py-2.5 text-center font-semibold text-muted-foreground">No</th>
@@ -122,7 +131,7 @@ export function TaskList({
             {STEP_KEYS.map((key) => (
               <th
                 key={key}
-                className="w-14 px-1 py-2.5 text-center font-semibold text-muted-foreground"
+                className="w-36 px-1 py-2.5 text-center font-semibold text-muted-foreground"
                 title={STEP_LABELS[key].label}
               >
                 <span className="block text-[10px] leading-tight">
@@ -205,9 +214,8 @@ function TaskRow({
     }
   };
 
-  const handleStep = (key: keyof WorkflowSteps) => {
-    const next = nextStepStatus(localSteps[key]);
-    const newSteps = { ...localSteps, [key]: next };
+  const handleStepChange = (key: keyof WorkflowSteps, value: WorkflowStepStatus) => {
+    const newSteps = { ...localSteps, [key]: value };
     setLocalSteps(newSteps);
     startTransition(async () => {
       await saveWorkflow({ workflowSteps: newSteps });
@@ -397,20 +405,42 @@ function TaskRow({
 
       {/* ワークフローステップ（給与カテゴリのみ操作可能） */}
       {STEP_KEYS.map((key) => {
+        const status = localSteps[key];
+        const colors = STEP_STATUS_COLORS[status];
+        const labels = STEP_STATUS_LABELS[key];
         return (
-          <td key={key} className="px-1 py-2.5 text-center">
+          <td key={key} className="px-1 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
             {showSteps ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStep(key);
-                }}
+              <Select
+                value={status}
+                onValueChange={(v) => handleStepChange(key, v as WorkflowStepStatus)}
                 disabled={isPending}
-                className={`w-8 cursor-pointer rounded px-1 py-0.5 text-xs transition-opacity hover:opacity-80 ${STEP_CONFIG[localSteps[key]].cls}`}
               >
-                {STEP_CONFIG[localSteps[key]].label}
-              </button>
+                <SelectTrigger
+                  size="sm"
+                  className={cn(
+                    "h-7 w-full min-w-0 gap-0.5 rounded border px-1.5 text-[10px] font-medium shadow-none",
+                    colors.triggerBg,
+                    colors.text,
+                  )}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent position="popper" className="min-w-[160px]">
+                  {STEP_CYCLE.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      <span
+                        className={cn(
+                          "inline-block rounded-full px-2 py-0.5 text-[11px] font-medium",
+                          STEP_STATUS_COLORS[s].badge,
+                        )}
+                      >
+                        {labels[s]}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             ) : (
               <span className="text-muted-foreground/30">—</span>
             )}
