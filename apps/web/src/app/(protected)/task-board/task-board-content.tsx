@@ -12,6 +12,12 @@ import {
   useState,
   useTransition,
 } from "react";
+import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
+import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
+import { ChatMessageDetailPane } from "@/components/message-detail-pane";
+import { NotesField } from "@/components/notes-field";
+import { ResponseStatusButtons } from "@/components/response-status-buttons";
+import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import {
   Dialog,
   DialogContent,
@@ -19,12 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
-import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
-import { ChatMessageDetailPane } from "@/components/message-detail-pane";
-import { NotesField } from "@/components/notes-field";
-import { ResponseStatusButtons } from "@/components/response-status-buttons";
-import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import type { ChatMessageDetail, LineMessageDetail } from "@/lib/types";
 import { formatDateTimeJST } from "@/lib/utils";
 import {
