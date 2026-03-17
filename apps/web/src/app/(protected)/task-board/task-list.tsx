@@ -1,6 +1,11 @@
 "use client";
 
-import type { ResponseStatus, TaskPriority, WorkflowSteps } from "@hr-system/shared";
+import type {
+  ResponseStatus,
+  TaskPriority,
+  WorkflowStepStatus,
+  WorkflowSteps,
+} from "@hr-system/shared";
 import {
   ClipboardEdit,
   Clock,
@@ -9,7 +14,6 @@ import {
   MessageCircle,
   MessageSquareText,
 } from "lucide-react";
-import type { WorkflowStepStatus } from "@hr-system/shared";
 import { useEffect, useState, useTransition } from "react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import {
@@ -409,7 +413,12 @@ function TaskRow({
         const colors = STEP_STATUS_COLORS[status];
         const labels = STEP_STATUS_LABELS[key];
         return (
-          <td key={key} className="px-1 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+          <td
+            key={key}
+            className="px-1 py-2.5 text-center"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
             {showSteps ? (
               <Select
                 value={status}
