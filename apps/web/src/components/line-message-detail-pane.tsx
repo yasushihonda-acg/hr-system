@@ -2,6 +2,7 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
+import { CategoryBadge } from "@/components/category-badge";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
@@ -44,6 +45,7 @@ export function LineMessageDetailPane({
             {message.groupName && (
               <span className="text-xs text-muted-foreground">@ {message.groupName}</span>
             )}
+            <CategoryBadge category={message.category} />
             <span className="text-xs text-muted-foreground">
               {formatDateTimeJST(message.createdAt)}
             </span>

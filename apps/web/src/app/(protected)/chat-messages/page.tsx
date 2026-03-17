@@ -11,9 +11,9 @@ import {
   getLineMessages,
   getStatsSpaces,
 } from "@/lib/api";
+import { CATEGORY_CONFIG } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { LineViewContainer } from "./line-view-container";
-import { CATEGORY_CONFIG } from "./message-card";
 import { ViewContainer } from "./view-container";
 
 interface Props {

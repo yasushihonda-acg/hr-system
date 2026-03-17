@@ -1,5 +1,6 @@
 "use client";
 
+import { CategoryBadge } from "@/components/category-badge";
 import type { LineMessageSummary } from "@/lib/types";
 import { formatDateTimeJST } from "@/lib/utils";
 
@@ -108,6 +109,7 @@ export function LineMessageCard({ msg }: { msg: LineMessageSummary }) {
               <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium bg-[#06C755]/10 text-[#06C755] ring-1 ring-inset ring-[#06C755]/20">
                 LINE
               </span>
+              <CategoryBadge category={msg.category} />
               {msg.groupName && (
                 <span className="text-xs text-muted-foreground">{msg.groupName}</span>
               )}

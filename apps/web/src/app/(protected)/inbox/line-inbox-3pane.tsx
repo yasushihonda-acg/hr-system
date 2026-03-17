@@ -1,6 +1,7 @@
 "use client";
 
 import { Image as ImageIcon, MessageSquare } from "lucide-react";
+import { CategoryBadge } from "@/components/category-badge";
 import { LineMessageDetailPane } from "@/components/line-message-detail-pane";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import { RESPONSE_STATUS_DOT_COLORS } from "@/lib/constants";
@@ -86,6 +87,7 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
                 <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700">
                   LINE
                 </span>
+                <CategoryBadge category={msg.category} />
                 {msg.lineMessageType !== "text" && (
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                     {msg.lineMessageType}

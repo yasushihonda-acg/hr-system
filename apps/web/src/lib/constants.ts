@@ -1,19 +1,64 @@
 import type { ChatCategory, ResponseStatus } from "@hr-system/shared";
 import { CHAT_CATEGORIES } from "@hr-system/shared";
 
-/** カテゴリ日本語ラベル */
-export const CATEGORY_LABELS: Record<string, string> = {
-  salary: "給与・社保",
-  retirement: "退職・休職",
-  hiring: "入社・採用",
-  contract: "契約変更",
-  transfer: "施設・異動",
-  foreigner: "外国人・ビザ",
-  training: "研修・監査",
-  health_check: "健康診断",
-  attendance: "勤怠・休暇",
-  other: "その他",
+/** カテゴリ設定（ラベル・色） */
+export const CATEGORY_CONFIG: Record<string, { label: string; accent: string; pill: string }> = {
+  salary: {
+    label: "給与・社保",
+    accent: "border-l-emerald-500",
+    pill: "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200",
+  },
+  retirement: {
+    label: "退職・休職",
+    accent: "border-l-red-500",
+    pill: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-200",
+  },
+  hiring: {
+    label: "入社・採用",
+    accent: "border-l-blue-500",
+    pill: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200",
+  },
+  contract: {
+    label: "契約変更",
+    accent: "border-l-amber-500",
+    pill: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200",
+  },
+  transfer: {
+    label: "施設・異動",
+    accent: "border-l-purple-500",
+    pill: "bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-200",
+  },
+  foreigner: {
+    label: "外国人・ビザ",
+    accent: "border-l-orange-500",
+    pill: "bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-200",
+  },
+  training: {
+    label: "研修・監査",
+    accent: "border-l-indigo-500",
+    pill: "bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-200",
+  },
+  health_check: {
+    label: "健康診断",
+    accent: "border-l-pink-500",
+    pill: "bg-pink-50 text-pink-700 ring-1 ring-inset ring-pink-200",
+  },
+  attendance: {
+    label: "勤怠・休暇",
+    accent: "border-l-teal-500",
+    pill: "bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-200",
+  },
+  other: {
+    label: "その他",
+    accent: "border-l-slate-300",
+    pill: "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200",
+  },
 };
+
+/** カテゴリ日本語ラベル（CATEGORY_CONFIGから派生） */
+export const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(CATEGORY_CONFIG).map(([k, v]) => [k, v.label]),
+);
 
 /** 対応状況ラベル */
 export const RESPONSE_STATUS_LABELS: Record<ResponseStatus, string> = {
