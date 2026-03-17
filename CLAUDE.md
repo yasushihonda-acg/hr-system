@@ -99,7 +99,7 @@ packages/
 
 ## Commands
 
-- `pnpm dev` — 全サービス起動 (API: 3001, Web: 3000, Worker: 3002)
+- `pnpm dev` — 全サービス起動 (API: 3001, Web: 3005, Worker: 3002)
 - `pnpm build` — 全パッケージビルド
 - `pnpm lint` — Biome lint
 - `pnpm typecheck` — TypeScript型チェック

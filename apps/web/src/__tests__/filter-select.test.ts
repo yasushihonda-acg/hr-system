@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFilterUrl } from "../app/(protected)/task-board/filter-select";
+import { buildFilterUrl } from "../app/(protected)/task-board/filter-utils";
 
 describe("buildFilterUrl", () => {
   it("フィルターなしでallを選択するとクエリなしURLを返す", () => {
