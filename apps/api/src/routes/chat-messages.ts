@@ -29,7 +29,7 @@ const listQuerySchema = z.object({
 });
 
 const patchIntentSchema = z.object({
-  category: z.enum(CHAT_CATEGORIES),
+  categories: z.array(z.enum(CHAT_CATEGORIES)).min(1),
   comment: z.string().max(500).optional(),
 });
 
@@ -107,7 +107,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     // 1. IntentRecords をネイティブフィルタでクエリ
     let intentQuery = collections.intentRecords as FirebaseFirestore.Query;
     if (category) {
-      intentQuery = intentQuery.where("category", "==", category);
+      intentQuery = intentQuery.where("categories", "array-contains", category);
     }
     if (responseStatus) {
       intentQuery = intentQuery.where("responseStatus", "==", responseStatus);
@@ -231,12 +231,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
           intent: intent
             ? {
                 id: intentEntry?.id ?? "",
-                category: intent.category as ChatCategory,
+                categories: intent.categories ?? [],
                 confidenceScore: intent.confidenceScore,
                 classificationMethod: intent.classificationMethod ?? "ai",
                 regexPattern: intent.regexPattern ?? null,
                 isManualOverride: intent.isManualOverride ?? false,
-                originalCategory: intent.originalCategory ?? null,
+                originalCategories: intent.originalCategories ?? null,
                 responseStatus: intent.responseStatus ?? "unresponded",
                 taskPriority: intent.taskPriority ?? null,
                 taskSummary: intent.taskSummary ?? null,
@@ -288,12 +288,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
         intent: intent
           ? {
               id: intentEntry?.id ?? "",
-              category: intent.category as ChatCategory,
+              categories: intent.categories ?? [],
               confidenceScore: intent.confidenceScore,
               classificationMethod: intent.classificationMethod ?? "ai",
               regexPattern: intent.regexPattern ?? null,
               isManualOverride: intent.isManualOverride ?? false,
-              originalCategory: intent.originalCategory ?? null,
+              originalCategories: intent.originalCategories ?? null,
               responseStatus: intent.responseStatus ?? "unresponded",
               taskPriority: intent.taskPriority ?? null,
               taskSummary: intent.taskSummary ?? null,
@@ -352,7 +352,7 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     const intentEntry = intentByMsgId.get(doc.id);
     const intent = intentEntry?.data ?? null;
 
-    if (category && intent?.category !== category) {
+    if (category && !intent?.categories?.includes(category)) {
       return null; // フィルタ外
     }
     if (
@@ -390,12 +390,12 @@ chatMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
       intent: intent
         ? {
             id: intentEntry?.id ?? "",
-            category: intent.category as ChatCategory,
+            categories: intent.categories ?? [],
             confidenceScore: intent.confidenceScore,
             classificationMethod: intent.classificationMethod ?? "ai",
             regexPattern: intent.regexPattern ?? null,
             isManualOverride: intent.isManualOverride ?? false,
-            originalCategory: intent.originalCategory ?? null,
+            originalCategories: intent.originalCategories ?? null,
             responseStatus: intent.responseStatus ?? "unresponded",
             taskPriority: intent.taskPriority ?? null,
             taskSummary: intent.taskSummary ?? null,
@@ -525,13 +525,13 @@ chatMessageRoutes.get("/:id", async (c) => {
     intent: intent
       ? {
           id: intentDoc?.id,
-          category: intent.category,
+          categories: intent.categories ?? [],
           confidenceScore: intent.confidenceScore,
           classificationMethod: intent.classificationMethod ?? "ai",
           regexPattern: intent.regexPattern ?? null,
           reasoning: intent.llmOutput ?? null,
           isManualOverride: intent.isManualOverride ?? false,
-          originalCategory: intent.originalCategory ?? null,
+          originalCategories: intent.originalCategories ?? null,
           overriddenBy: intent.overriddenBy ?? null,
           overriddenAt: toISOOrNull(intent.overriddenAt),
           responseStatus: intent.responseStatus ?? "unresponded",
@@ -557,7 +557,7 @@ chatMessageRoutes.get("/:id", async (c) => {
 // ---------------------------------------------------------------------------
 chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), async (c) => {
   const chatMessageId = c.req.param("id");
-  const { category, comment } = c.req.valid("json");
+  const { categories, comment } = c.req.valid("json");
   const actor = c.get("user");
   const actorRole = c.get("actorRole");
 
@@ -584,12 +584,12 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
       const intentRef = existingDoc.ref;
       const current = existingDoc.data();
       tx.update(intentRef, {
-        category,
+        categories,
         classificationMethod: "manual",
         isManualOverride: true,
-        originalCategory: current.isManualOverride
-          ? current.originalCategory // 2回目以降は最初のオリジナルを保持
-          : current.category,
+        originalCategories: current.isManualOverride
+          ? current.originalCategories // 2回目以降は最初のオリジナルを保持
+          : current.categories,
         overriddenBy: actor.email,
         overriddenAt: FieldValue.serverTimestamp(),
       });
@@ -598,7 +598,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
       const intentRef = collections.intentRecords.doc();
       tx.set(intentRef, {
         chatMessageId,
-        category,
+        categories,
         confidenceScore: 1.0,
         extractedParams: null,
         classificationMethod: "manual",
@@ -606,7 +606,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
         llmInput: null,
         llmOutput: comment ?? null,
         isManualOverride: true,
-        originalCategory: null,
+        originalCategories: null,
         overriddenBy: actor.email,
         overriddenAt: FieldValue.serverTimestamp() as never,
         responseStatus: "unresponded",
@@ -634,7 +634,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
       actorRole: actorRole,
       details: {
         chatMessageId,
-        newCategory: category,
+        newCategories: categories,
         method: "manual",
         comment: comment ?? null,
       },
@@ -647,7 +647,7 @@ chatMessageRoutes.patch("/:id/intent", zValidator("json", patchIntentSchema), as
   clearCache("stats:categories");
   clearCache("inbox-counts:");
 
-  return c.json({ success: true, chatMessageId, category });
+  return c.json({ success: true, chatMessageId, categories });
 });
 
 // ---------------------------------------------------------------------------
@@ -686,7 +686,7 @@ chatMessageRoutes.patch(
         intentDocId = intentRef.id;
         tx.set(intentRef, {
           chatMessageId,
-          category: "other" as ChatCategory,
+          categories: ["other"] as ChatCategory[],
           confidenceScore: 0,
           extractedParams: null,
           classificationMethod: "manual",
@@ -694,7 +694,7 @@ chatMessageRoutes.patch(
           llmInput: null,
           llmOutput: null,
           isManualOverride: false,
-          originalCategory: null,
+          originalCategories: null,
           overriddenBy: null,
           overriddenAt: null,
           responseStatus,
@@ -789,7 +789,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
       const intentRef = collections.intentRecords.doc();
       tx.set(intentRef, {
         chatMessageId,
-        category: "other" as ChatCategory,
+        categories: ["other"] as ChatCategory[],
         confidenceScore: 0,
         extractedParams: null,
         classificationMethod: "manual",
@@ -797,7 +797,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
         llmInput: null,
         llmOutput: null,
         isManualOverride: false,
-        originalCategory: null,
+        originalCategories: null,
         overriddenBy: null,
         overriddenAt: null,
         responseStatus: "unresponded",

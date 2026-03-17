@@ -53,11 +53,11 @@ import { app } from "../app.js";
 // Helper to create mock intent docs
 function makeIntentDoc(
   overrides: Partial<{
-    category: string;
+    categories: string[];
     confidenceScore: number;
     classificationMethod: string;
     isManualOverride: boolean;
-    originalCategory: string | null;
+    originalCategories: string[] | null;
     regexPattern: string | null;
     chatMessageId: string;
     createdAt: Timestamp;
@@ -68,11 +68,11 @@ function makeIntentDoc(
     id: overrides.chatMessageId ?? "msg-1",
     data: () => ({
       chatMessageId: "msg-1",
-      category: "salary",
+      categories: ["salary"],
       confidenceScore: 0.85,
       classificationMethod: "ai",
       isManualOverride: false,
-      originalCategory: null,
+      originalCategories: null,
       regexPattern: null,
       createdAt: now,
       ...overrides,
@@ -115,7 +115,7 @@ describe("intent-stats routes", () => {
           makeIntentDoc({
             classificationMethod: "manual",
             isManualOverride: true,
-            originalCategory: "other",
+            originalCategories: ["other"],
             confidenceScore: 0.5,
           }),
         ],
@@ -170,12 +170,20 @@ describe("intent-stats routes", () => {
     it("should return override pairs sorted by count", async () => {
       mockIntentGet.mockResolvedValueOnce({
         docs: [
-          makeIntentDoc({ isManualOverride: true, originalCategory: "other", category: "salary" }),
-          makeIntentDoc({ isManualOverride: true, originalCategory: "other", category: "salary" }),
           makeIntentDoc({
             isManualOverride: true,
-            originalCategory: "hiring",
-            category: "contract",
+            originalCategories: ["other"],
+            categories: ["salary"],
+          }),
+          makeIntentDoc({
+            isManualOverride: true,
+            originalCategories: ["other"],
+            categories: ["salary"],
+          }),
+          makeIntentDoc({
+            isManualOverride: true,
+            originalCategories: ["hiring"],
+            categories: ["contract"],
           }),
         ],
       });
@@ -321,20 +329,20 @@ describe("intent-stats routes", () => {
         docs: [
           makeIntentDoc({
             isManualOverride: true,
-            originalCategory: "other",
-            category: "salary",
+            originalCategories: ["other"],
+            categories: ["salary"],
             chatMessageId: "msg-1",
           }),
           makeIntentDoc({
             isManualOverride: true,
-            originalCategory: "other",
-            category: "salary",
+            originalCategories: ["other"],
+            categories: ["salary"],
             chatMessageId: "msg-2",
           }),
           makeIntentDoc({
             isManualOverride: true,
-            originalCategory: "hiring",
-            category: "contract",
+            originalCategories: ["hiring"],
+            categories: ["contract"],
             chatMessageId: "msg-3",
           }),
         ],

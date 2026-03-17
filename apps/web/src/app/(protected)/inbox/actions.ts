@@ -4,6 +4,7 @@ import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { revalidatePath } from "next/cache";
 import { requireAccess } from "@/lib/access-control";
 import {
+  reclassifyIntent,
   updateLineResponseStatus,
   updateLineTaskPriority,
   updateLineWorkflow,
@@ -88,6 +89,21 @@ export async function updateLineAssigneesAction(messageId: string, assignees: st
 export async function updateLineDeadlineAction(messageId: string, deadline: string | null) {
   await requireAccess();
   await updateLineWorkflow(messageId, { deadline });
+  revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateChatCategoriesAction(chatMessageId: string, categories: string[]) {
+  await requireAccess();
+  await reclassifyIntent(chatMessageId, { categories });
+  revalidatePath("/inbox");
+  revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
+
+export async function updateLineCategoriesAction(messageId: string, categories: string[]) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, { categories });
   revalidatePath("/inbox");
   revalidatePath("/task-board");
 }

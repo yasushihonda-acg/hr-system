@@ -101,12 +101,12 @@ const sampleDraftDetail: DraftDetail = {
 
 const sampleIntentSummary: IntentSummary = {
   id: "intent-001",
-  category: "salary_change",
+  categories: ["salary_change"],
   confidenceScore: 0.95,
   classificationMethod: "ai",
   regexPattern: null,
   isManualOverride: false,
-  originalCategory: null,
+  originalCategories: null,
   responseStatus: "unresponded",
   taskPriority: null,
   taskSummary: null,
@@ -502,7 +502,7 @@ describe("LineMessageSummary 契約", () => {
     assignees: null,
     deadline: null,
     responseStatus: "unresponded",
-    category: null,
+    categories: [],
     workflowSteps: null,
     notes: null,
     createdAt: "2026-03-01T09:00:00.000Z",
@@ -512,10 +512,10 @@ describe("LineMessageSummary 契約", () => {
     expect(hasAllKeys(sampleLineMessage, ["workflowSteps", "notes"])).toBe(true);
   });
 
-  it("category が null 許容で string を受け付けること", () => {
-    expect(sampleLineMessage.category).toBeNull();
-    const withCategory: LineMessageSummary = { ...sampleLineMessage, category: "salary" };
-    expect(withCategory.category).toBe("salary");
+  it("categories が空配列で string[] を受け付けること", () => {
+    expect(sampleLineMessage.categories).toEqual([]);
+    const withCategory: LineMessageSummary = { ...sampleLineMessage, categories: ["salary"] };
+    expect(withCategory.categories).toEqual(["salary"]);
   });
 
   it("workflowSteps が null 許容で WorkflowSteps 型を受け付けること", () => {
@@ -552,7 +552,7 @@ describe("ManualTaskSummary 契約", () => {
     content: "詳細メモ",
     taskPriority: "high",
     responseStatus: "unresponded",
-    category: null,
+    categories: [],
     assignees: null,
     deadline: null,
     workflowSteps: null,

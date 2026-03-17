@@ -142,7 +142,7 @@ export interface ChatMessage {
 /** AI Intent 分類結果 */
 export interface IntentRecord {
   chatMessageId: string;
-  category: ChatCategory;
+  categories: ChatCategory[];
   confidenceScore: number;
   extractedParams: Record<string, unknown> | null;
   /** 分類方法: "regex"=正規表現, "ai"=LLM, "manual"=人手修正 */
@@ -154,7 +154,7 @@ export interface IntentRecord {
   /** 手動修正フラグ */
   isManualOverride: boolean;
   /** 修正前のカテゴリ（手動修正時のみ） */
-  originalCategory: ChatCategory | null;
+  originalCategories: ChatCategory[] | null;
   /** 修正者 email */
   overriddenBy: string | null;
   overriddenAt: Timestamp | null;
@@ -303,8 +303,8 @@ export interface LineMessage {
   assignees: string | null;
   /** 期限（ISO 8601 datetime） */
   deadline: Timestamp | null;
-  /** カテゴリ（手動選択） */
-  category?: ChatCategory | null;
+  /** カテゴリ（複数選択） */
+  categories: ChatCategory[];
   /** 対応状況（受信箱管理用） */
   responseStatus: "unresponded" | "in_progress" | "responded" | "not_required";
   /** 対応状況の最終更新者 */
@@ -366,8 +366,8 @@ export interface ManualTask {
   taskPriority: TaskPriority;
   /** 対応状況 */
   responseStatus: ResponseStatus;
-  /** カテゴリ（手動選択） */
-  category?: ChatCategory | null;
+  /** カテゴリ（複数選択） */
+  categories: ChatCategory[];
   /** 担当者（自由入力） */
   assignees: string | null;
   /** 期限（任意） */

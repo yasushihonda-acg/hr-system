@@ -46,7 +46,7 @@ describe("classifyIntent", () => {
 
     const result = await classifyIntent("田中さんの給与を30万に変更してください");
 
-    expect(result.category).toBe("salary");
+    expect(result.categories[0]).toBe("salary");
     expect(result.confidence).toBeGreaterThan(0.8);
     expect(result.reasoning).toBeTruthy();
   });
@@ -62,7 +62,7 @@ describe("classifyIntent", () => {
 
     const result = await classifyIntent("山田さんが退職します");
 
-    expect(result.category).toBe("retirement");
+    expect(result.categories[0]).toBe("retirement");
   });
 
   it("健康診断メッセージをhealth_checkに分類する", async () => {
@@ -76,7 +76,7 @@ describe("classifyIntent", () => {
 
     const result = await classifyIntent("健康診断の予約をお願いします");
 
-    expect(result.category).toBe("health_check");
+    expect(result.categories[0]).toBe("health_check");
   });
 
   it("confidenceが0-1の範囲であること", async () => {
@@ -142,7 +142,7 @@ describe("classifyIntent — ThreadContext", () => {
   it("親confidence >= 0.90 の場合、返信は同カテゴリを継承する（AI 呼び出しなし）", async () => {
     const result = await classifyIntent("承知しました", salaryContext);
 
-    expect(result.category).toBe("salary");
+    expect(result.categories[0]).toBe("salary");
     expect(result.confidence).toBeCloseTo(0.95 * 0.9, 5);
     expect(result.classificationMethod).toBe("regex");
     expect(result.regexPattern).toBe("thread_context_inheritance");
@@ -168,7 +168,7 @@ describe("classifyIntent — ThreadContext", () => {
 
     const result = await classifyIntent("田中さんの件はどうなりましたか", lowConfidenceContext);
 
-    expect(result.category).toBe("salary");
+    expect(result.categories[0]).toBe("salary");
     expect(result.classificationMethod).toBe("ai");
     expect(mockGenerateContent).toHaveBeenCalledOnce();
   });
@@ -185,7 +185,7 @@ describe("classifyIntent — ThreadContext", () => {
     // context 引数なし（後方互換）— regex にマッチしない曖昧なメッセージ
     const result = await classifyIntent("例の件について確認したいのですが");
 
-    expect(result.category).toBe("other");
+    expect(result.categories[0]).toBe("other");
     expect(result.classificationMethod).toBe("ai");
     expect(mockGenerateContent).toHaveBeenCalledOnce();
   });
@@ -200,7 +200,7 @@ describe("classifyIntent — ThreadContext", () => {
 
     const result = await classifyIntent("了解です", boundaryContext);
 
-    expect(result.category).toBe("contract");
+    expect(result.categories[0]).toBe("contract");
     expect(result.classificationMethod).toBe("regex");
     expect(mockGenerateContent).not.toHaveBeenCalled();
   });
@@ -225,7 +225,7 @@ describe("classifyIntent — ClassificationConfig", () => {
 
     const result = await classifyIntent("カスタム研修の実施について", undefined, config);
 
-    expect(result.category).toBe("training");
+    expect(result.categories[0]).toBe("training");
     expect(result.classificationMethod).toBe("regex");
     expect(result.regexPattern).toBe("custom_training");
     expect(mockGenerateContent).not.toHaveBeenCalled();
@@ -246,7 +246,7 @@ describe("classifyIntent — ClassificationConfig", () => {
 
     const result = await classifyIntent("テストメッセージ", undefined, config);
 
-    expect(result.category).toBe("salary");
+    expect(result.categories[0]).toBe("salary");
     expect(result.classificationMethod).toBe("ai");
     // プロンプトにカスタム内容が含まれていることを確認
     // biome-ignore lint/style/noNonNullAssertion: test assertion
@@ -276,7 +276,7 @@ describe("classifyIntent — ClassificationConfig", () => {
 
     const result = await classifyIntent("新入社員の対応", undefined, config);
 
-    expect(result.category).toBe("hiring");
+    expect(result.categories[0]).toBe("hiring");
     // Few-shot のターン対が含まれていることを確認
     // biome-ignore lint/style/noNonNullAssertion: test assertion
     const callArgs = mockGenerateContent.mock.calls[0]![0];
@@ -291,7 +291,7 @@ describe("classifyIntent — ClassificationConfig", () => {
     // "昇給" はデフォルト REGEX_RULES にマッチする
     const result = await classifyIntent("昇給の相談です");
 
-    expect(result.category).toBe("salary");
+    expect(result.categories[0]).toBe("salary");
     expect(result.classificationMethod).toBe("regex");
     expect(mockGenerateContent).not.toHaveBeenCalled();
   });

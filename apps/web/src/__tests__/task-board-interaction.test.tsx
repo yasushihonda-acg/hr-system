@@ -105,7 +105,7 @@ function makeTask(overrides: Partial<TaskItem> = {}): TaskItem {
     assignees: null,
     deadline: null,
     groupName: null,
-    category: null,
+    categories: [],
     workflowSteps: null,
     notes: null,
     createdAt: "2026-03-01T09:00:00Z",

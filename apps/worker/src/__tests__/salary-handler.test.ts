@@ -100,7 +100,7 @@ function makeIntentResult(
   overrides: Partial<IntentClassificationResult> = {},
 ): IntentClassificationResult {
   return {
-    category: "salary",
+    categories: ["salary"],
     confidence: 0.95,
     reasoning: "給与変更指示",
     classificationMethod: "ai",

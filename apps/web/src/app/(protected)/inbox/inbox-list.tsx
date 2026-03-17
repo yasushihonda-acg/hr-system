@@ -55,7 +55,7 @@ function InboxCard({
 }) {
   const intent = message.intent;
   const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
-  const category = intent?.category ?? "other";
+  const categories = intent?.categories ?? ["other"];
   const [currentStatus, setCurrentStatus] = useState<ResponseStatus>(responseStatus);
   const [statusSaving, setStatusSaving] = useState(false);
 
@@ -98,9 +98,11 @@ function InboxCard({
           {/* Top: sender + category + status */}
           <div className="flex items-center gap-2 text-xs">
             <span className="font-medium text-foreground">{message.senderName}</span>
-            <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
-              {CATEGORY_LABELS[category] ?? category}
-            </span>
+            {categories.map((cat) => (
+              <span key={cat} className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">
+                {CATEGORY_LABELS[cat] ?? cat}
+              </span>
+            ))}
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-xs font-medium",

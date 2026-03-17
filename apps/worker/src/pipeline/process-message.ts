@@ -99,7 +99,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
   try {
     await intentRef.set({
       chatMessageId: chatMessageRef.id,
-      category: intentResult.category,
+      categories: intentResult.categories,
       confidenceScore: intentResult.confidence,
       extractedParams: null,
       classificationMethod: intentResult.classificationMethod,
@@ -107,7 +107,7 @@ export async function processMessage(event: ChatEvent): Promise<void> {
       llmInput: intentResult.classificationMethod === "ai" ? enrichedEvent.text : null,
       llmOutput: intentResult.classificationMethod === "ai" ? intentResult.reasoning : null,
       isManualOverride: false,
-      originalCategory: null,
+      originalCategories: null,
       overriddenBy: null,
       overriddenAt: null,
       responseStatus: "unresponded",
@@ -131,12 +131,12 @@ export async function processMessage(event: ChatEvent): Promise<void> {
   await writeAuditLog("intent_classified", "intent_record", intentRef.id);
 
   // 7. カテゴリ別ハンドラへルーティング
-  if (intentResult.category === "salary") {
+  if (intentResult.categories.includes("salary")) {
     await handleSalary(chatMessageRef.id, enrichedEvent, intentResult);
   } else {
     // Phase 1: 給与以外はログのみ記録
     console.info(
-      `[Worker] Non-salary category: ${intentResult.category}, message: ${chatMessageRef.id}`,
+      `[Worker] Non-salary categories: ${intentResult.categories.join(",")}, message: ${chatMessageRef.id}`,
     );
   }
 
@@ -188,7 +188,7 @@ async function getThreadContext(
   const replyCount = Math.max(0, totalInThread - 1);
 
   return {
-    parentCategory: parentIntent?.category ?? "other",
+    parentCategory: parentIntent?.categories?.[0] ?? "other",
     parentConfidence: parentIntent?.confidenceScore ?? 0,
     parentSnippet: parentData.content.slice(0, 100),
     replyCount,

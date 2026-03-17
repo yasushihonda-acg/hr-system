@@ -112,7 +112,7 @@ export function ManualTaskCreateButton() {
         title,
         content: (formData.get("content") as string) || "",
         taskPriority: priority,
-        category,
+        categories: category ? [category] : [],
         assignees: assigneeValue.trim() || null,
         deadline: deadline ? `${format(deadline, "yyyy-MM-dd")}T00:00:00+09:00` : null,
       });

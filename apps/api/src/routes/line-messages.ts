@@ -33,7 +33,7 @@ function serialize(id: string, msg: Record<string, unknown>) {
     assignees: (msg.assignees as string) ?? null,
     deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
     responseStatus: (msg.responseStatus as string) ?? "unresponded",
-    category: (msg.category as string) ?? null,
+    categories: (msg.categories as string[]) ?? [],
     workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
     notes: (msg.notes as string) ?? null,
     createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
@@ -63,7 +63,7 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     ]) as FirebaseFirestore.Query;
     if (groupId) tpQuery = tpQuery.where("groupId", "==", groupId);
     if (responseStatus) tpQuery = tpQuery.where("responseStatus", "==", responseStatus);
-    if (category) tpQuery = tpQuery.where("category", "==", category);
+    if (category) tpQuery = tpQuery.where("categories", "array-contains", category);
 
     const tpSnap = await tpQuery.limit(500).get();
     const allDocs = tpSnap.docs.sort((a, b) => {
@@ -89,7 +89,7 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
     query = query.where("responseStatus", "==", responseStatus);
   }
   if (category) {
-    query = query.where("category", "==", category);
+    query = query.where("categories", "array-contains", category);
   }
 
   const snapshot = await query
@@ -197,7 +197,7 @@ lineMessageRoutes.get("/:id", async (c) => {
     assignees: msg.assignees ?? null,
     deadline: msg.deadline ? toISO(msg.deadline) : null,
     responseStatus: msg.responseStatus ?? "unresponded",
-    category: msg.category ?? null,
+    categories: msg.categories ?? [],
     responseStatusUpdatedBy: msg.responseStatusUpdatedBy ?? null,
     responseStatusUpdatedAt: msg.responseStatusUpdatedAt
       ? toISO(msg.responseStatusUpdatedAt)
@@ -280,7 +280,7 @@ const updateWorkflowSchema = z
     deadline: z.string().datetime({ offset: true }).nullable().optional(),
     notes: z.string().max(2000).nullable().optional(),
     workflowSteps: workflowStepsSchema.optional(),
-    category: z.enum(CHAT_CATEGORIES).nullable().optional(),
+    categories: z.array(z.enum(CHAT_CATEGORIES)).min(1).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "更新するフィールドを1つ以上指定してください",
@@ -315,8 +315,8 @@ lineMessageRoutes.patch("/:id/workflow", zValidator("json", updateWorkflowSchema
     updates.workflowUpdatedBy = actor.email;
     updates.workflowUpdatedAt = FieldValue.serverTimestamp();
   }
-  if (body.category !== undefined) {
-    updates.category = body.category;
+  if (body.categories !== undefined) {
+    updates.categories = body.categories;
   }
 
   if (Object.keys(updates).length > 0) {

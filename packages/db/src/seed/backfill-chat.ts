@@ -490,7 +490,7 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
       const intentRef = collections.intentRecords.doc(intentDocId);
       intentBatch.set(intentRef, {
         chatMessageId: docId,
-        category,
+        categories: [category],
         confidenceScore: matchedKeyword ? 0.9 : 0.5,
         extractedParams: null,
         classificationMethod: "regex" as const,
@@ -498,7 +498,7 @@ async function writeMessages(messages: ChatApiMessage[]): Promise<void> {
         llmInput: null,
         llmOutput: null,
         isManualOverride: false,
-        originalCategory: null,
+        originalCategories: null,
         overriddenBy: null,
         overriddenAt: null,
         responseStatus: "unresponded" as const,

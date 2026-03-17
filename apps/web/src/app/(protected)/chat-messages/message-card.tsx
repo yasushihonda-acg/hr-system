@@ -72,8 +72,8 @@ function ConfidenceMeter({ score }: { score: number }) {
 
 export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
   const router = useRouter();
-  const catCfg = msg.intent
-    ? (CATEGORY_CONFIG[msg.intent.category] ?? CATEGORY_CONFIG.other)
+  const catCfg = msg.intent?.categories?.[0]
+    ? (CATEGORY_CONFIG[msg.intent.categories[0]] ?? CATEGORY_CONFIG.other)
     : null;
   const accent = catCfg?.accent ?? "border-l-slate-200";
   const senderDisplay = msg.senderName || "不明";
@@ -161,7 +161,7 @@ export function MessageCard({ msg }: { msg: ChatMessageSummary }) {
 
             {/* Metadata */}
             <div className="flex flex-wrap items-center gap-2">
-              <CategoryBadge category={msg.intent?.category} />
+              <CategoryBadge categories={msg.intent?.categories} />
               {methCfg && (
                 <span
                   className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${methCfg.cls}`}

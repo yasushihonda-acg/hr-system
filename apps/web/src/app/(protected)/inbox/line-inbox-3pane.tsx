@@ -9,6 +9,7 @@ import type { LineMessageDetail, LineMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import {
   updateLineAssigneesAction,
+  updateLineCategoriesAction,
   updateLineDeadlineAction,
   updateLineResponseStatusAction,
   updateLineTaskPriorityAction,
@@ -87,7 +88,7 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
                 <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700">
                   LINE
                 </span>
-                <CategoryBadge category={msg.category} />
+                <CategoryBadge categories={msg.categories} />
                 {msg.lineMessageType !== "text" && (
                   <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                     {msg.lineMessageType}
@@ -109,6 +110,7 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
           onUpdateTaskPriority={updateLineTaskPriorityAction}
           onUpdateAssignees={updateLineAssigneesAction}
           onUpdateDeadline={updateLineDeadlineAction}
+          onUpdateCategories={updateLineCategoriesAction}
         />
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">

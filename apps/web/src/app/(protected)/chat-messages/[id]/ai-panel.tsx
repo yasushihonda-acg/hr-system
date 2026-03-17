@@ -43,7 +43,7 @@ interface AiPanelProps {
 export function AiPanel({ intent }: AiPanelProps) {
   const conf = getConfidenceLabel(intent.confidenceScore);
   // biome-ignore lint/style/noNonNullAssertion: オブジェクトの固定キーアクセス
-  const actions = CATEGORY_ACTIONS[intent.category] ?? CATEGORY_ACTIONS.other!;
+  const actions = CATEGORY_ACTIONS[intent.categories[0] ?? "other"] ?? CATEGORY_ACTIONS.other!;
 
   return (
     <div className="space-y-4">

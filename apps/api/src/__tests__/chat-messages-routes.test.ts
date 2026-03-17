@@ -111,11 +111,11 @@ function makeIntentSnap(
         id: `intent-${id}`,
         data: () => ({
           chatMessageId: id,
-          category: "salary",
+          categories: ["salary"],
           confidenceScore,
           classificationMethod: "ai",
           isManualOverride: false,
-          originalCategory: null,
+          originalCategories: null,
           regexPattern: null,
           responseStatus,
           taskPriority,

@@ -11,8 +11,10 @@ import type { UnifiedMessageDetail, UnifiedMessageSummary } from "@/lib/types";
 import { cn, formatDateTimeJST } from "@/lib/utils";
 import {
   updateChatAssigneesAction,
+  updateChatCategoriesAction,
   updateChatDeadlineAction,
   updateLineAssigneesAction,
+  updateLineCategoriesAction,
   updateLineDeadlineAction,
   updateLineResponseStatusAction,
   updateLineTaskPriorityAction,
@@ -32,7 +34,7 @@ interface UnifiedInbox3PaneProps {
 function GchatRow({ msg }: { msg: UnifiedMessageSummary & { source: "gchat" } }) {
   const intent = msg.intent;
   const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
-  const category = intent?.category ?? "other";
+  const categories = intent?.categories ?? ["other"];
 
   return (
     <>
@@ -54,7 +56,7 @@ function GchatRow({ msg }: { msg: UnifiedMessageSummary & { source: "gchat" } })
       <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{msg.content}</p>
       <div className="mt-1.5 flex items-center gap-1.5">
         <span className="rounded bg-blue-50 px-1.5 py-0.5 text-xs text-blue-700">Chat</span>
-        <CategoryBadge category={category} />
+        <CategoryBadge categories={categories} />
         {intent?.confidenceScore != null && (
           <span className="text-xs tabular-nums text-muted-foreground">
             {(intent.confidenceScore * 100).toFixed(0)}%
@@ -99,7 +101,7 @@ function LineRow({ msg }: { msg: UnifiedMessageSummary & { source: "line" } }) {
       </p>
       <div className="mt-1.5 flex items-center gap-1.5">
         <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-700">LINE</span>
-        <CategoryBadge category={msg.category} />
+        <CategoryBadge categories={msg.categories} />
         {msg.lineMessageType !== "text" && (
           <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
             {msg.lineMessageType}
@@ -124,6 +126,7 @@ function DetailPane({ message, onClose }: { message: UnifiedMessageDetail; onClo
         deadline={message.intent?.deadline ?? null}
         onUpdateAssignees={updateChatAssigneesAction}
         onUpdateDeadline={updateChatDeadlineAction}
+        onUpdateCategories={updateChatCategoriesAction}
         extraContent={
           message.intent && (
             <div className="mt-4">
@@ -149,6 +152,7 @@ function DetailPane({ message, onClose }: { message: UnifiedMessageDetail; onClo
       onUpdateTaskPriority={updateLineTaskPriorityAction}
       onUpdateAssignees={updateLineAssigneesAction}
       onUpdateDeadline={updateLineDeadlineAction}
+      onUpdateCategories={updateLineCategoriesAction}
     />
   );
 }

@@ -134,7 +134,7 @@ classificationRulesRoutes.post("/test", zValidator("json", testClassifySchema), 
   const config = await loadClassificationConfig();
   const result = await classifyIntent(message, undefined, config);
   return c.json({
-    category: result.category,
+    category: result.categories[0] ?? "other",
     confidence: result.confidence,
     reasoning: result.reasoning,
     classificationMethod: result.classificationMethod,

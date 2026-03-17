@@ -109,6 +109,7 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     contentUrl,
     lineMessageType: message.type,
     rawPayload: event as unknown as Record<string, unknown>,
+    categories: [],
     taskPriority: null,
     assignees: null,
     deadline: null,
@@ -125,9 +126,9 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
     try {
       const config = await getClassificationConfig();
       const result = await classifyIntent(textContent, undefined, config);
-      await docRef.update({ category: result.category });
+      await docRef.update({ categories: result.categories });
       console.log(
-        `[LineWorker] Classified: ${lineMessageId} → ${result.category} (${result.classificationMethod}, confidence: ${result.confidence})`,
+        `[LineWorker] Classified: ${lineMessageId} → ${result.categories.join(",")} (${result.classificationMethod}, confidence: ${result.confidence})`,
       );
     } catch (e) {
       console.warn(`[LineWorker] Category classification failed (non-blocking): ${String(e)}`);

@@ -41,7 +41,7 @@ async function classifyAndSaveIntent(
   const batch = db.batch();
   batch.set(collections.intentRecords.doc(), {
     chatMessageId: docId,
-    category: result.category,
+    categories: result.categories,
     confidenceScore: result.confidence,
     extractedParams: null,
     classificationMethod: result.classificationMethod,
@@ -49,7 +49,7 @@ async function classifyAndSaveIntent(
     llmInput: result.classificationMethod === "ai" ? content : null,
     llmOutput: result.classificationMethod === "ai" ? result.reasoning : null,
     isManualOverride: false,
-    originalCategory: null,
+    originalCategories: null,
     overriddenBy: null,
     overriddenAt: null,
     responseStatus: "unresponded",
