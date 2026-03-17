@@ -3,12 +3,7 @@ import type { IntentDetail } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const CATEGORY_ACTIONS: Record<string, string[]> = {
-  salary: [
-    "給与変更ドラフトの確認・作成",
-    "職員給与一覧SSへの反映",
-    "SmartHRへの反映",
-    "社労士への共有",
-  ],
+  salary: ["給与変更ドラフトの確認・作成", "SmartHR更新", "本人通知", "社労士共有", "給与DB反映"],
   retirement: [
     "退職届の確認",
     "最終給与計算",

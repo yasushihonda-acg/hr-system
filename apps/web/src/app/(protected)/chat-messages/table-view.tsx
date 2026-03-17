@@ -212,25 +212,25 @@ export function TableView({
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❶SS反映"
+              title="❶SmartHR更新"
             >
               ❶
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❷SmartHR反映"
+              title="❷本人通知"
             >
               ❷
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❸通知・締結"
+              title="❸社労士共有"
             >
               ❸
             </th>
             <th
               className="w-10 px-1 py-2 text-center text-xs font-semibold text-muted-foreground"
-              title="❹社労士共有"
+              title="❹給与DB反映"
             >
               ❹
             </th>
