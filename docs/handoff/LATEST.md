@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-17（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `4b72be7` — feat: category → categories 複数カテゴリ対応 (#330) (#331)）
+**ブランチ**: `main`（最新コミット: `c6253e6` — chore: 未使用FilterSelectコンポーネント削除 + devポート3000→3005に変更 (#334)）
 
 ---
 
@@ -31,6 +31,20 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### chore: 未使用FilterSelectコンポーネント削除 + devポート3000→3005に変更 (#334) (c6253e6)
+- `filter-select.tsx` を `filter-utils.ts` にリネーム（`buildFilterUrl` のみ残す）
+- `FilterSelect` コンポーネント・`"use client"` / `useRouter` を削除
+- Web dev ポートを 3005 に変更（Open WebUI とのポート 3000 競合を解消）
+- `.env.example` / `CLAUDE.md` のポート記載を更新
+- CI: Deploy to Cloud Run — **success**
+
+### feat: フィルターUI色統一 — ピルボタンにカテゴリ・優先度・ステータス色を適用 (#332) (#333) (361725e)
+- タスクボード: `FilterSelect`（select要素）→ 色付きピルボタン群に置換
+- 受信箱: カテゴリフィルターに `CATEGORY_CONFIG` 色、ステータスにドット追加
+- `chat-messages`: `FilterPill` にカテゴリ色の active/inactive 切替を追加
+- 定数: `PRIORITY_PILL_COLORS`, `SOURCE_PILL_COLORS`, `RESPONSE_STATUS_PILL_COLORS` を `lib/constants.ts` に追加
+- CI: Deploy to Cloud Run — **success**
 
 ### feat: category → categories 複数カテゴリ対応 (#330) (#331) (4b72be7)
 - `LineMessage` の `category` フィールドを単一文字列から `categories` 配列に変更
