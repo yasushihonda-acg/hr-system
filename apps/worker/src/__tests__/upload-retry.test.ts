@@ -52,14 +52,14 @@ describe("uploadWithRetry", () => {
     const promise = uploadWithRetry("msg-3", "image", Buffer.from("data"));
 
     // promiseにcatchを先にアタッチして unhandled rejection を防ぐ
-    const caught = promise.catch((e: Error) => e);
+    const caught = promise.catch((e: unknown) => e);
 
     // 全タイマーを進めてリトライを完了させる
     await vi.runAllTimersAsync();
 
     const error = await caught;
     expect(error).toBeInstanceOf(Error);
-    expect(error.message).toBe("fail 3");
+    expect((error as Error).message).toBe("fail 3");
     expect(mockUpload).toHaveBeenCalledTimes(3);
   });
 
