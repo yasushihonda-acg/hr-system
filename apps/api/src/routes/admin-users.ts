@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { collections } from "@hr-system/db";
+import { collections, db } from "@hr-system/db";
 import { isAllowedDomain, USER_ROLES } from "@hr-system/shared";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
@@ -32,20 +32,26 @@ function requireAdmin(c: { get(key: "user"): { dashboardRole: string | null } })
 adminUserRoutes.get("/", async (c) => {
   requireAdmin(c);
 
-  const snapshot = await collections.allowedUsers.orderBy("createdAt", "desc").get();
-  const users = snapshot.docs.map((doc) => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      email: data.email,
-      displayName: data.displayName,
-      role: data.role,
-      isActive: data.isActive,
-      addedBy: data.addedBy,
-      createdAt: toISO(data.createdAt),
-      updatedAt: toISO(data.updatedAt),
-    };
-  });
+  const snapshot = await collections.allowedUsers.get();
+  const users = snapshot.docs
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        email: data.email,
+        displayName: data.displayName,
+        role: data.role,
+        isActive: data.isActive,
+        addedBy: data.addedBy,
+        sortOrder: data.sortOrder ?? Infinity,
+        createdAt: toISO(data.createdAt),
+        updatedAt: toISO(data.updatedAt),
+      };
+    })
+    .sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return a.createdAt < b.createdAt ? 1 : -1;
+    });
 
   return c.json({ data: users });
 });
@@ -67,6 +73,10 @@ adminUserRoutes.post("/", zValidator("json", createUserSchema), async (c) => {
     return c.json({ error: "User already exists" }, 409);
   }
 
+  // 新規ユーザーの sortOrder を既存ユーザー数+1 で自動付与
+  const countSnapshot = await collections.allowedUsers.count().get();
+  const sortOrder = countSnapshot.data().count + 1;
+
   const docId = email.replace(/[.@]/g, "_");
   const now = Timestamp.now();
   await collections.allowedUsers.doc(docId).set({
@@ -75,6 +85,7 @@ adminUserRoutes.post("/", zValidator("json", createUserSchema), async (c) => {
     role,
     addedBy: actor.email,
     isActive: true,
+    sortOrder,
     createdAt: now,
     updatedAt: now,
   });
@@ -118,6 +129,26 @@ adminUserRoutes.patch("/:id", zValidator("json", updateUserSchema), async (c) =>
     details: updates,
     createdAt: FieldValue.serverTimestamp() as never,
   });
+
+  return c.json({ success: true });
+});
+
+// POST /api/admin/users/reorder — 並び替え
+const reorderSchema = z.object({
+  orderedIds: z.array(z.string()).min(1),
+});
+
+adminUserRoutes.post("/reorder", zValidator("json", reorderSchema), async (c) => {
+  requireAdmin(c);
+  const { orderedIds } = c.req.valid("json");
+
+  const batch = db.batch();
+  let sortOrder = 1;
+  for (const id of orderedIds) {
+    const ref = collections.allowedUsers.doc(id);
+    batch.update(ref, { sortOrder: sortOrder++, updatedAt: FieldValue.serverTimestamp() });
+  }
+  await batch.commit();
 
   return c.json({ success: true });
 });

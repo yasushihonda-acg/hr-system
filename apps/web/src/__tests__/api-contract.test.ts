@@ -221,6 +221,7 @@ const sampleAdminUser: AdminUser = {
   role: "hr_manager",
   isActive: true,
   addedBy: "ceo@example.com",
+  sortOrder: 1,
   createdAt: "2026-02-01T00:00:00.000Z",
   updatedAt: "2026-02-01T00:00:00.000Z",
 };
