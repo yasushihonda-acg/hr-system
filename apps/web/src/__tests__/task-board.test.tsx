@@ -400,7 +400,7 @@ describe("TaskList", () => {
     expect(html).toContain("bg-gray-50");
   });
 
-  it("非給与カテゴリのタスクではステップボタンが非表示", () => {
+  it("非給与カテゴリのタスクでもステップselectが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [
@@ -420,12 +420,11 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    // ステップSelectは表示されない（ステータスラベルがない）
-    expect(html).not.toContain("要対応で反映済み");
-    expect(html).not.toContain("反映不要と判定");
+    expect(html).toContain("<select");
+    expect(html).toContain("bg-green-50");
   });
 
-  it("カテゴリ未設定のタスクではステップボタンが非表示", () => {
+  it("カテゴリ未設定のタスクでもステップselectが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [
@@ -445,7 +444,8 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    expect(html).not.toContain("要対応で反映済み");
+    expect(html).toContain("<select");
+    expect(html).toContain("bg-green-50");
   });
 
   it("LINE タスクでもメモ textarea が表示される", () => {

@@ -24,7 +24,6 @@ import {
 import { buildMessageSearchUrl, cn, formatDateJST, formatDateTimeJST } from "@/lib/utils";
 import {
   DEFAULT_STEPS,
-  isSalaryCategory,
   STEP_CYCLE,
   STEP_KEYS,
   STEP_LABELS,
@@ -227,8 +226,8 @@ function TaskRow({
     });
   };
 
-  // 給与カテゴリのみステップ列を表示
-  const showSteps = task.categories.some(isSalaryCategory);
+  // 全タスクでワークフローステップを編集可能
+  const showSteps = true;
 
   // ステップ全完了 かつ 対応済でない場合にサジェスト表示
   const allStepsResolved =
