@@ -1,12 +1,13 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { getMinutesSinceLastSync, isSyncStale } from "@/lib/sync-freshness";
 import type { SyncConfig, SyncStatus } from "@/lib/types";
 import { getSyncStatusAction, triggerSyncAction, updateSyncConfigAction } from "./actions";
 
@@ -29,6 +30,7 @@ function formatDate(iso: string | null): string {
 
 const statusBadge = {
   idle: { label: "正常", variant: "default" as const, className: "bg-green-600" },
+  stale: { label: "停止中", variant: "default" as const, className: "bg-yellow-600" },
   running: { label: "同期中", variant: "default" as const, className: "bg-blue-600" },
   error: { label: "エラー", variant: "destructive" as const, className: "" },
 } as const;
@@ -97,7 +99,10 @@ export function SyncPanel({ initialStatus, initialConfig }: SyncPanelProps) {
     });
   }, [interval]);
 
-  const badge = statusBadge[status.status];
+  const stale = isSyncStale(status, config.intervalMinutes);
+  const staleMinutes = Math.floor(getMinutesSinceLastSync(status.lastSyncedAt));
+  const badgeKey = stale ? "stale" : status.status;
+  const badge = statusBadge[badgeKey];
 
   return (
     <div className="space-y-6">
@@ -106,6 +111,22 @@ export function SyncPanel({ initialStatus, initialConfig }: SyncPanelProps) {
         <div className="flex items-start gap-3 rounded-xl border border-amber-200/60 bg-amber-50 p-4">
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <p className="text-sm text-amber-800">{actionError}</p>
+        </div>
+      )}
+
+      {/* Stale warning banner */}
+      {stale && (
+        <div className="flex items-start gap-3 rounded-xl border border-yellow-200/60 bg-yellow-50 p-4">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+          <div>
+            <p className="text-sm font-semibold text-yellow-800">
+              同期が停止している可能性があります
+            </p>
+            <p className="mt-1 text-sm text-yellow-700">
+              最終同期から {staleMinutes} 分経過しています。Cloud Scheduler
+              が正常に動作しているか確認してください。
+            </p>
+          </div>
         </div>
       )}
 
