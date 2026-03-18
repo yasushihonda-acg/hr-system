@@ -65,10 +65,19 @@ export const authMiddleware = createMiddleware(async (c, next) => {
       logger.error("GOOGLE_CLIENT_ID is not configured in production");
       throw new HTTPException(500, { message: "Server misconfiguration" });
     }
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      ...(audience ? { audience } : {}),
-    });
+    // トークン検証: audience 付き → 失敗時 audience なしで再試行（SA 用フォールバック）
+    // Cloud Scheduler の OIDC トークンは Cloud Run URL を audience に持つため、
+    // GOOGLE_CLIENT_ID（Web OAuth用）では検証に失敗する。SA は ALLOWED_SERVICE_ACCOUNTS で担保。
+    let ticket: import("google-auth-library").LoginTicket;
+    try {
+      ticket = await client.verifyIdToken({
+        idToken: token,
+        ...(audience ? { audience } : {}),
+      });
+    } catch {
+      // audience 不一致の可能性 → audience なしで再検証
+      ticket = await client.verifyIdToken({ idToken: token });
+    }
     const payload = ticket.getPayload();
     if (!payload?.email) throw new Error("No email in token");
 
