@@ -96,6 +96,9 @@ export function TaskList({
         <thead className="sticky top-0 z-10 bg-slate-50 border-b border-border/60">
           <tr>
             <th className="w-10 px-2 py-2.5 text-center font-semibold text-muted-foreground">No</th>
+            <th className="w-8 px-1 py-2.5 text-center font-semibold text-muted-foreground">
+              <span className="sr-only">詳細</span>
+            </th>
             <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">
               発生日
             </th>
@@ -137,9 +140,6 @@ export function TaskList({
             ))}
             <th className="min-w-[100px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
               メモ
-            </th>
-            <th className="w-10 px-1 py-2.5 text-center font-semibold text-muted-foreground">
-              <span className="sr-only">詳細</span>
             </th>
           </tr>
         </thead>
@@ -280,6 +280,21 @@ function TaskRow({
       {/* No */}
       <td className="px-2 py-2.5 text-center tabular-nums text-muted-foreground">
         {pageOffset + index + 1}
+      </td>
+
+      {/* 詳細ダイアログ展開 */}
+      <td className="px-1 py-2.5 text-center">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenDialog(compositeId);
+          }}
+          className="inline-flex items-center justify-center rounded p-1 text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+          title="詳細をダイアログで表示"
+        >
+          <FileText size={14} />
+        </button>
       </td>
 
       {/* 発生日 */}
@@ -455,21 +470,6 @@ function TaskRow({
             ✓ 対応済にする
           </button>
         )}
-      </td>
-
-      {/* 詳細ダイアログ展開 */}
-      <td className="px-1 py-2.5 text-center">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenDialog(compositeId);
-          }}
-          className="inline-flex items-center justify-center rounded p-1 text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
-          title="詳細をダイアログで表示"
-        >
-          <FileText size={14} />
-        </button>
       </td>
     </tr>
   );
