@@ -109,26 +109,28 @@ export function Inbox3Pane({ messages, selectedMessage, selectedId }: Inbox3Pane
 
       {/* 中央+右ペイン: 詳細 */}
       {selectedMessage ? (
-        <ChatMessageDetailPane
-          message={selectedMessage}
-          onClose={() => selectMessage(null)}
-          onUpdateResponseStatus={updateResponseStatusAction}
-          onUpdateTaskPriority={updateTaskPriorityAction}
-          onUpdateWorkflow={updateWorkflowAction}
-          assignees={selectedMessage.intent?.assignees ?? null}
-          deadline={selectedMessage.intent?.deadline ?? null}
-          onUpdateAssignees={updateChatAssigneesAction}
-          onUpdateDeadline={updateChatDeadlineAction}
-          onUpdateCategories={updateChatCategoriesAction}
-          extraContent={
-            <div className="mt-4">
-              <NotesField
-                value={selectedMessage.intent?.notes ?? null}
-                onSave={(notes) => updateChatNotesAction(selectedMessage.id, notes)}
-              />
-            </div>
-          }
-        />
+        <div className="flex-1 overflow-y-auto">
+          <ChatMessageDetailPane
+            message={selectedMessage}
+            onClose={() => selectMessage(null)}
+            onUpdateResponseStatus={updateResponseStatusAction}
+            onUpdateTaskPriority={updateTaskPriorityAction}
+            onUpdateWorkflow={updateWorkflowAction}
+            assignees={selectedMessage.intent?.assignees ?? null}
+            deadline={selectedMessage.intent?.deadline ?? null}
+            onUpdateAssignees={updateChatAssigneesAction}
+            onUpdateDeadline={updateChatDeadlineAction}
+            onUpdateCategories={updateChatCategoriesAction}
+            extraContent={
+              <div className="mt-4">
+                <NotesField
+                  value={selectedMessage.intent?.notes ?? null}
+                  onSave={(notes) => updateChatNotesAction(selectedMessage.id, notes)}
+                />
+              </div>
+            }
+          />
+        </div>
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">
           <div className="text-center">

@@ -37,7 +37,7 @@ export function NotesField({ value, onSave }: NotesFieldProps) {
 
   return (
     <div className="space-y-1">
-      <p className="text-xs font-semibold text-muted-foreground">
+      <p className="text-sm font-semibold text-muted-foreground">
         メモ
         {saving && <span className="ml-1 text-muted-foreground/60">保存中...</span>}
       </p>
@@ -45,9 +45,9 @@ export function NotesField({ value, onSave }: NotesFieldProps) {
         value={localNotes}
         onChange={(e) => setLocalNotes(e.target.value)}
         onBlur={handleBlur}
-        placeholder="メモ"
-        rows={2}
-        className="w-full resize-none rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-foreground/80 placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
+        placeholder="メモを入力..."
+        rows={3}
+        className="w-full resize-y rounded border border-transparent bg-transparent px-2 py-1 text-sm leading-relaxed text-foreground/80 placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
       />
     </div>
   );

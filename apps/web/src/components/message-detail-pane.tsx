@@ -38,6 +38,8 @@ export interface ChatMessageDetailPaneProps {
   onUpdateDeadline?: (id: string, deadline: string | null) => Promise<void>;
   /** Save categories callback */
   onUpdateCategories?: (id: string, categories: string[]) => Promise<void>;
+  /** Always show task remove button (e.g. when opened from task board) */
+  showTaskRemove?: boolean;
 }
 
 export function ChatMessageDetailPane({
@@ -52,6 +54,7 @@ export function ChatMessageDetailPane({
   onUpdateAssignees,
   onUpdateDeadline,
   onUpdateCategories,
+  showTaskRemove,
 }: ChatMessageDetailPaneProps) {
   const intent = message.intent as IntentDetail | null;
   const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
@@ -64,138 +67,135 @@ export function ChatMessageDetailPane({
   };
 
   return (
-    <div className="flex flex-1 overflow-hidden">
-      {/* 中央ペイン: メッセージ詳細 */}
-      <div className="flex-1 overflow-y-auto p-5">
-        {/* ヘッダー */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded p-1 text-muted-foreground hover:bg-accent md:hidden"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <h2 className="text-base font-bold">{message.senderName}</h2>
-            {message.spaceDisplayName && (
-              <span className="text-xs text-muted-foreground">@ {message.spaceDisplayName}</span>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {formatDateTimeJST(message.createdAt)}
-            </span>
-          </div>
+    <div className="p-5">
+      {/* ヘッダー */}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded p-1 text-muted-foreground hover:bg-accent md:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <h2 className="text-base font-bold">{message.senderName}</h2>
+          {message.spaceDisplayName && (
+            <span className="text-xs text-muted-foreground">@ {message.spaceDisplayName}</span>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {formatDateTimeJST(message.createdAt)}
+          </span>
         </div>
+      </div>
 
-        {/* メッセージ / スレッド タブ */}
-        <Tabs defaultValue="message">
-          {message.threadMessages.length > 0 && (
-            <TabsList variant="line" className="mb-4 w-full">
-              <TabsTrigger value="message" className="flex-1">
-                メッセージ
-              </TabsTrigger>
-              <TabsTrigger value="thread" className="flex-1">
-                スレッド ({message.threadMessages.length})
-              </TabsTrigger>
-            </TabsList>
+      {/* メッセージ / スレッド タブ */}
+      <Tabs defaultValue="message">
+        {message.threadMessages.length > 0 && (
+          <TabsList variant="line" className="mb-4 w-full">
+            <TabsTrigger value="message" className="flex-1">
+              メッセージ
+            </TabsTrigger>
+            <TabsTrigger value="thread" className="flex-1">
+              スレッド ({message.threadMessages.length})
+            </TabsTrigger>
+          </TabsList>
+        )}
+
+        <TabsContent value="message">
+          {/* メッセージ本文 */}
+          <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">
+            {message.content}
+          </div>
+
+          {/* 添付ファイル */}
+          {message.attachments.length > 0 && (
+            <div className="mt-3">
+              <AttachmentList attachments={message.attachments} />
+            </div>
           )}
 
-          <TabsContent value="message">
-            {/* メッセージ本文 */}
-            <div className="rounded-lg bg-muted/50 p-4 text-sm leading-relaxed">
-              {message.content}
-            </div>
-
-            {/* 添付ファイル */}
-            {message.attachments.length > 0 && (
-              <div className="mt-3">
-                <AttachmentList attachments={message.attachments} />
-              </div>
-            )}
-
-            {/* カテゴリ */}
-            {intent && onUpdateCategories && (
-              <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground">カテゴリ</p>
-                <CategoriesField
-                  categories={intent.categories}
-                  onSave={(cats) => onUpdateCategories(message.id, cats)}
-                />
-              </div>
-            )}
-
-            {/* 対応ステータス変更 */}
+          {/* カテゴリ */}
+          {intent && onUpdateCategories && (
             <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
-              <ResponseStatusButtons
-                currentStatus={responseStatus}
-                onChangeStatus={(s) => onUpdateResponseStatus(message.id, s)}
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">カテゴリ</p>
+              <CategoriesField
+                categories={intent.categories}
+                onSave={(cats) => onUpdateCategories(message.id, cats)}
               />
             </div>
+          )}
 
-            {/* タスク優先度 */}
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
-              <div className="flex items-center gap-2">
-                <TaskPrioritySelector
-                  value={intent?.taskPriority ?? null}
-                  onChange={(p) => p && onUpdateTaskPriority(message.id, p)}
-                />
-                {intent?.taskPriority && (
-                  <button
-                    type="button"
-                    onClick={() => setShowRemoveDialog(true)}
-                    className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100 transition-colors"
-                  >
-                    タスク解除
-                  </button>
-                )}
-              </div>
-              <PriorityClearDialog
-                open={showRemoveDialog}
-                onConfirm={handleConfirmRemove}
-                onCancel={() => setShowRemoveDialog(false)}
-              />
-            </div>
-
-            {/* 担当者・期限 */}
-            {onUpdateAssignees && onUpdateDeadline && (
-              <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
-                <AssigneesField
-                  value={assignees ?? null}
-                  onSave={(v) => onUpdateAssignees(message.id, v)}
-                />
-                <DeadlineField
-                  value={deadline ?? null}
-                  onSave={(v) => onUpdateDeadline(message.id, v)}
-                />
-              </div>
-            )}
-
-            {/* ワークフロー */}
-            {intent && (
-              <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground">ワークフロー</p>
-                <WorkflowPanelWrapper
-                  chatMessageId={message.id}
-                  steps={intent.workflowSteps ?? null}
-                  onUpdateWorkflow={onUpdateWorkflow}
-                />
-              </div>
-            )}
-
-            {/* Extra content slot (e.g. NotesField) */}
-            {extraContent}
-          </TabsContent>
-
-          <TabsContent value="thread">
-            <ThreadView
-              threadMessages={message.threadMessages}
-              originalSenderName={message.senderName}
+          {/* 対応ステータス変更 */}
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">対応状況</p>
+            <ResponseStatusButtons
+              currentStatus={responseStatus}
+              onChangeStatus={(s) => onUpdateResponseStatus(message.id, s)}
             />
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+
+          {/* タスク優先度 */}
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
+            <div className="flex items-center gap-2">
+              <TaskPrioritySelector
+                value={intent?.taskPriority ?? null}
+                onChange={(p) => p && onUpdateTaskPriority(message.id, p)}
+              />
+              {(intent?.taskPriority || showTaskRemove) && (
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveDialog(true)}
+                  className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  タスク解除
+                </button>
+              )}
+            </div>
+            <PriorityClearDialog
+              open={showRemoveDialog}
+              onConfirm={handleConfirmRemove}
+              onCancel={() => setShowRemoveDialog(false)}
+            />
+          </div>
+
+          {/* 担当者・期限 */}
+          {onUpdateAssignees && onUpdateDeadline && (
+            <div className="mt-4 space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+              <AssigneesField
+                value={assignees ?? null}
+                onSave={(v) => onUpdateAssignees(message.id, v)}
+              />
+              <DeadlineField
+                value={deadline ?? null}
+                onSave={(v) => onUpdateDeadline(message.id, v)}
+              />
+            </div>
+          )}
+
+          {/* ワークフロー */}
+          {intent && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">ワークフロー</p>
+              <WorkflowPanelWrapper
+                chatMessageId={message.id}
+                steps={intent.workflowSteps ?? null}
+                onUpdateWorkflow={onUpdateWorkflow}
+              />
+            </div>
+          )}
+
+          {/* Extra content slot (e.g. NotesField) */}
+          {extraContent}
+        </TabsContent>
+
+        <TabsContent value="thread">
+          <ThreadView
+            threadMessages={message.threadMessages}
+            originalSenderName={message.senderName}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
