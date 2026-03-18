@@ -6,9 +6,9 @@ export function getMinutesSinceLastSync(lastSyncedAt: string | null): number {
   return (Date.now() - new Date(lastSyncedAt).getTime()) / 60_000;
 }
 
-/** status が idle かつ鮮度閾値（intervalMinutes * 3）を超えている場合 true */
+/** status が idle かつ鮮度閾値（intervalMinutes * 3）を超えている場合 true。未同期(null)は除外 */
 export function isSyncStale(status: SyncStatus, intervalMinutes: number): boolean {
-  if (status.status !== "idle") return false;
+  if (status.status !== "idle" || !status.lastSyncedAt) return false;
   const threshold = intervalMinutes * 3;
   return getMinutesSinceLastSync(status.lastSyncedAt) > threshold;
 }

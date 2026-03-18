@@ -36,8 +36,8 @@ describe("isSyncStale", () => {
     expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: recent }, 5)).toBe(false);
   });
 
-  it("idle + lastSyncedAt null → true（未同期 = 常に stale）", () => {
-    expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: null }, 5)).toBe(true);
+  it("idle + lastSyncedAt null → false（未同期は stale 扱いしない）", () => {
+    expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: null }, 5)).toBe(false);
   });
 
   it("error 状態 → false", () => {
