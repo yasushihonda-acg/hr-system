@@ -64,6 +64,7 @@ export function ChatMessageDetailPane({
     setShowRemoveDialog(false);
     onUpdateTaskPriority(message.id, null);
     toast.success("タスクを解除しました");
+    onClose();
   };
 
   return (
