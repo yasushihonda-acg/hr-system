@@ -25,6 +25,7 @@
     "db:seed": "tsx src/seed/index.ts",
     "db:backfill": "tsx src/seed/backfill-chat.ts --limit=100",
     "db:repair": "tsx src/seed/backfill-chat.ts --repair",
+    "db:import-sheet": "tsx src/seed/import-spreadsheet.ts",
     "lint": "biome check src/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

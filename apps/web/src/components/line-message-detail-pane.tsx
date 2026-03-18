@@ -88,7 +88,10 @@ export function LineMessageDetailPane({
           <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
           <TaskPrioritySelector
             value={message.taskPriority}
-            onChange={(p) => onUpdateTaskPriority(message.id, p)}
+            onChange={(p) => {
+              if (p === null && !window.confirm("優先度を解除しますか？")) return;
+              onUpdateTaskPriority(message.id, p);
+            }}
           />
         </div>
 
