@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export function UserTable({ users }: { users: AdminUser[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[70px]">順序</TableHead>
+            <TableHead className="w-[80px]">表示順</TableHead>
             <TableHead>メールアドレス</TableHead>
             <TableHead>表示名</TableHead>
             <TableHead>ロール</TableHead>
@@ -62,25 +62,30 @@ export function UserTable({ users }: { users: AdminUser[] }) {
             users.map((user, index) => (
               <TableRow key={user.id}>
                 <TableCell>
-                  <div className="flex items-center gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      disabled={index === 0 || isPending}
-                      onClick={() => handleMove(index, "up")}
-                    >
-                      <ArrowUp className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      disabled={index === users.length - 1 || isPending}
-                      onClick={() => handleMove(index, "down")}
-                    >
-                      <ArrowDown className="h-3.5 w-3.5" />
-                    </Button>
+                  <div className="flex items-center gap-1">
+                    <span className="w-5 text-center text-sm font-medium text-muted-foreground">
+                      {index + 1}
+                    </span>
+                    <div className="flex flex-col">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        disabled={index === 0 || isPending}
+                        onClick={() => handleMove(index, "up")}
+                      >
+                        <ChevronUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        disabled={index === users.length - 1 || isPending}
+                        onClick={() => handleMove(index, "down")}
+                      >
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{user.email}</TableCell>
