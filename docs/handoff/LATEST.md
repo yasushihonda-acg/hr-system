@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-18（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `24fa63f` — fix: 並び替えUIを直感的に改善 — 説明バナー+ホバー表示）
+**ブランチ**: `main`（最新コミット: `0bba92b` — fix: メモ欄を入力内容に応じて自動拡張に変更 (#367)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (ee3db3f) — **success**
+**CI**: Deploy to Cloud Run (0bba92b) — **success**
 
 ---
 
@@ -32,6 +32,28 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: メモ欄を入力内容に応じて自動拡張に変更 (#367) (0bba92b)
+- NotesField のテキストエリアを固定高さから scrollHeight ベースの自動拡張に変更
+- CI: Deploy to Cloud Run — **success**
+
+### fix: タスク詳細ダイアログのスクロール・解除ボタン・メモ表示を修正 (#366) (b80e500)
+- DetailPane の overflow 構造を修正しダイアログ内スクロールを正常化
+- showTaskRemove プロップ追加でタスクボードから常にタスク解除ボタンを表示
+- CI: Deploy to Cloud Run — **success**
+
+### feat: ヘッダーにグローバル同期ステータスインジケーター追加 (#362) (efa577f)
+- ヘッダーナビゲーションにグローバルなChat同期ステータスインジケーターを追加
+- AbortController + role="status" + aria-label 対応済み
+- CI: Deploy to Cloud Run — **success**
+
+### feat: Chat同期の監視・自動復旧・インデックス管理 (#358) (#359) (382a600)
+- Chat同期の監視・自動復旧・インデックス管理機能を実装
+- CI: Deploy to Cloud Run — **success**
+
+### feat: 明示的なタスク解除ボタン追加 + 優先度トグル解除の廃止 (#356) (138cb1c)
+- タスク解除に明示的なボタンを追加し、優先度トグルによる解除を廃止
+- CI: Deploy to Cloud Run — **success**
 
 ### fix: 並び替えUIを直感的に改善 — 説明バナー+ホバー表示 (24fa63f)
 - 担当者リスト並び替えUIに説明バナーとホバー表示を追加し直感性を向上
@@ -265,7 +287,7 @@
 | apps/api (integration) | firestore-queries.integration.test.ts | 17 |
 | apps/api (integration) | auth-authz.integration.test.ts | 追加済み |
 | apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts + line-webhook.test.ts + upload-retry.test.ts | 80 |
-| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx + help.test.tsx 等 | 201 |
+| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx + sync-status-indicator.test.tsx + help.test.tsx 等 | 207 |
 | **合計** | | **全テストパス** |
 
 ---
