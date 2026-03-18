@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquareMore, Settings2, Users } from "lucide-react";
+import { MessageSquareMore, RefreshCw, Settings2, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { href: "/admin/users", label: "ユーザー", icon: Users },
   { href: "/admin/spaces", label: "スペース", icon: MessageSquareMore },
+  { href: "/admin/sync", label: "同期", icon: RefreshCw },
   { href: "/admin/ai-settings", label: "AI設定", icon: Settings2 },
 ] as const;
 
