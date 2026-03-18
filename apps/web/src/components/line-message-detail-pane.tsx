@@ -35,20 +35,12 @@ export function LineMessageDetailPane({
   onUpdateNotes,
 }: LineMessageDetailPaneProps) {
   const responseStatus = message.responseStatus;
-  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 
-  const handlePriorityChange = (p: TaskPriority | null) => {
-    if (p === null) {
-      setShowClearDialog(true);
-      return;
-    }
-    onUpdateTaskPriority(message.id, p);
-  };
-
-  const handleConfirmClear = () => {
-    setShowClearDialog(false);
+  const handleConfirmRemove = () => {
+    setShowRemoveDialog(false);
     onUpdateTaskPriority(message.id, null);
-    toast.success("優先度を解除しました");
+    toast.success("タスクを解除しました");
   };
 
   return (
@@ -104,11 +96,25 @@ export function LineMessageDetailPane({
         {/* タスク優先度 */}
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
-          <TaskPrioritySelector value={message.taskPriority} onChange={handlePriorityChange} />
+          <div className="flex items-center gap-2">
+            <TaskPrioritySelector
+              value={message.taskPriority}
+              onChange={(p) => p && onUpdateTaskPriority(message.id, p)}
+            />
+            {message.taskPriority && (
+              <button
+                type="button"
+                onClick={() => setShowRemoveDialog(true)}
+                className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100 transition-colors"
+              >
+                タスク解除
+              </button>
+            )}
+          </div>
           <PriorityClearDialog
-            open={showClearDialog}
-            onConfirm={handleConfirmClear}
-            onCancel={() => setShowClearDialog(false)}
+            open={showRemoveDialog}
+            onConfirm={handleConfirmRemove}
+            onCancel={() => setShowRemoveDialog(false)}
           />
         </div>
 

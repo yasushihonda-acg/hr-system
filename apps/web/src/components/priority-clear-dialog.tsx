@@ -24,10 +24,10 @@ export function PriorityClearDialog({ open, onConfirm, onCancel }: PriorityClear
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle size={18} className="text-amber-500" />
-            優先度の解除
+            タスク解除の確認
           </DialogTitle>
           <DialogDescription>
-            優先度を解除すると、このメッセージはタスク一覧から除外されます。解除しますか？
+            タスクを解除すると、タスク一覧から除外されます。解除しますか？
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
