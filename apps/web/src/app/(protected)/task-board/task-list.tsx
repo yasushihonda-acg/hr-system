@@ -17,13 +17,6 @@ import {
 import { useEffect, useState, useTransition } from "react";
 import { TaskPriorityDot } from "@/components/task-priority-selector";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   CATEGORY_LABELS,
   RESPONSE_STATUS_BADGE_COLORS,
   RESPONSE_STATUS_LABELS,
@@ -413,43 +406,28 @@ function TaskRow({
         const colors = STEP_STATUS_COLORS[status];
         const labels = STEP_STATUS_LABELS[key];
         return (
-          <td
-            key={key}
-            className="px-1 py-2.5 text-center"
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
+          <td key={key} className="px-1 py-2.5 text-center">
             {showSteps ? (
-              <Select
+              <select
                 value={status}
-                onValueChange={(v) => handleStepChange(key, v as WorkflowStepStatus)}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  handleStepChange(key, e.target.value as WorkflowStepStatus);
+                }}
+                onClick={(e) => e.stopPropagation()}
                 disabled={isPending}
+                className={cn(
+                  "w-full cursor-pointer rounded border px-1 py-1 text-[10px] font-medium outline-none transition-colors",
+                  colors.triggerBg,
+                  colors.text,
+                )}
               >
-                <SelectTrigger
-                  size="sm"
-                  className={cn(
-                    "h-7 w-full min-w-0 gap-0.5 rounded border px-1.5 text-[10px] font-medium shadow-none",
-                    colors.triggerBg,
-                    colors.text,
-                  )}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent position="popper" className="min-w-[160px]">
-                  {STEP_CYCLE.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      <span
-                        className={cn(
-                          "inline-block rounded-full px-2 py-0.5 text-[11px] font-medium",
-                          STEP_STATUS_COLORS[s].badge,
-                        )}
-                      >
-                        {labels[s]}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                {STEP_CYCLE.map((s) => (
+                  <option key={s} value={s}>
+                    {labels[s]}
+                  </option>
+                ))}
+              </select>
             ) : (
               <span className="text-muted-foreground/30">—</span>
             )}
