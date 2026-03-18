@@ -390,8 +390,8 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    // Select ドロップダウンが表示される（role="combobox"）
-    expect(html).toContain('role="combobox"');
+    // select ドロップダウンが表示される
+    expect(html).toContain("<select");
     // completed ステップに緑の色分けが適用される
     expect(html).toContain("bg-green-50");
     // not_required ステップに青の色分けが適用される
