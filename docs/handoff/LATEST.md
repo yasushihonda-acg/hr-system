@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-18（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `ee3db3f` — fix: 全タスクでワークフローステップを編集可能に変更）
+**ブランチ**: `main`（最新コミット: `24fa63f` — fix: 並び替えUIを直感的に改善 — 説明バナー+ホバー表示）
 
 ---
 
@@ -33,24 +33,24 @@
 
 ## 直近の変更（最新5件）
 
+### fix: 並び替えUIを直感的に改善 — 説明バナー+ホバー表示 (24fa63f)
+- 担当者リスト並び替えUIに説明バナーとホバー表示を追加し直感性を向上
+- CI: Deploy to Cloud Run — **success**
+
+### fix: 表示順の用途説明を追加 (03acde6)
+- 担当者リストの表示順に用途説明テキストを追加
+- CI: Deploy to Cloud Run — **success**
+
+### fix: 表示順UIを番号+シェブロンに改善し直感的に (fc20472)
+- 担当者リストの表示順UIを番号表示+上下シェブロンボタンに変更
+- CI: Deploy to Cloud Run — **success**
+
+### feat: 担当者リストの表示順を管理画面から設定可能に (#348) (4607bb9)
+- 管理画面から担当者リストの表示順を設定する機能を追加
+- CI: Deploy to Cloud Run — **success**
+
 ### fix: 全タスクでワークフローステップを編集可能に変更 (ee3db3f)
 - すべてのタスク種別（Chat・LINE・手入力）でワークフローステップのインライン編集を有効化
-- CI: Deploy to Cloud Run — **success**
-
-### fix: ワークフローステップをネイティブselectに変更 (#346) (4cb4029)
-- ワークフローステップのUIをカスタムドロップダウンからネイティブ `<select>` に変更し安定性向上
-- CI: Deploy to Cloud Run — **success**
-
-### feat: ワークフローステップをドロップダウン選択+色分けに変更 (#345) (2c42917)
-- ワークフローステップをドロップダウン選択式+色分けUIに変更
-- CI: Deploy to Cloud Run — **success**
-
-### feat: タスク詳細をポップアップダイアログで表示 (#343) (2661c16)
-- タスク詳細表示をサイドパネルからポップアップダイアログに変更
-- CI: Deploy to Cloud Run — **success**
-
-### feat: 記事のコピー列を折り返し全表示に変更 (#341) (f7236ef)
-- `table-view.tsx` と `task-list.tsx` の記事コピー列を `line-clamp-2` → `whitespace-pre-wrap` に変更し全文表示
 - CI: Deploy to Cloud Run — **success**
 
 ### feat: ワークフローステップのラベル・並び順変更 (#338) (#339) (463cded)
