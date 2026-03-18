@@ -207,6 +207,36 @@ describe("authMiddleware", () => {
     expect(res.status).toBe(403);
   });
 
+  it("SA トークンの audience 不一致 → audience なしフォールバックで認証成功", async () => {
+    vi.stubEnv("GOOGLE_CLIENT_ID", "web-client-id.apps.googleusercontent.com");
+    vi.stubEnv("ALLOWED_SERVICE_ACCOUNTS", "hr-api@hr-system-487809.iam.gserviceaccount.com");
+
+    const saPayload = {
+      email: "hr-api@hr-system-487809.iam.gserviceaccount.com",
+      sub: "sa-sub",
+    };
+
+    // 1回目: audience 付き → reject（Cloud Scheduler の audience は Cloud Run URL）
+    // 2回目: audience なし → resolve
+    mockVerifyIdToken
+      .mockRejectedValueOnce(new Error("Token used too late / wrong audience"))
+      .mockResolvedValueOnce({ getPayload: () => saPayload });
+
+    const app = createTestApp();
+    const res = await app.request("/test", {
+      headers: { Authorization: "Bearer scheduler-oidc-token" },
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { user: { email: string; dashboardRole: null } };
+    expect(body.user.email).toBe("hr-api@hr-system-487809.iam.gserviceaccount.com");
+    expect(body.user.dashboardRole).toBeNull();
+    // verifyIdToken が2回呼ばれた（フォールバック）
+    expect(mockVerifyIdToken).toHaveBeenCalledTimes(2);
+
+    vi.unstubAllEnvs();
+  });
+
   it("複数SAホワイトリスト → 2番目のSAも許可される", async () => {
     vi.stubEnv(
       "ALLOWED_SERVICE_ACCOUNTS",
