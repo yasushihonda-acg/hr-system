@@ -234,6 +234,13 @@ export function deleteAdminUser(id: string) {
   });
 }
 
+export function reorderAdminUsers(orderedIds: string[]) {
+  return request<{ success: boolean }>("/api/admin/users/reorder", {
+    method: "POST",
+    body: JSON.stringify({ orderedIds }),
+  });
+}
+
 // --- Classification Rules ---
 
 export function getClassificationRules() {

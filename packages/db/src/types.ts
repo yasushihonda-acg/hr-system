@@ -227,6 +227,7 @@ export interface AllowedUser {
   role: UserRole;
   addedBy: string;
   isActive: boolean;
+  sortOrder: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

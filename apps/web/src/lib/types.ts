@@ -184,6 +184,7 @@ export interface AdminUser {
   role: string;
   isActive: boolean;
   addedBy: string;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }

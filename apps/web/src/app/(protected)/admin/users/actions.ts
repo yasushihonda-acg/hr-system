@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/access-control";
-import { createAdminUser, deleteAdminUser, updateAdminUser } from "@/lib/api";
+import { createAdminUser, deleteAdminUser, reorderAdminUsers, updateAdminUser } from "@/lib/api";
 
 export async function addUserAction(formData: FormData) {
   await requireAdmin();
@@ -35,5 +35,11 @@ export async function updateDisplayNameAction(id: string, displayName: string) {
 export async function removeUserAction(id: string) {
   await requireAdmin();
   await deleteAdminUser(id);
+  revalidatePath("/admin/users");
+}
+
+export async function reorderUsersAction(orderedIds: string[]) {
+  await requireAdmin();
+  await reorderAdminUsers(orderedIds);
   revalidatePath("/admin/users");
 }

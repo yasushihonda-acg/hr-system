@@ -44,12 +44,16 @@ async function seedAllowedUsers(): Promise<void> {
   const batch = col.firestore.batch();
   const now = Timestamp.now();
 
+  let sortOrder = 1;
   for (const user of INITIAL_ALLOWED_USERS) {
     const docId = user.email.replace(/[.@]/g, "_");
     batch.set(col.doc(docId), {
-      ...user,
+      email: user.email,
+      displayName: user.displayName,
+      role: user.role,
       addedBy: "system",
       isActive: true,
+      sortOrder: sortOrder++,
       createdAt: now,
       updatedAt: now,
     });
