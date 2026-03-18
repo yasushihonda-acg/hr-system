@@ -49,7 +49,7 @@ export function TaskPrioritySelector({ value, onChange }: TaskPrioritySelectorPr
           <button
             key={opt.value}
             type="button"
-            onClick={() => onChange(isActive ? null : opt.value)}
+            onClick={() => !isActive && onChange(opt.value)}
             className={cn(
               "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors",
               isActive
