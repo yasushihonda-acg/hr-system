@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted で vi.mock と同時にホイスト） ---
-const { mockGetRequestHeaders, mockGet, mockSet, mockAdd, mockRunTransaction } = vi.hoisted(() => ({
-  mockGetRequestHeaders: vi.fn().mockResolvedValue({ Authorization: "Bearer test-token" }),
-  mockGet: vi.fn(),
-  mockSet: vi.fn().mockResolvedValue(undefined),
-  mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
-  mockRunTransaction: vi.fn(),
-}));
+const { mockGetRequestHeaders, mockGet, mockSet, mockAdd, mockRunTransaction, mockConfigGet } =
+  vi.hoisted(() => ({
+    mockGetRequestHeaders: vi.fn().mockResolvedValue({ Authorization: "Bearer test-token" }),
+    mockGet: vi.fn(),
+    mockSet: vi.fn().mockResolvedValue(undefined),
+    mockAdd: vi.fn().mockResolvedValue({ id: "audit-1" }),
+    mockRunTransaction: vi.fn(),
+    mockConfigGet: vi.fn(),
+  }));
 
 vi.mock("google-auth-library", () => ({
   GoogleAuth: class MockGoogleAuth {
@@ -40,6 +42,9 @@ vi.mock("@hr-system/db", () => ({
       where: vi.fn(() => ({
         get: vi.fn().mockResolvedValue({ empty: true, docs: [] }),
       })),
+    },
+    chatSyncConfig: {
+      doc: vi.fn(() => ({ get: mockConfigGet, set: mockSet })),
     },
   },
 }));
@@ -85,6 +90,8 @@ describe("chat-sync routes", () => {
     };
     // syncChatMessages 内の getSyncMetadata() / chatMessages.doc().get() 等のデフォルト
     mockGet.mockResolvedValue({ exists: false });
+    // chatSyncConfig のデフォルト（無効化されていない）
+    mockConfigGet.mockResolvedValue({ exists: false });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ messages: [] }), { status: 200 }),
     );
@@ -207,6 +214,122 @@ describe("chat-sync routes", () => {
       expect(res.status).toBe(500);
       const body = (await res.json()) as { error: string };
       expect(body.error).toContain("同期に失敗しました");
+    });
+  });
+
+  describe("POST /api/chat-messages/sync?source=scheduler（スケジューラー起動）", () => {
+    const schedulerUser = {
+      email: "scheduler@project.iam.gserviceaccount.com",
+      name: "system",
+      sub: "sa-sub",
+      dashboardRole: null as string | null,
+    };
+
+    it("自動同期が無効の場合スキップする", async () => {
+      mockAuthUser = schedulerUser;
+      mockConfigGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ isEnabled: false, intervalMinutes: 30 }),
+      });
+
+      const res = await app.request("/api/chat-messages/sync?source=scheduler", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { message: string };
+      expect(body.message).toBe("自動同期が無効です");
+    });
+
+    it("間隔未到達の場合スキップする", async () => {
+      const { Timestamp } = await import("firebase-admin/firestore");
+      mockAuthUser = schedulerUser;
+      mockConfigGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ isEnabled: true, intervalMinutes: 60 }),
+      });
+      // getSyncMetadata: 直近に成功同期済み（10分前）
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          status: "idle",
+          lastSyncedAt: Timestamp.fromDate(new Date(Date.now() - 10 * 60 * 1000)),
+          updatedAt: Timestamp.fromDate(new Date(Date.now() - 10 * 60 * 1000)),
+        }),
+      });
+
+      const res = await app.request("/api/chat-messages/sync?source=scheduler", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { message: string };
+      expect(body.message).toBe("同期スキップ（間隔未到達）");
+    });
+
+    it("error 状態で30分未経過ならリトライ待機する", async () => {
+      const { Timestamp } = await import("firebase-admin/firestore");
+      mockAuthUser = schedulerUser;
+      mockConfigGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ isEnabled: true, intervalMinutes: 60 }),
+      });
+      // getSyncMetadata: error 状態、10分前に発生
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          status: "error",
+          errorMessage: "Index not found",
+          updatedAt: Timestamp.fromDate(new Date(Date.now() - 10 * 60 * 1000)),
+          lastSyncedAt: Timestamp.fromDate(new Date(Date.now() - 120 * 60 * 1000)),
+        }),
+      });
+
+      const res = await app.request("/api/chat-messages/sync?source=scheduler", {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { message: string };
+      expect(body.message).toBe("エラー後のリトライ待機中");
+    });
+
+    it("error 状態で30分経過なら interval をスキップして自動リトライする", async () => {
+      const { Timestamp } = await import("firebase-admin/firestore");
+      mockAuthUser = schedulerUser;
+      mockConfigGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ isEnabled: true, intervalMinutes: 60 }),
+      });
+      // getSyncMetadata: error 状態、40分前に発生（30分超過 → リトライ）
+      // lastSyncedAt は 2時間前（intervalMinutes=60 の間隔内だが、error リトライはスキップすべき）
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          status: "error",
+          errorMessage: "Index not found",
+          updatedAt: Timestamp.fromDate(new Date(Date.now() - 40 * 60 * 1000)),
+          lastSyncedAt: Timestamp.fromDate(new Date(Date.now() - 50 * 60 * 1000)),
+        }),
+      });
+
+      // acquireSyncLock → 成功
+      mockRunTransaction.mockImplementationOnce(async (fn: (tx: unknown) => Promise<boolean>) => {
+        const tx = {
+          get: vi.fn().mockResolvedValue({ exists: false }),
+          set: vi.fn(),
+        };
+        return fn(tx);
+      });
+
+      const res = await app.request("/api/chat-messages/sync?source=scheduler", {
+        method: "POST",
+      });
+
+      // interval チェックをスキップして同期が実行される
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { message: string };
+      expect(body.message).toBe("同期が完了しました");
     });
   });
 

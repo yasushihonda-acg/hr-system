@@ -44,7 +44,16 @@ chatSyncRoutes.post("/", async (c) => {
     }
     if (config && config.intervalMinutes > 0) {
       const meta = await getSyncMetadata();
-      if (meta?.lastSyncedAt) {
+
+      // error 状態なら30分後に自動リトライ（interval チェックをスキップ）
+      if (meta?.status === "error" && meta?.updatedAt) {
+        const errorAge = Date.now() - meta.updatedAt.toDate().getTime();
+        if (errorAge < 30 * 60 * 1000) {
+          return c.json({ message: "エラー後のリトライ待機中" }, 200);
+        }
+        console.warn("Auto-retrying after error:", meta.errorMessage?.slice(0, 100));
+        // error リトライ時は interval チェックをスキップして同期実行へ進む
+      } else if (meta?.lastSyncedAt) {
         const elapsedMs = Date.now() - meta.lastSyncedAt.toDate().getTime();
         const intervalMs = config.intervalMinutes * 60 * 1000;
         if (elapsedMs < intervalMs) {
