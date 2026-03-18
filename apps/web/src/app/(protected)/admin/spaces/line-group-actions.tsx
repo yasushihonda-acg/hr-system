@@ -1,16 +1,15 @@
 "use client";
 
-import { MoreHorizontal, PowerIcon, PowerOff, Trash2 } from "lucide-react";
+import { MoreHorizontal, PowerIcon, PowerOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { LineGroupConfig } from "@/lib/types";
-import { deleteLineGroupAction, toggleLineGroupActiveAction } from "./actions";
+import { toggleLineGroupActiveAction } from "./actions";
 
 export function LineGroupActions({ group }: { group: LineGroupConfig }) {
   return (
@@ -24,22 +23,14 @@ export function LineGroupActions({ group }: { group: LineGroupConfig }) {
         {group.isActive ? (
           <DropdownMenuItem onClick={() => toggleLineGroupActiveAction(group.id, false)}>
             <PowerOff className="mr-2 h-4 w-4" />
-            無効化
+            取得停止
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem onClick={() => toggleLineGroupActiveAction(group.id, true)}>
             <PowerIcon className="mr-2 h-4 w-4" />
-            有効化
+            取得再開
           </DropdownMenuItem>
         )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="text-destructive"
-          onClick={() => deleteLineGroupAction(group.id)}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          削除
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

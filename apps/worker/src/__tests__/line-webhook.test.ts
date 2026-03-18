@@ -15,13 +15,13 @@ vi.mock("@line/bot-sdk", () => ({
 vi.mock("@hr-system/db", () => ({
   collections: {
     lineGroups: {
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      get: vi.fn().mockResolvedValue({
-        empty: false,
-        docs: [{ data: () => ({ isActive: true }) }],
+      doc: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ isActive: true }),
+        }),
+        create: vi.fn().mockResolvedValue(undefined),
       }),
-      add: vi.fn().mockResolvedValue({ id: "group-doc-1" }),
     },
     lineMessages: {
       where: vi.fn().mockReturnThis(),
@@ -79,12 +79,12 @@ describe("LINE Webhook", () => {
     vi.clearAllMocks();
     mockValidateSignature.mockReturnValue(true);
     // lineGroups モックリセット（既存グループ・有効）
-    const lg = collections.lineGroups;
-    vi.mocked(lg.where).mockReturnThis();
-    vi.mocked(lg.limit).mockReturnThis();
-    vi.mocked(lg.get).mockResolvedValue({
-      empty: false,
-      docs: [{ data: () => ({ isActive: true }) }],
+    vi.mocked(collections.lineGroups.doc).mockReturnValue({
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ isActive: true }),
+      }),
+      create: vi.fn().mockResolvedValue(undefined),
     } as never);
     // lineMessages モックリセット
     const lm = collections.lineMessages;
@@ -212,6 +212,51 @@ describe("LINE Webhook", () => {
     });
 
     expect(res.status).toBe(200);
+    expect(collections.lineMessages.add).toHaveBeenCalled();
+  });
+
+  it("無効化されたグループのメッセージはスキップする", async () => {
+    vi.mocked(collections.lineGroups.doc).mockReturnValue({
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ isActive: false }),
+      }),
+      create: vi.fn(),
+    } as never);
+
+    const event = createTextMessageEvent();
+    const res = await app.request("/line/webhook", {
+      method: "POST",
+      headers: { "x-line-signature": "valid", "Content-Type": "application/json" },
+      body: JSON.stringify({ events: [event] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(collections.lineMessages.add).not.toHaveBeenCalled();
+  });
+
+  it("未登録グループは自動登録してからメッセージを保存する", async () => {
+    const mockCreate = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(collections.lineGroups.doc).mockReturnValue({
+      get: vi.fn().mockResolvedValue({ exists: false }),
+      create: mockCreate,
+    } as never);
+
+    const event = createTextMessageEvent();
+    const res = await app.request("/line/webhook", {
+      method: "POST",
+      headers: { "x-line-signature": "valid", "Content-Type": "application/json" },
+      body: JSON.stringify({ events: [event] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: "Cxxxxx",
+        isActive: true,
+        addedBy: "webhook",
+      }),
+    );
     expect(collections.lineMessages.add).toHaveBeenCalled();
   });
 
