@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,19 @@ export function SyncPanel({ initialStatus, initialConfig }: SyncPanelProps) {
       }
     });
   }, []);
+
+  // 60秒ポーリング + タブ復帰時の即時再取得
+  useEffect(() => {
+    const id = window.setInterval(refresh, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [refresh]);
 
   const handleSync = useCallback(() => {
     setSyncMessage(null);
