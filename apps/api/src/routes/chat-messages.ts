@@ -765,7 +765,6 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
 
   const intentSnap = await collections.intentRecords
     .where("chatMessageId", "==", chatMessageId)
-    .limit(1)
     .get();
 
   const updates: Record<string, unknown> = {
@@ -782,8 +781,13 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
 
   await db.runTransaction(async (tx) => {
     if (!intentSnap.empty) {
+      // 最初の1件を更新、重複があれば余分なレコードを削除
       // biome-ignore lint/style/noNonNullAssertion: intentSnap.empty checked above
       tx.update(intentSnap.docs[0]!.ref, updates);
+      for (let i = 1; i < intentSnap.docs.length; i++) {
+        // biome-ignore lint/style/noNonNullAssertion: bounds checked in loop
+        tx.delete(intentSnap.docs[i]!.ref);
+      }
     } else {
       // IntentRecord がなければ新規作成
       const intentRef = collections.intentRecords.doc();
