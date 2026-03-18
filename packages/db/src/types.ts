@@ -280,6 +280,16 @@ export interface ChatSpaceConfig {
   updatedAt: Timestamp;
 }
 
+export interface LineGroupConfig {
+  groupId: string;
+  displayName: string;
+  isActive: boolean;
+  addedBy: string;
+  updatedBy: string | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 /** LINE メッセージ */
 export interface LineMessage {
   /** LINE グループ/ルームID */

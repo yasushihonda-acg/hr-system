@@ -21,6 +21,7 @@ export type {
   ClassificationRule,
   Employee,
   IntentRecord,
+  LineGroupConfig,
   LineMessage,
   LlmClassificationRule,
   ManualTask,

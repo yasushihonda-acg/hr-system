@@ -345,6 +345,18 @@ export interface ChatSpaceConfig {
   updatedAt: string;
 }
 
+/** LINE グループ設定 */
+export interface LineGroupConfig {
+  id: string;
+  groupId: string;
+  displayName: string;
+  isActive: boolean;
+  addedBy: string;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --- LINE Messages ---
 
 /** GET /api/line-messages の1件 */

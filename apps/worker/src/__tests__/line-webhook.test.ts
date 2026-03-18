@@ -14,6 +14,15 @@ vi.mock("@line/bot-sdk", () => ({
 
 vi.mock("@hr-system/db", () => ({
   collections: {
+    lineGroups: {
+      doc: vi.fn().mockReturnValue({
+        get: vi.fn().mockResolvedValue({
+          exists: true,
+          data: () => ({ isActive: true }),
+        }),
+        create: vi.fn().mockResolvedValue(undefined),
+      }),
+    },
     lineMessages: {
       where: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
@@ -69,8 +78,18 @@ describe("LINE Webhook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockValidateSignature.mockReturnValue(true);
+    // lineGroups モックリセット（既存グループ・有効）
+    vi.mocked(collections.lineGroups.doc).mockReturnValue({
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ isActive: true }),
+      }),
+      create: vi.fn().mockResolvedValue(undefined),
+    } as never);
     // lineMessages モックリセット
     const lm = collections.lineMessages;
+    vi.mocked(lm.where).mockReturnThis();
+    vi.mocked(lm.limit).mockReturnThis();
     vi.mocked(lm.get).mockResolvedValue({ empty: true } as never);
     vi.mocked(lm.add).mockResolvedValue({
       id: "doc-1",
@@ -193,6 +212,51 @@ describe("LINE Webhook", () => {
     });
 
     expect(res.status).toBe(200);
+    expect(collections.lineMessages.add).toHaveBeenCalled();
+  });
+
+  it("無効化されたグループのメッセージはスキップする", async () => {
+    vi.mocked(collections.lineGroups.doc).mockReturnValue({
+      get: vi.fn().mockResolvedValue({
+        exists: true,
+        data: () => ({ isActive: false }),
+      }),
+      create: vi.fn(),
+    } as never);
+
+    const event = createTextMessageEvent();
+    const res = await app.request("/line/webhook", {
+      method: "POST",
+      headers: { "x-line-signature": "valid", "Content-Type": "application/json" },
+      body: JSON.stringify({ events: [event] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(collections.lineMessages.add).not.toHaveBeenCalled();
+  });
+
+  it("未登録グループは自動登録してからメッセージを保存する", async () => {
+    const mockCreate = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(collections.lineGroups.doc).mockReturnValue({
+      get: vi.fn().mockResolvedValue({ exists: false }),
+      create: mockCreate,
+    } as never);
+
+    const event = createTextMessageEvent();
+    const res = await app.request("/line/webhook", {
+      method: "POST",
+      headers: { "x-line-signature": "valid", "Content-Type": "application/json" },
+      body: JSON.stringify({ events: [event] }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        groupId: "Cxxxxx",
+        isActive: true,
+        addedBy: "webhook",
+      }),
+    );
     expect(collections.lineMessages.add).toHaveBeenCalled();
   });
 
