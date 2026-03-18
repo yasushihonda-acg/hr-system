@@ -2,10 +2,12 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
 import { CategoriesField } from "@/components/categories-field";
 import { AttachmentList } from "@/components/chat/attachment-list";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
+import { PriorityClearDialog } from "@/components/priority-clear-dialog";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +55,21 @@ export function ChatMessageDetailPane({
 }: ChatMessageDetailPaneProps) {
   const intent = message.intent as IntentDetail | null;
   const responseStatus = (intent?.responseStatus ?? "unresponded") as ResponseStatus;
+  const [showClearDialog, setShowClearDialog] = useState(false);
+
+  const handlePriorityChange = (p: TaskPriority | null) => {
+    if (p === null) {
+      setShowClearDialog(true);
+      return;
+    }
+    onUpdateTaskPriority(message.id, p);
+  };
+
+  const handleConfirmClear = () => {
+    setShowClearDialog(false);
+    onUpdateTaskPriority(message.id, null);
+    toast.success("優先度を解除しました");
+  };
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -129,10 +146,12 @@ export function ChatMessageDetailPane({
               <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
               <TaskPrioritySelector
                 value={intent?.taskPriority ?? null}
-                onChange={(p) => {
-                  if (p === null && !window.confirm("優先度を解除しますか？")) return;
-                  onUpdateTaskPriority(message.id, p);
-                }}
+                onChange={handlePriorityChange}
+              />
+              <PriorityClearDialog
+                open={showClearDialog}
+                onConfirm={handleConfirmClear}
+                onCancel={() => setShowClearDialog(false)}
               />
             </div>
 
