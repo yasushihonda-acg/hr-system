@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-18（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `f7236ef` — feat: 記事のコピー列を折り返し全表示に変更 (#341)）
+**ブランチ**: `main`（最新コミット: `ee3db3f` — fix: 全タスクでワークフローステップを編集可能に変更）
 
 ---
 
@@ -11,7 +11,7 @@
 
 担当者・期限のインライン編集、コンボ入力、キーボードナビ、カレンダーピッカーを順次追加。手動タスク作成フォームを Dialog モーダル化して UI 改善（PR #268）。受信箱/タスクボードの AI判定パネルを削除（PR #267）。
 
-**CI**: Deploy to Cloud Run (631d0cf) — **success**
+**CI**: Deploy to Cloud Run (ee3db3f) — **success**
 
 ---
 
@@ -32,6 +32,22 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: 全タスクでワークフローステップを編集可能に変更 (ee3db3f)
+- すべてのタスク種別（Chat・LINE・手入力）でワークフローステップのインライン編集を有効化
+- CI: Deploy to Cloud Run — **success**
+
+### fix: ワークフローステップをネイティブselectに変更 (#346) (4cb4029)
+- ワークフローステップのUIをカスタムドロップダウンからネイティブ `<select>` に変更し安定性向上
+- CI: Deploy to Cloud Run — **success**
+
+### feat: ワークフローステップをドロップダウン選択+色分けに変更 (#345) (2c42917)
+- ワークフローステップをドロップダウン選択式+色分けUIに変更
+- CI: Deploy to Cloud Run — **success**
+
+### feat: タスク詳細をポップアップダイアログで表示 (#343) (2661c16)
+- タスク詳細表示をサイドパネルからポップアップダイアログに変更
+- CI: Deploy to Cloud Run — **success**
 
 ### feat: 記事のコピー列を折り返し全表示に変更 (#341) (f7236ef)
 - `table-view.tsx` と `task-list.tsx` の記事コピー列を `line-clamp-2` → `whitespace-pre-wrap` に変更し全文表示
