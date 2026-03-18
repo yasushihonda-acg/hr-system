@@ -64,6 +64,32 @@ export async function processLineEvent(event: LineWebhookEvent): Promise<void> {
   const userId = source.userId ?? "unknown";
   const lineMessageId = message.id;
 
+  // グループ設定を確認（未登録なら自動登録）
+  const groupConfigSnapshot = await collections.lineGroups
+    .where("groupId", "==", groupId)
+    .limit(1)
+    .get();
+
+  if (groupConfigSnapshot.empty) {
+    // 初回受信: グループ名を best-effort で取得して自動登録
+    const earlyGroupName = await getGroupSummary(groupId);
+    const now = Timestamp.now();
+    await collections.lineGroups.add({
+      groupId,
+      displayName: earlyGroupName ?? groupId,
+      isActive: true,
+      addedBy: "webhook",
+      updatedBy: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    console.log(`[LineWorker] Auto-registered new group: ${groupId}`);
+  } else if (!groupConfigSnapshot.docs[0]?.data().isActive) {
+    // 無効化されたグループ → スキップ
+    console.log(`[LineWorker] Skipping inactive group: ${groupId}`);
+    return;
+  }
+
   // 重複排除
   const existing = await collections.lineMessages
     .where("lineMessageId", "==", lineMessageId)

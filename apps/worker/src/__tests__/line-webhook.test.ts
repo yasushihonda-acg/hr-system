@@ -14,6 +14,15 @@ vi.mock("@line/bot-sdk", () => ({
 
 vi.mock("@hr-system/db", () => ({
   collections: {
+    lineGroups: {
+      where: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      get: vi.fn().mockResolvedValue({
+        empty: false,
+        docs: [{ data: () => ({ isActive: true }) }],
+      }),
+      add: vi.fn().mockResolvedValue({ id: "group-doc-1" }),
+    },
     lineMessages: {
       where: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
@@ -69,8 +78,18 @@ describe("LINE Webhook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockValidateSignature.mockReturnValue(true);
+    // lineGroups モックリセット（既存グループ・有効）
+    const lg = collections.lineGroups;
+    vi.mocked(lg.where).mockReturnThis();
+    vi.mocked(lg.limit).mockReturnThis();
+    vi.mocked(lg.get).mockResolvedValue({
+      empty: false,
+      docs: [{ data: () => ({ isActive: true }) }],
+    } as never);
     // lineMessages モックリセット
     const lm = collections.lineMessages;
+    vi.mocked(lm.where).mockReturnThis();
+    vi.mocked(lm.limit).mockReturnThis();
     vi.mocked(lm.get).mockResolvedValue({ empty: true } as never);
     vi.mocked(lm.add).mockResolvedValue({
       id: "doc-1",

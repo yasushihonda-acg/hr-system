@@ -12,6 +12,7 @@ import type {
   DraftDetail,
   DraftSummary,
   IntentStatsSummary,
+  LineGroupConfig,
   LineGroupStat,
   LineMessageDetail,
   LineMessageSummary,
@@ -554,6 +555,26 @@ export function updateChatSpace(id: string, body: { displayName?: string; isActi
 
 export function deleteChatSpace(id: string) {
   return request<{ success: boolean }>(`/api/chat-spaces/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// --- LINE Groups ---
+
+export function getLineGroups(all?: boolean) {
+  const qs = all ? "?all=true" : "";
+  return request<{ data: LineGroupConfig[] }>(`/api/line-groups${qs}`);
+}
+
+export function updateLineGroup(id: string, body: { displayName?: string; isActive?: boolean }) {
+  return request<{ success: boolean }>(`/api/line-groups/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function deleteLineGroup(id: string) {
+  return request<{ success: boolean }>(`/api/line-groups/${id}`, {
     method: "DELETE",
   });
 }
