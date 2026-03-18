@@ -216,6 +216,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
                 onUpdateResponseStatus={updateResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateTaskPriorityFromTaskBoard}
                 onUpdateWorkflow={updateWorkflowFromTaskBoard}
+                showTaskRemove
                 assignees={chatDetail.intent?.assignees ?? null}
                 deadline={chatDetail.intent?.deadline ?? null}
                 onUpdateAssignees={handleChatAssignees}
@@ -240,6 +241,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
                 onClose={handleDialogClose}
                 onUpdateResponseStatus={updateLineResponseStatusFromTaskBoard}
                 onUpdateTaskPriority={updateLineTaskPriorityFromTaskBoard}
+                showTaskRemove
                 onUpdateAssignees={handleLineAssignees}
                 onUpdateDeadline={handleLineDeadline}
                 onUpdateCategories={async (id, cats) => {

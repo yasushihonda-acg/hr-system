@@ -104,16 +104,18 @@ export function LineInbox3Pane({ messages, selectedMessage, selectedId }: LineIn
 
       {/* 中央ペイン: 詳細 */}
       {selectedMessage ? (
-        <LineMessageDetailPane
-          message={selectedMessage}
-          onClose={() => selectMessage(null)}
-          onUpdateResponseStatus={updateLineResponseStatusAction}
-          onUpdateTaskPriority={updateLineTaskPriorityAction}
-          onUpdateAssignees={updateLineAssigneesAction}
-          onUpdateDeadline={updateLineDeadlineAction}
-          onUpdateCategories={updateLineCategoriesAction}
-          onUpdateNotes={updateLineNotesAction}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <LineMessageDetailPane
+            message={selectedMessage}
+            onClose={() => selectMessage(null)}
+            onUpdateResponseStatus={updateLineResponseStatusAction}
+            onUpdateTaskPriority={updateLineTaskPriorityAction}
+            onUpdateAssignees={updateLineAssigneesAction}
+            onUpdateDeadline={updateLineDeadlineAction}
+            onUpdateCategories={updateLineCategoriesAction}
+            onUpdateNotes={updateLineNotesAction}
+          />
+        </div>
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">
           <div className="text-center">

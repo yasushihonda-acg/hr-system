@@ -200,7 +200,9 @@ export function UnifiedInbox3Pane({
 
       {/* 中央+右ペイン: 詳細 */}
       {selectedMessage ? (
-        <DetailPane message={selectedMessage} onClose={() => selectMessage(null)} />
+        <div className="flex-1 overflow-y-auto">
+          <DetailPane message={selectedMessage} onClose={() => selectMessage(null)} />
+        </div>
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">
           <div className="text-center">
