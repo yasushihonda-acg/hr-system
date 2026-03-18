@@ -12,181 +12,193 @@ import { getChatSpaces, getLineGroups } from "@/lib/api";
 import { AddSpaceForm } from "./add-space-form";
 import { LineGroupActions } from "./line-group-actions";
 import { SpaceActions } from "./space-actions";
+import { SpacesTabNav } from "./spaces-tab-nav";
 
-export default async function AdminSpacesPage() {
+interface Props {
+  searchParams: Promise<{ tab?: string }>;
+}
+
+export default async function AdminSpacesPage({ searchParams }: Props) {
   await requireAdmin();
-  const [{ data: spaces }, { data: lineGroups }] = await Promise.all([
-    getChatSpaces(true),
-    getLineGroups(true),
-  ]);
+  const { tab = "chat" } = await searchParams;
 
+  return (
+    <div className="space-y-6">
+      <SpacesTabNav activeTab={tab} />
+
+      {tab === "chat" && <ChatSpacesTab />}
+      {tab === "line" && <LineGroupsTab />}
+    </div>
+  );
+}
+
+async function ChatSpacesTab() {
+  const { data: spaces } = await getChatSpaces(true);
   const syncAccountEmail = process.env.CHAT_SYNC_ACCOUNT_EMAIL ?? "yasushi.honda@aozora-cg.com";
 
   return (
-    <div className="space-y-8">
-      {/* --- Google Chat スペース --- */}
-      <section className="space-y-4">
-        <h2 className="text-base font-semibold">Google Chat スペース</h2>
-
-        <div className="rounded-xl border border-amber-200/60 bg-amber-50 p-4">
-          <p className="text-sm text-amber-800">
-            ⚠ 追加するスペースには <span className="font-mono font-medium">{syncAccountEmail}</span>{" "}
-            が参加している必要があります。
-          </p>
-          <details className="mt-2">
-            <summary className="cursor-pointer text-xs text-amber-700 hover:text-amber-900 select-none">
-              詳しく見る ▸
-            </summary>
-            <div className="mt-3 space-y-3 text-xs text-amber-800">
-              <div>
-                <p className="font-semibold mb-1">■ なぜこの制約があるのか</p>
-                <p className="leading-relaxed">
-                  Google Chat スペースが「外部ユーザーの招待を禁止」に設定されている場合、
-                  システムのサービスアカウントを Chat App としてスペースにインストールできません。
-                  そのため、スペースに参加済みの開発者アカウントの認証情報でデータを取得しています。
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold mb-1">■ 回避策（将来対応）</p>
-                <p className="leading-relaxed">
-                  以下の権限設定が実現すれば、開発者アカウントに依存しない構成が可能です：
-                </p>
-                <ul className="mt-1 ml-3 space-y-0.5 list-disc">
-                  <li>
-                    Google Chat App としてサービスアカウントをスペースにインストール（chat.bot
-                    スコープ）
-                  </li>
-                  <li>Google Workspace ドメイン全体の委任設定（Domain-Wide Delegation）</li>
-                </ul>
-                <p className="mt-1 leading-relaxed">
-                  現時点ではスペースのポリシー制限により上記が適用できないため、
-                  開発者アカウントによる認証方式を採用しています。
-                </p>
-              </div>
+    <div className="space-y-4">
+      <div className="rounded-xl border border-amber-200/60 bg-amber-50 p-4">
+        <p className="text-sm text-amber-800">
+          ⚠ 追加するスペースには <span className="font-mono font-medium">{syncAccountEmail}</span>{" "}
+          が参加している必要があります。
+        </p>
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs text-amber-700 hover:text-amber-900 select-none">
+            詳しく見る ▸
+          </summary>
+          <div className="mt-3 space-y-3 text-xs text-amber-800">
+            <div>
+              <p className="font-semibold mb-1">■ なぜこの制約があるのか</p>
+              <p className="leading-relaxed">
+                Google Chat スペースが「外部ユーザーの招待を禁止」に設定されている場合、
+                システムのサービスアカウントを Chat App としてスペースにインストールできません。
+                そのため、スペースに参加済みの開発者アカウントの認証情報でデータを取得しています。
+              </p>
             </div>
-          </details>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">スペース一覧</h3>
-            <p className="text-xs text-muted-foreground">チャット同期の対象スペースを管理します</p>
+            <div>
+              <p className="font-semibold mb-1">■ 回避策（将来対応）</p>
+              <p className="leading-relaxed">
+                以下の権限設定が実現すれば、開発者アカウントに依存しない構成が可能です：
+              </p>
+              <ul className="mt-1 ml-3 space-y-0.5 list-disc">
+                <li>
+                  Google Chat App としてサービスアカウントをスペースにインストール（chat.bot
+                  スコープ）
+                </li>
+                <li>Google Workspace ドメイン全体の委任設定（Domain-Wide Delegation）</li>
+              </ul>
+              <p className="mt-1 leading-relaxed">
+                現時点ではスペースのポリシー制限により上記が適用できないため、
+                開発者アカウントによる認証方式を採用しています。
+              </p>
+            </div>
           </div>
-          <AddSpaceForm />
-        </div>
+        </details>
+      </div>
 
-        <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>スペースID</TableHead>
-                <TableHead>表示名</TableHead>
-                <TableHead>ステータス</TableHead>
-                <TableHead>追加者</TableHead>
-                <TableHead className="w-[100px]">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {spaces.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    スペースが登録されていません
-                  </TableCell>
-                </TableRow>
-              ) : (
-                spaces.map((space) => (
-                  <TableRow key={space.id}>
-                    <TableCell className="font-mono text-sm">{space.spaceId}</TableCell>
-                    <TableCell>{space.displayName}</TableCell>
-                    <TableCell>
-                      <Badge variant={space.isActive ? "default" : "outline"}>
-                        {space.isActive ? "有効" : "無効"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{space.addedBy}</TableCell>
-                    <TableCell>
-                      <SpaceActions space={space} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
-
-      {/* --- LINE グループ --- */}
-      <section className="space-y-4">
-        <h2 className="text-base font-semibold">LINE グループ</h2>
-
-        <div className="rounded-xl border border-blue-200/60 bg-blue-50 p-4">
-          <p className="text-sm text-blue-800">
-            ℹ LINE Bot がグループに招待されると、メッセージ受信時に自動で登録されます。
-            ここでは取得の有効/無効を管理できます。
-          </p>
-          <div className="mt-2 text-xs text-blue-700 space-y-1">
-            <p>
-              ・<strong>有効</strong>: グループのメッセージを受信・保存します
-            </p>
-            <p>
-              ・<strong>無効</strong>: メッセージの受信を停止します（Bot
-              はグループに残るため、再度有効にできます）
-            </p>
-            <p>・新しいグループを追加するには、LINE アプリでグループに Bot を招待してください</p>
-          </div>
-        </div>
-
+      <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">グループ一覧</h3>
-          <p className="text-xs text-muted-foreground">
-            LINE メッセージ取得の対象グループを管理します
-          </p>
+          <h3 className="text-sm font-semibold">スペース一覧</h3>
+          <p className="text-xs text-muted-foreground">チャット同期の対象スペースを管理します</p>
         </div>
+        <AddSpaceForm />
+      </div>
 
-        <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>スペースID</TableHead>
+              <TableHead>表示名</TableHead>
+              <TableHead>ステータス</TableHead>
+              <TableHead>追加者</TableHead>
+              <TableHead className="w-[100px]">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {spaces.length === 0 ? (
               <TableRow>
-                <TableHead>グループID</TableHead>
-                <TableHead>表示名</TableHead>
-                <TableHead>ステータス</TableHead>
-                <TableHead>登録方法</TableHead>
-                <TableHead className="w-[100px]">操作</TableHead>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  スペースが登録されていません
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lineGroups.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    LINE グループが登録されていません。Bot
-                    をグループに招待するとメッセージ受信時に自動登録されます。
+            ) : (
+              spaces.map((space) => (
+                <TableRow key={space.id}>
+                  <TableCell className="font-mono text-sm">{space.spaceId}</TableCell>
+                  <TableCell>{space.displayName}</TableCell>
+                  <TableCell>
+                    <Badge variant={space.isActive ? "default" : "outline"}>
+                      {space.isActive ? "有効" : "無効"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{space.addedBy}</TableCell>
+                  <TableCell>
+                    <SpaceActions space={space} />
                   </TableCell>
                 </TableRow>
-              ) : (
-                lineGroups.map((group) => (
-                  <TableRow key={group.id}>
-                    <TableCell className="font-mono text-sm max-w-[200px] truncate">
-                      {group.groupId}
-                    </TableCell>
-                    <TableCell>{group.displayName}</TableCell>
-                    <TableCell>
-                      <Badge variant={group.isActive ? "default" : "outline"}>
-                        {group.isActive ? "有効" : "無効"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {group.addedBy === "webhook" ? "自動登録" : group.addedBy}
-                    </TableCell>
-                    <TableCell>
-                      <LineGroupActions group={group} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+async function LineGroupsTab() {
+  const { data: lineGroups } = await getLineGroups(true);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-blue-200/60 bg-blue-50 p-4">
+        <p className="text-sm text-blue-800">
+          ℹ LINE Bot がグループに招待されると、メッセージ受信時に自動で登録されます。
+          ここでは取得の有効/無効を管理できます。
+        </p>
+        <div className="mt-2 text-xs text-blue-700 space-y-1">
+          <p>
+            ・<strong>有効</strong>: グループのメッセージを受信・保存します
+          </p>
+          <p>
+            ・<strong>無効</strong>: メッセージの受信を停止します（Bot
+            はグループに残るため、再度有効にできます）
+          </p>
+          <p>・新しいグループを追加するには、LINE アプリでグループに Bot を招待してください</p>
         </div>
-      </section>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold">グループ一覧</h3>
+        <p className="text-xs text-muted-foreground">
+          LINE メッセージ取得の対象グループを管理します
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-border/60 bg-card overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>グループID</TableHead>
+              <TableHead>表示名</TableHead>
+              <TableHead>ステータス</TableHead>
+              <TableHead>登録方法</TableHead>
+              <TableHead className="w-[100px]">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lineGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  LINE グループが登録されていません。Bot
+                  をグループに招待するとメッセージ受信時に自動登録されます。
+                </TableCell>
+              </TableRow>
+            ) : (
+              lineGroups.map((group) => (
+                <TableRow key={group.id}>
+                  <TableCell className="font-mono text-sm max-w-[200px] truncate">
+                    {group.groupId}
+                  </TableCell>
+                  <TableCell>{group.displayName}</TableCell>
+                  <TableCell>
+                    <Badge variant={group.isActive ? "default" : "outline"}>
+                      {group.isActive ? "有効" : "無効"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {group.addedBy === "webhook" ? "自動登録" : group.addedBy}
+                  </TableCell>
+                  <TableCell>
+                    <LineGroupActions group={group} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
