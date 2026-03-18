@@ -110,6 +110,10 @@ vi.mock("@/components/task-priority-selector", () => ({
       : null,
 }));
 
+vi.mock("@/components/priority-clear-dialog", () => ({
+  PriorityClearDialog: () => null,
+}));
+
 vi.mock("../components/notes-field", () => ({
   NotesField: ({ value }: Record<string, unknown>) =>
     React.createElement("div", { "data-testid": "notes-field" }, String(value ?? "")),

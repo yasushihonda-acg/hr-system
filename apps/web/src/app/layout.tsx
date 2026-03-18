@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Noto_Sans_JP } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -24,7 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={notoSansJP.variable} suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <Toaster position="bottom-right" richColors />
+      </body>
     </html>
   );
 }

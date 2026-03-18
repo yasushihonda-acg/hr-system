@@ -2,9 +2,12 @@
 
 import type { ResponseStatus, TaskPriority } from "@hr-system/shared";
 import { X } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { CategoriesField } from "@/components/categories-field";
 import { AssigneesField, DeadlineField } from "@/components/inline-edit-field";
 import { NotesField } from "@/components/notes-field";
+import { PriorityClearDialog } from "@/components/priority-clear-dialog";
 import { ResponseStatusButtons } from "@/components/response-status-buttons";
 import { TaskPrioritySelector } from "@/components/task-priority-selector";
 import type { LineMessageDetail } from "@/lib/types";
@@ -32,6 +35,21 @@ export function LineMessageDetailPane({
   onUpdateNotes,
 }: LineMessageDetailPaneProps) {
   const responseStatus = message.responseStatus;
+  const [showClearDialog, setShowClearDialog] = useState(false);
+
+  const handlePriorityChange = (p: TaskPriority | null) => {
+    if (p === null) {
+      setShowClearDialog(true);
+      return;
+    }
+    onUpdateTaskPriority(message.id, p);
+  };
+
+  const handleConfirmClear = () => {
+    setShowClearDialog(false);
+    onUpdateTaskPriority(message.id, null);
+    toast.success("優先度を解除しました");
+  };
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -86,12 +104,11 @@ export function LineMessageDetailPane({
         {/* タスク優先度 */}
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold text-muted-foreground">タスク優先度</p>
-          <TaskPrioritySelector
-            value={message.taskPriority}
-            onChange={(p) => {
-              if (p === null && !window.confirm("優先度を解除しますか？")) return;
-              onUpdateTaskPriority(message.id, p);
-            }}
+          <TaskPrioritySelector value={message.taskPriority} onChange={handlePriorityChange} />
+          <PriorityClearDialog
+            open={showClearDialog}
+            onConfirm={handleConfirmClear}
+            onCancel={() => setShowClearDialog(false)}
           />
         </div>
 
