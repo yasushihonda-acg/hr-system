@@ -79,11 +79,11 @@ const SOURCE_ICONS: Record<TaskItem["source"], React.ReactNode> = {
   manual: <ClipboardEdit size={12} className="text-blue-500" />,
 };
 
-const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
-  { value: "critical", label: "緊急" },
-  { value: "high", label: "高" },
-  { value: "medium", label: "中" },
-  { value: "low", label: "低" },
+const PRIORITY_OPTIONS: { value: TaskPriority; label: string; dotClass: string }[] = [
+  { value: "critical", label: "極高", dotClass: "bg-red-500" },
+  { value: "high", label: "高", dotClass: "bg-orange-400" },
+  { value: "medium", label: "中", dotClass: "bg-blue-400" },
+  { value: "low", label: "低", dotClass: "bg-slate-300" },
 ];
 
 const STATUS_OPTIONS: { value: ResponseStatus; label: string }[] = RESPONSE_STATUSES.map((s) => ({
@@ -211,6 +211,8 @@ function TaskRow({
   const [savedTaskSummary, setSavedTaskSummary] = useState(task.taskSummary ?? "");
   const [localAssignees, setLocalAssignees] = useState(task.assignees ?? "");
   const [savedAssignees, setSavedAssignees] = useState(task.assignees ?? "");
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const priorityRef = useRef<HTMLDivElement>(null);
   const [categoryOpen, setCategoryOpen] = useState(false);
   const categoryRef = useRef<HTMLDivElement>(null);
 
@@ -224,17 +226,20 @@ function TaskRow({
     setSavedAssignees(task.assignees ?? "");
   }, [task.workflowSteps, task.notes, task.taskSummary, task.assignees]);
 
-  // カテゴリPopover外クリックで閉じる
+  // Popover外クリックで閉じる
   useEffect(() => {
-    if (!categoryOpen) return;
+    if (!priorityOpen && !categoryOpen) return;
     const handler = (e: MouseEvent) => {
-      if (categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
+      if (priorityOpen && priorityRef.current && !priorityRef.current.contains(e.target as Node)) {
+        setPriorityOpen(false);
+      }
+      if (categoryOpen && categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
         setCategoryOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [categoryOpen]);
+  }, [priorityOpen, categoryOpen]);
 
   const saveWorkflow = async (body: { workflowSteps?: WorkflowSteps; notes?: string | null }) => {
     switch (task.source) {
@@ -272,6 +277,7 @@ function TaskRow({
 
   // --- 優先度変更 ---
   const handlePriorityChange = (value: TaskPriority) => {
+    setPriorityOpen(false);
     startTransition(async () => {
       switch (task.source) {
         case "gchat":
@@ -473,24 +479,58 @@ function TaskRow({
         {formatDateTimeJST(task.createdAt)}
       </td>
 
-      {/* 優先度（インライン編集） */}
+      {/* 優先度（インライン編集 - Popover） */}
       <td className="px-2 py-2.5 text-center">
-        <select
-          value={task.taskPriority}
-          onChange={(e) => {
-            e.stopPropagation();
-            handlePriorityChange(e.target.value as TaskPriority);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          disabled={isPending}
-          className="w-full cursor-pointer rounded border border-transparent bg-transparent px-0.5 py-0.5 text-[10px] font-medium outline-none hover:border-border focus:border-border focus:bg-card transition-colors"
-        >
-          {PRIORITY_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <div className="relative inline-flex" ref={priorityRef}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setPriorityOpen(!priorityOpen);
+            }}
+            disabled={isPending}
+            className="cursor-pointer rounded p-1 hover:bg-accent/50 transition-colors"
+          >
+            {task.taskPriority === "critical" ? (
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-100 px-1 py-0.5 text-[10px] font-bold text-red-700 animate-pulse whitespace-nowrap">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                極高
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  "block h-2 w-2 rounded-full",
+                  PRIORITY_OPTIONS.find((o) => o.value === task.taskPriority)?.dotClass ??
+                    "bg-slate-300",
+                )}
+                title={PRIORITY_OPTIONS.find((o) => o.value === task.taskPriority)?.label}
+              />
+            )}
+          </button>
+          {priorityOpen && (
+            <div className="absolute left-1/2 -translate-x-1/2 top-full z-50 mt-1 w-20 rounded-md border bg-card shadow-lg">
+              <div className="py-1">
+                {PRIORITY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePriorityChange(opt.value);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-1.5 px-2 py-1 text-[11px] hover:bg-accent transition-colors",
+                      task.taskPriority === opt.value && "font-bold",
+                    )}
+                  >
+                    <span className={cn("h-1.5 w-1.5 rounded-full", opt.dotClass)} />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </td>
 
       {/* 記事のコピー（メッセージ本文） */}

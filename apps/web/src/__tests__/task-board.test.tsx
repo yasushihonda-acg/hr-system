@@ -170,7 +170,7 @@ describe("TaskList", () => {
     expect(text).toContain("給与変更をお願いします");
   });
 
-  it("優先度セレクトが表示される", () => {
+  it("優先度ドットが表示されクリックで編集可能", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask({ taskPriority: "high" })],
@@ -179,10 +179,9 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    // 優先度はインラインselectで編集可能
-    expect(html).toContain("<select");
-    expect(html).toContain("高");
-    expect(html).toContain("緊急");
+    // 優先度はドット表示 + クリックでPopover
+    expect(html).toContain("bg-orange-400"); // high のドット色
+    expect(html).toContain("<button");
   });
 
   it("gchat ソースの場合に Google Chat アイコンが表示される", () => {
