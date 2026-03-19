@@ -324,6 +324,8 @@ export interface LineMessage {
   responseStatusUpdatedAt: Timestamp | null;
   /** ワークフローステップ（❶❷❸❹） */
   workflowSteps?: WorkflowSteps | null;
+  /** タスク要約（手動入力） */
+  taskSummary?: string | null;
   /** メモ */
   notes?: string | null;
   /** ワークフロー最終更新者 */

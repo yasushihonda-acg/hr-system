@@ -227,6 +227,7 @@ export interface WorkflowUpdateRequest {
   deadline?: string | null;
   notes?: string | null;
   workflowSteps?: WorkflowSteps;
+  categories?: string[];
 }
 
 export type { WorkflowStepStatus, WorkflowSteps };

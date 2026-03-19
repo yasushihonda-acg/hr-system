@@ -84,6 +84,21 @@ vi.mock("@/components/task-priority-selector", () => ({
 
 vi.mock("../app/(protected)/task-board/actions", () => ({
   updateWorkflowFromTaskBoard: vi.fn(),
+  updateLineWorkflowFromTaskBoard: vi.fn(),
+  updateManualWorkflowFromTaskBoard: vi.fn(),
+  updateResponseStatusFromTaskBoard: vi.fn(),
+  updateLineResponseStatusFromTaskBoard: vi.fn(),
+  updateManualTaskAction: vi.fn(),
+  updateTaskPriorityFromTaskBoard: vi.fn(),
+  updateLineTaskPriorityFromTaskBoard: vi.fn(),
+  updateChatTaskSummaryFromTaskBoard: vi.fn(),
+  updateLineTaskSummaryFromTaskBoard: vi.fn(),
+  updateChatCategoriesFromTaskBoard: vi.fn(),
+  updateLineCategoriesFromTaskBoard: vi.fn(),
+  updateChatAssigneesFromTaskBoard: vi.fn(),
+  updateLineAssigneesFromTaskBoard: vi.fn(),
+  updateChatDeadlineFromTaskBoard: vi.fn(),
+  updateLineDeadlineFromTaskBoard: vi.fn(),
 }));
 
 // --- インポート ---
@@ -155,7 +170,7 @@ describe("TaskList", () => {
     expect(text).toContain("給与変更をお願いします");
   });
 
-  it("優先度ドットが表示される", () => {
+  it("優先度セレクトが表示される", () => {
     const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask({ taskPriority: "high" })],
@@ -164,8 +179,10 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    expect(html).toContain('data-testid="task-priority-dot"');
-    expect(html).toContain('data-priority="high"');
+    // 優先度はインラインselectで編集可能
+    expect(html).toContain("<select");
+    expect(html).toContain("高");
+    expect(html).toContain("緊急");
   });
 
   it("gchat ソースの場合に Google Chat アイコンが表示される", () => {
@@ -254,8 +271,8 @@ describe("TaskList", () => {
     expect(text).toContain("元のメッセージ");
   });
 
-  it("担当者がある場合に表示される", () => {
-    const text = renderToText(
+  it("担当者がある場合にinputのvalueに表示される", () => {
+    const html = renderToHtml(
       React.createElement(TaskList, {
         tasks: [makeTask({ assignees: "佐藤花子" })],
         selectedId: null,
@@ -263,7 +280,8 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    expect(text).toContain("佐藤花子");
+    // 担当者はインラインinputで編集可能
+    expect(html).toContain('value="佐藤花子"');
   });
 
   it("対応状況ラベルが表示される", () => {
