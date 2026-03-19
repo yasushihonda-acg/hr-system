@@ -27,6 +27,12 @@ vi.mock("google-auth-library", () => ({
       return { getRequestHeaders: mockGetRequestHeaders };
     }
   },
+  OAuth2Client: class MockOAuth2Client {
+    setCredentials() {}
+    async getRequestHeaders() {
+      return mockGetRequestHeaders();
+    }
+  },
 }));
 
 // @hr-system/ai モック
@@ -48,6 +54,7 @@ vi.mock("@hr-system/db", () => ({
       set: mockBatchSet,
       commit: mockBatchCommit,
     })),
+    doc: vi.fn(() => ({ get: vi.fn().mockResolvedValue({ exists: false }) })),
   },
   collections: {
     syncMetadata: {

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import type {
   AdminUser,
   CategoryStat,
+  ChatCredentialsInfo,
   ChatMessageDetail,
   ChatMessageSummary,
   ChatSpaceConfig,
@@ -575,6 +576,18 @@ export function updateLineGroup(id: string, body: { displayName?: string; isActi
 
 export function deleteLineGroup(id: string) {
   return request<{ success: boolean }>(`/api/line-groups/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// --- Chat Credentials ---
+
+export function getChatCredentials() {
+  return request<{ data: ChatCredentialsInfo | null }>("/api/admin/config/chat-credentials");
+}
+
+export function deleteChatCredentials() {
+  return request<{ success: boolean }>("/api/admin/config/chat-credentials", {
     method: "DELETE",
   });
 }

@@ -99,6 +99,8 @@ export const AUDIT_EVENT_TYPES = [
   "manual_task_created",
   "manual_task_updated",
   "manual_task_deleted",
+  "chat_credentials_connected",
+  "chat_credentials_deleted",
 ] as const;
 export type AuditEventType = (typeof AUDIT_EVENT_TYPES)[number];
 

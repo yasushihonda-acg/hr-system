@@ -1,4 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
+import type { ChatCredentials } from "@hr-system/db";
 import { collections, db } from "@hr-system/db";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { Hono } from "hono";
@@ -116,6 +117,57 @@ adminConfigRoutes.patch("/", zValidator("json", updateConfigSchema), async (c) =
     actorEmail: actor.email,
     actorRole: c.get("actorRole"),
     details: updates,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  await batch.commit();
+
+  return c.json({ success: true });
+});
+
+const CHAT_CRED_DOC_ID = "chat_credentials";
+
+// GET /api/admin/config/chat-credentials — 連携情報取得（トークンは返さない）
+adminConfigRoutes.get("/chat-credentials", async (c) => {
+  requireAdmin(c);
+
+  const doc = await db.doc(`app_config/${CHAT_CRED_DOC_ID}`).get();
+  if (!doc.exists) {
+    return c.json({ data: null });
+  }
+
+  const raw = doc.data() as ChatCredentials;
+  return c.json({
+    data: {
+      email: raw.email,
+      connectedBy: raw.connectedBy,
+      connectedAt: toISO(raw.connectedAt),
+    },
+  });
+});
+
+// DELETE /api/admin/config/chat-credentials — 連携解除
+adminConfigRoutes.delete("/chat-credentials", async (c) => {
+  requireAdmin(c);
+  const actor = c.get("user");
+
+  const docRef = db.doc(`app_config/${CHAT_CRED_DOC_ID}`);
+  const existing = await docRef.get();
+  if (!existing.exists) {
+    return c.json({ error: "No credentials found" }, 404);
+  }
+
+  const batch = db.batch();
+  batch.delete(docRef);
+
+  const auditRef = collections.auditLogs.doc();
+  batch.set(auditRef, {
+    eventType: "chat_credentials_deleted",
+    entityType: "app_config",
+    entityId: CHAT_CRED_DOC_ID,
+    actorEmail: actor.email,
+    actorRole: c.get("actorRole"),
+    details: { email: (existing.data() as ChatCredentials).email },
     createdAt: FieldValue.serverTimestamp(),
   });
 
