@@ -92,6 +92,8 @@ const STATUS_OPTIONS: { value: ResponseStatus; label: string }[] = RESPONSE_STAT
   label: RESPONSE_STATUS_LABELS[s],
 }));
 
+const SORTABLE_TH = "cursor-pointer select-none hover:bg-slate-100 transition-colors";
+
 export function TaskList({
   tasks,
   selectedId,
@@ -157,14 +159,14 @@ export function TaskList({
               <span className="sr-only">詳細</span>
             </th>
             <th
-              className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("createdAt")}
               aria-sort={ariaSort("createdAt")}
             >
               発生日{sortIndicator("createdAt")}
             </th>
             <th
-              className="w-14 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-14 px-2 py-2.5 text-center font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("taskPriority")}
               aria-sort={ariaSort("taskPriority")}
             >
@@ -177,42 +179,42 @@ export function TaskList({
               URL
             </th>
             <th
-              className="min-w-[140px] px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`min-w-[140px] px-2 py-2.5 text-left font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("taskSummary")}
               aria-sort={ariaSort("taskSummary")}
             >
               タスク{sortIndicator("taskSummary")}
             </th>
             <th
-              className="w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("source")}
               aria-sort={ariaSort("source")}
             >
               ソース{sortIndicator("source")}
             </th>
             <th
-              className="w-28 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-28 px-2 py-2.5 text-center font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("categories")}
               aria-sort={ariaSort("categories")}
             >
               カテゴリ{sortIndicator("categories")}
             </th>
             <th
-              className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("assignees")}
               aria-sort={ariaSort("assignees")}
             >
               割り振り{sortIndicator("assignees")}
             </th>
             <th
-              className="w-20 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-20 px-2 py-2.5 text-center font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("responseStatus")}
               aria-sort={ariaSort("responseStatus")}
             >
               ステータス{sortIndicator("responseStatus")}
             </th>
             <th
-              className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              className={`w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground ${SORTABLE_TH}`}
               onClick={() => handleSort("deadline")}
               aria-sort={ariaSort("deadline")}
             >
