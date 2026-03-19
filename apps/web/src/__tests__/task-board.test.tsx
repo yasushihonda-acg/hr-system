@@ -270,8 +270,8 @@ describe("TaskList", () => {
     expect(text).toContain("元のメッセージ");
   });
 
-  it("担当者がある場合にinputのvalueに表示される", () => {
-    const html = renderToHtml(
+  it("担当者がある場合にボタンテキストに表示される", () => {
+    const text = renderToText(
       React.createElement(TaskList, {
         tasks: [makeTask({ assignees: "佐藤花子" })],
         selectedId: null,
@@ -279,8 +279,8 @@ describe("TaskList", () => {
         onOpenDialog: mockOnOpenDialog,
       }),
     );
-    // 担当者はインラインinputで編集可能
-    expect(html).toContain('value="佐藤花子"');
+    // 担当者はクリックでリスト選択
+    expect(text).toContain("佐藤花子");
   });
 
   it("対応状況ラベルが表示される", () => {

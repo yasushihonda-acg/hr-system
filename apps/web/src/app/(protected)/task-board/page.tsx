@@ -2,7 +2,7 @@ import type { ChatCategory, ResponseStatus, TaskPriority } from "@hr-system/shar
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
+import { getAdminUsers, getChatMessages, getLineMessages, getManualTasks } from "@/lib/api";
 import {
   CATEGORY_CONFIG,
   CATEGORY_OPTIONS,
@@ -69,7 +69,7 @@ export default async function TaskBoardPage({ searchParams }: Props) {
   const selectedId = params.id ?? null;
 
   // 全ソースを並列取得（hasTaskPriority でタスク優先度付きのみ取得）
-  const [chatResult, lineResult, manualResult] = await Promise.all([
+  const [chatResult, lineResult, manualResult, usersResult] = await Promise.all([
     sourceFilter === "all" || sourceFilter === "gchat"
       ? getChatMessages({ hasTaskPriority: true, limit: 200 })
       : null,
@@ -77,7 +77,13 @@ export default async function TaskBoardPage({ searchParams }: Props) {
       ? getLineMessages({ hasTaskPriority: true, limit: 200 })
       : null,
     sourceFilter === "all" || sourceFilter === "manual" ? getManualTasks({ limit: 200 }) : null,
+    getAdminUsers().catch(() => ({ data: [] })),
   ]);
+
+  const memberNames = usersResult.data
+    .filter((u) => u.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((u) => u.displayName);
 
   // タスク優先度付きメッセージを抽出・統合
   const tasks: TaskItem[] = [];
@@ -201,7 +207,12 @@ export default async function TaskBoardPage({ searchParams }: Props) {
 
   return (
     <div className="-m-6 flex h-[calc(100vh-52px)] flex-col">
-      <TaskBoardContent tasks={paged} initialSelectedId={selectedId} pageOffset={offset}>
+      <TaskBoardContent
+        tasks={paged}
+        initialSelectedId={selectedId}
+        pageOffset={offset}
+        memberNames={memberNames}
+      >
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <h1 className="text-base font-bold tracking-tight">タスク一覧</h1>

@@ -97,12 +97,14 @@ export function TaskList({
   onSelect,
   onOpenDialog,
   pageOffset = 0,
+  memberNames = [],
 }: {
   tasks: TaskItem[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onOpenDialog: (id: string) => void;
   pageOffset?: number;
+  memberNames?: string[];
 }) {
   if (tasks.length === 0) {
     return (
@@ -175,6 +177,7 @@ export function TaskList({
               selectedId={selectedId}
               onSelect={onSelect}
               onOpenDialog={onOpenDialog}
+              memberNames={memberNames}
             />
           ))}
         </tbody>
@@ -190,6 +193,7 @@ function TaskRow({
   selectedId,
   onSelect,
   onOpenDialog,
+  memberNames,
 }: {
   task: TaskItem;
   index: number;
@@ -197,6 +201,7 @@ function TaskRow({
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onOpenDialog: (id: string) => void;
+  memberNames: string[];
 }) {
   const isCritical = task.taskPriority === "critical";
   const compositeId = taskCompositeId(task);
@@ -210,7 +215,8 @@ function TaskRow({
   const [localTaskSummary, setLocalTaskSummary] = useState(task.taskSummary ?? "");
   const [savedTaskSummary, setSavedTaskSummary] = useState(task.taskSummary ?? "");
   const [localAssignees, setLocalAssignees] = useState(task.assignees ?? "");
-  const [savedAssignees, setSavedAssignees] = useState(task.assignees ?? "");
+  const [assigneesOpen, setAssigneesOpen] = useState(false);
+  const assigneesRef = useRef<HTMLDivElement>(null);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const priorityRef = useRef<HTMLDivElement>(null);
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -223,12 +229,11 @@ function TaskRow({
     setLocalTaskSummary(task.taskSummary ?? "");
     setSavedTaskSummary(task.taskSummary ?? "");
     setLocalAssignees(task.assignees ?? "");
-    setSavedAssignees(task.assignees ?? "");
   }, [task.workflowSteps, task.notes, task.taskSummary, task.assignees]);
 
   // Popover外クリックで閉じる
   useEffect(() => {
-    if (!priorityOpen && !categoryOpen) return;
+    if (!priorityOpen && !categoryOpen && !assigneesOpen) return;
     const handler = (e: MouseEvent) => {
       if (priorityOpen && priorityRef.current && !priorityRef.current.contains(e.target as Node)) {
         setPriorityOpen(false);
@@ -236,10 +241,17 @@ function TaskRow({
       if (categoryOpen && categoryRef.current && !categoryRef.current.contains(e.target as Node)) {
         setCategoryOpen(false);
       }
+      if (
+        assigneesOpen &&
+        assigneesRef.current &&
+        !assigneesRef.current.contains(e.target as Node)
+      ) {
+        setAssigneesOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [priorityOpen, categoryOpen]);
+  }, [priorityOpen, categoryOpen, assigneesOpen]);
 
   const saveWorkflow = async (body: { workflowSteps?: WorkflowSteps; notes?: string | null }) => {
     switch (task.source) {
@@ -345,12 +357,12 @@ function TaskRow({
     });
   };
 
-  // --- 担当者変更 ---
-  const handleAssigneesBlur = () => {
-    if (localAssignees === savedAssignees) return;
-    setSavedAssignees(localAssignees);
+  // --- 担当者選択 ---
+  const handleAssigneeSelect = (name: string) => {
+    setLocalAssignees(name);
+    setAssigneesOpen(false);
     startTransition(async () => {
-      const value = localAssignees || null;
+      const value = name || null;
       switch (task.source) {
         case "gchat":
           await updateChatAssigneesFromTaskBoard(task.id, value);
@@ -646,17 +658,59 @@ function TaskRow({
         </div>
       </td>
 
-      {/* 割り振り（インライン編集） */}
-      <td className="px-2 py-1">
-        <input
-          type="text"
-          value={localAssignees}
-          onChange={(e) => setLocalAssignees(e.target.value)}
-          onBlur={handleAssigneesBlur}
-          onClick={(e) => e.stopPropagation()}
-          placeholder="担当者"
-          className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-xs text-muted-foreground placeholder:text-muted-foreground/40 focus:border-border focus:bg-card focus:outline-none"
-        />
+      {/* 割り振り（クリックでリスト選択） */}
+      <td className="px-2 py-2.5">
+        <div className="relative" ref={assigneesRef}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAssigneesOpen(!assigneesOpen);
+            }}
+            disabled={isPending}
+            className="w-full cursor-pointer rounded px-1 py-0.5 text-left text-xs hover:bg-accent/50 transition-colors min-h-[20px]"
+          >
+            {localAssignees ? (
+              <span className="text-foreground">{localAssignees}</span>
+            ) : (
+              <span className="text-muted-foreground/40">—</span>
+            )}
+          </button>
+          {assigneesOpen && (
+            <div className="absolute left-0 top-full z-50 mt-1 w-32 rounded-md border bg-card shadow-lg">
+              <div className="max-h-48 overflow-y-auto py-1">
+                {memberNames.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAssigneeSelect(name);
+                    }}
+                    className={cn(
+                      "flex w-full items-center px-2 py-1 text-[11px] hover:bg-accent transition-colors",
+                      localAssignees === name && "font-bold",
+                    )}
+                  >
+                    {name}
+                  </button>
+                ))}
+                {localAssignees && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAssigneeSelect("");
+                    }}
+                    className="flex w-full items-center px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent transition-colors border-t"
+                  >
+                    クリア
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </td>
 
       {/* ステータス（インライン編集） */}
