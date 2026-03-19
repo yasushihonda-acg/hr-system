@@ -15,7 +15,7 @@ import {
   MessageCircle,
   MessageSquareText,
 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   CATEGORY_LABELS,
   RESPONSE_STATUS_BADGE_COLORS,
@@ -91,6 +91,81 @@ const STATUS_OPTIONS: { value: ResponseStatus; label: string }[] = RESPONSE_STAT
   label: RESPONSE_STATUS_LABELS[s],
 }));
 
+// --- ソート ---
+type SortKey =
+  | "createdAt"
+  | "taskPriority"
+  | "taskSummary"
+  | "source"
+  | "categories"
+  | "assignees"
+  | "responseStatus"
+  | "deadline";
+type SortDir = "asc" | "desc";
+
+const PRIORITY_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+const STATUS_ORDER: Record<string, number> = {
+  unresponded: 0,
+  in_progress: 1,
+  responded: 2,
+  pending_confirmation: 3,
+  closed: 4,
+};
+
+function compareNullable<T>(
+  a: T | null | undefined,
+  b: T | null | undefined,
+  cmp: (a: T, b: T) => number,
+  dir: SortDir,
+): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1; // null は常に末尾
+  if (b == null) return -1;
+  return dir === "asc" ? cmp(a, b) : cmp(b, a);
+}
+
+function sortTasks(tasks: TaskItem[], key: SortKey | null, dir: SortDir): TaskItem[] {
+  if (!key) return tasks;
+  const sorted = [...tasks];
+  sorted.sort((a, b) => {
+    switch (key) {
+      case "createdAt":
+        return dir === "asc"
+          ? a.createdAt.localeCompare(b.createdAt)
+          : b.createdAt.localeCompare(a.createdAt);
+      case "taskPriority":
+        return dir === "asc"
+          ? (PRIORITY_ORDER[a.taskPriority] ?? 99) - (PRIORITY_ORDER[b.taskPriority] ?? 99)
+          : (PRIORITY_ORDER[b.taskPriority] ?? 99) - (PRIORITY_ORDER[a.taskPriority] ?? 99);
+      case "taskSummary":
+        return compareNullable(
+          a.taskSummary,
+          b.taskSummary,
+          (x, y) => x.localeCompare(y, "ja"),
+          dir,
+        );
+      case "source":
+        return dir === "asc" ? a.source.localeCompare(b.source) : b.source.localeCompare(a.source);
+      case "categories": {
+        const ca = a.categories[0] ?? null;
+        const cb = b.categories[0] ?? null;
+        return compareNullable(ca, cb, (x, y) => x.localeCompare(y, "ja"), dir);
+      }
+      case "assignees":
+        return compareNullable(a.assignees, b.assignees, (x, y) => x.localeCompare(y, "ja"), dir);
+      case "responseStatus":
+        return dir === "asc"
+          ? (STATUS_ORDER[a.responseStatus] ?? 99) - (STATUS_ORDER[b.responseStatus] ?? 99)
+          : (STATUS_ORDER[b.responseStatus] ?? 99) - (STATUS_ORDER[a.responseStatus] ?? 99);
+      case "deadline":
+        return compareNullable(a.deadline, b.deadline, (x, y) => x.localeCompare(y), dir);
+      default:
+        return 0;
+    }
+  });
+  return sorted;
+}
+
 export function TaskList({
   tasks,
   selectedId,
@@ -106,6 +181,33 @@ export function TaskList({
   pageOffset?: number;
   memberNames?: string[];
 }) {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      if (sortDir === "asc") {
+        setSortDir("desc");
+      } else {
+        // 3回目: ソート解除
+        setSortKey(null);
+        setSortDir("asc");
+      }
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const sortedTasks = useMemo(() => sortTasks(tasks, sortKey, sortDir), [tasks, sortKey, sortDir]);
+
+  const sortIndicator = (key: SortKey) => {
+    if (sortKey !== key) {
+      return <span className="ml-0.5 text-[9px] text-muted-foreground/30">▲▼</span>;
+    }
+    return <span className="ml-0.5 text-[9px]">{sortDir === "asc" ? "▲" : "▼"}</span>;
+  };
+
   if (tasks.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -123,11 +225,17 @@ export function TaskList({
             <th className="w-8 px-1 py-2.5 text-center font-semibold text-muted-foreground">
               <span className="sr-only">詳細</span>
             </th>
-            <th className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground">
-              発生日
+            <th
+              className="w-20 px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("createdAt")}
+            >
+              発生日{sortIndicator("createdAt")}
             </th>
-            <th className="w-14 px-2 py-2.5 text-center font-semibold text-muted-foreground">
-              優先度
+            <th
+              className="w-14 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("taskPriority")}
+            >
+              優先度{sortIndicator("taskPriority")}
             </th>
             <th className="min-w-[180px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
               記事のコピー
@@ -135,22 +243,42 @@ export function TaskList({
             <th className="w-12 px-2 py-2.5 text-center font-semibold text-muted-foreground">
               URL
             </th>
-            <th className="min-w-[140px] px-2 py-2.5 text-left font-semibold text-muted-foreground">
-              タスク
+            <th
+              className="min-w-[140px] px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("taskSummary")}
+            >
+              タスク{sortIndicator("taskSummary")}
             </th>
-            <th className="w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground">
-              ソース
+            <th
+              className="w-16 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("source")}
+            >
+              ソース{sortIndicator("source")}
             </th>
-            <th className="w-28 px-2 py-2.5 text-center font-semibold text-muted-foreground">
-              カテゴリ
+            <th
+              className="w-28 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("categories")}
+            >
+              カテゴリ{sortIndicator("categories")}
             </th>
-            <th className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground">
-              割り振り
+            <th
+              className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("assignees")}
+            >
+              割り振り{sortIndicator("assignees")}
             </th>
-            <th className="w-20 px-2 py-2.5 text-center font-semibold text-muted-foreground">
-              ステータス
+            <th
+              className="w-20 px-2 py-2.5 text-center font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("responseStatus")}
+            >
+              ステータス{sortIndicator("responseStatus")}
             </th>
-            <th className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground">期限</th>
+            <th
+              className="w-24 px-2 py-2.5 text-left font-semibold text-muted-foreground cursor-pointer select-none hover:bg-slate-100 transition-colors"
+              onClick={() => handleSort("deadline")}
+            >
+              期限{sortIndicator("deadline")}
+            </th>
             {STEP_KEYS.map((key) => (
               <th
                 key={key}
@@ -168,7 +296,7 @@ export function TaskList({
           </tr>
         </thead>
         <tbody className="divide-y divide-border/30">
-          {tasks.map((task, index) => (
+          {sortedTasks.map((task, index) => (
             <TaskRow
               key={taskCompositeId(task)}
               task={task}
