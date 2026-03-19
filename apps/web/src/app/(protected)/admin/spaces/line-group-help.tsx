@@ -30,7 +30,7 @@ export function LineGroupHelp() {
             <ol className="list-none space-y-1.5 text-blue-800">
               <li>① LINE アプリでグループのトーク画面を開く</li>
               <li>② 右上の ≡ メニュー →「招待」をタップ</li>
-              <li>③「HR AI Agent」を検索して招待</li>
+              <li>③「ACG人事Bot」を検索して招待</li>
             </ol>
             <Image
               src="/screenshots/help/line-bot-invite-guide.png"
