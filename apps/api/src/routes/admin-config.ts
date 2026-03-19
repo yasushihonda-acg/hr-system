@@ -133,34 +133,35 @@ adminConfigRoutes.get("/chat-credentials", async (c) => {
 
   const doc = await db.doc(`app_config/${CHAT_CRED_DOC_ID}`).get();
   if (!doc.exists) {
-    // ADC フォールバック: 現在使用中のサービスアカウント/ユーザーの email を取得
+    // ADC フォールバック: メタデータサーバーまたは ADC から email を取得
     try {
-      const { GoogleAuth } = await import("google-auth-library");
-      const auth = new GoogleAuth();
-      const cred = await auth.getCredentials();
-      if (cred.client_email) {
-        return c.json({
-          data: { email: cred.client_email, connectedBy: null, connectedAt: null, source: "adc" },
-        });
-      }
-      // ユーザー ADC の場合は client_email が無い → tokeninfo で取得
-      const client = await auth.getClient();
-      const token = await client.getAccessToken();
-      if (token?.token) {
-        const res = await fetch(
-          `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token.token}`,
-        );
-        if (res.ok) {
-          const info = (await res.json()) as { email?: string };
-          if (info.email) {
-            return c.json({
-              data: { email: info.email, connectedBy: null, connectedAt: null, source: "adc" },
-            });
-          }
+      // Cloud Run: メタデータサーバーから SA email を直接取得
+      const metaRes = await fetch(
+        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
+        { headers: { "Metadata-Flavor": "Google" } },
+      );
+      if (metaRes.ok) {
+        const email = await metaRes.text();
+        if (email) {
+          return c.json({
+            data: { email, connectedBy: null, connectedAt: null, source: "adc" },
+          });
         }
       }
     } catch {
-      // ADC 情報取得失敗 → null を返す
+      // メタデータサーバー不在（ローカル環境）→ ADC から取得を試行
+      try {
+        const { GoogleAuth } = await import("google-auth-library");
+        const auth = new GoogleAuth();
+        const cred = await auth.getCredentials();
+        if (cred.client_email) {
+          return c.json({
+            data: { email: cred.client_email, connectedBy: null, connectedAt: null, source: "adc" },
+          });
+        }
+      } catch {
+        // ADC 情報取得失敗
+      }
     }
     return c.json({ data: null });
   }

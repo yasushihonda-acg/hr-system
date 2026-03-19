@@ -235,10 +235,10 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
 
       {/* Chat Credentials card */}
       <div className="rounded-xl border border-border/60 bg-card p-6">
-        <h2 className="text-sm font-semibold">連携アカウント</h2>
+        <h2 className="text-sm font-semibold">Google Chat 連携アカウント</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Chat API の認証に使用する Google アカウント。
-          連携するアカウントは対象スペースのメンバーである必要があります。
+          Google Chat スペースのメッセージ取得に使用するアカウント。
+          対象スペースに参加しているメンバーのアカウントが必要です。
         </p>
 
         <div className="mt-4">
