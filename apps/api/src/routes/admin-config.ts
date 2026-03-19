@@ -133,35 +133,13 @@ adminConfigRoutes.get("/chat-credentials", async (c) => {
 
   const doc = await db.doc(`app_config/${CHAT_CRED_DOC_ID}`).get();
   if (!doc.exists) {
-    // ADC フォールバック: メタデータサーバーまたは ADC から email を取得
-    try {
-      // Cloud Run: メタデータサーバーから SA email を直接取得
-      const metaRes = await fetch(
-        "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/email",
-        { headers: { "Metadata-Flavor": "Google" } },
-      );
-      if (metaRes.ok) {
-        const email = await metaRes.text();
-        if (email) {
-          return c.json({
-            data: { email, connectedBy: null, connectedAt: null, source: "adc" },
-          });
-        }
-      }
-    } catch {
-      // メタデータサーバー不在（ローカル環境）→ ADC から取得を試行
-      try {
-        const { GoogleAuth } = await import("google-auth-library");
-        const auth = new GoogleAuth();
-        const cred = await auth.getCredentials();
-        if (cred.client_email) {
-          return c.json({
-            data: { email: cred.client_email, connectedBy: null, connectedAt: null, source: "adc" },
-          });
-        }
-      } catch {
-        // ADC 情報取得失敗
-      }
+    // OAuth 未連携時: 環境変数で設定された開発者アカウントを表示
+    // OAuth 連携後は Firestore の chat_credentials が優先される
+    const fallbackEmail = process.env.CHAT_SYNC_FALLBACK_EMAIL;
+    if (fallbackEmail) {
+      return c.json({
+        data: { email: fallbackEmail, connectedBy: null, connectedAt: null, source: "adc" },
+      });
     }
     return c.json({ data: null });
   }
