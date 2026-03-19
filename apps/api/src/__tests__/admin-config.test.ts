@@ -2,12 +2,15 @@ import { Timestamp } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- モック変数（vi.hoisted でホイスト） ---
-const { mockGet, mockBatchSet, mockBatchUpdate, mockBatchCommit } = vi.hoisted(() => ({
-  mockGet: vi.fn(),
-  mockBatchSet: vi.fn(),
-  mockBatchUpdate: vi.fn(),
-  mockBatchCommit: vi.fn().mockResolvedValue(undefined),
-}));
+const { mockGet, mockDocGet, mockBatchSet, mockBatchUpdate, mockBatchDelete, mockBatchCommit } =
+  vi.hoisted(() => ({
+    mockGet: vi.fn(),
+    mockDocGet: vi.fn(),
+    mockBatchSet: vi.fn(),
+    mockBatchUpdate: vi.fn(),
+    mockBatchDelete: vi.fn(),
+    mockBatchCommit: vi.fn().mockResolvedValue(undefined),
+  }));
 
 vi.mock("google-auth-library", () => ({
   GoogleAuth: class {
@@ -25,8 +28,10 @@ vi.mock("@hr-system/db", () => ({
     batch: vi.fn(() => ({
       set: mockBatchSet,
       update: mockBatchUpdate,
+      delete: mockBatchDelete,
       commit: mockBatchCommit,
     })),
+    doc: vi.fn(() => ({ get: mockDocGet })),
   },
   collections: {
     appConfig: {
@@ -308,6 +313,91 @@ describe("admin-config routes", () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appName: "test" }),
+      });
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("GET /api/admin/config/chat-credentials", () => {
+    it("未連携の場合 data: null を返す", async () => {
+      mockDocGet.mockResolvedValueOnce({ exists: false });
+
+      const res = await app.request("/api/admin/config/chat-credentials");
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as { data: null };
+      expect(body.data).toBeNull();
+    });
+
+    it("連携済みの場合 email・connectedBy・connectedAt を返す（トークンは含まない）", async () => {
+      const now = Timestamp.now();
+      mockDocGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          email: "user@example.com",
+          refreshToken: "secret-token",
+          connectedBy: "admin@test.com",
+          connectedAt: now,
+        }),
+      });
+
+      const res = await app.request("/api/admin/config/chat-credentials");
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as {
+        data: { email: string; connectedBy: string; connectedAt: string };
+      };
+      expect(body.data.email).toBe("user@example.com");
+      expect(body.data.connectedBy).toBe("admin@test.com");
+      expect(body.data.connectedAt).toBeDefined();
+      // リフレッシュトークンがレスポンスに含まれないことを確認
+      expect(body.data).not.toHaveProperty("refreshToken");
+    });
+
+    it("viewer は 403", async () => {
+      currentDashboardRole = "viewer";
+      const res = await app.request("/api/admin/config/chat-credentials");
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe("DELETE /api/admin/config/chat-credentials", () => {
+    it("連携済みの場合 削除して success を返す", async () => {
+      mockDocGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({ email: "user@example.com", refreshToken: "token" }),
+      });
+
+      const res = await app.request("/api/admin/config/chat-credentials", {
+        method: "DELETE",
+      });
+      expect(res.status).toBe(200);
+
+      const body = (await res.json()) as { success: boolean };
+      expect(body.success).toBe(true);
+      expect(mockBatchDelete).toHaveBeenCalledOnce();
+      expect(mockBatchCommit).toHaveBeenCalledOnce();
+
+      // 監査ログが書き込まれる
+      expect(mockBatchSet).toHaveBeenCalledOnce();
+      const auditArg = mockBatchSet.mock.calls[0]![1] as Record<string, unknown>;
+      expect(auditArg.eventType).toBe("chat_credentials_deleted");
+      expect(auditArg.details).toEqual({ email: "user@example.com" });
+    });
+
+    it("未連携の場合 404 を返す", async () => {
+      mockDocGet.mockResolvedValueOnce({ exists: false });
+
+      const res = await app.request("/api/admin/config/chat-credentials", {
+        method: "DELETE",
+      });
+      expect(res.status).toBe(404);
+    });
+
+    it("viewer は 403", async () => {
+      currentDashboardRole = "viewer";
+      const res = await app.request("/api/admin/config/chat-credentials", {
+        method: "DELETE",
       });
       expect(res.status).toBe(403);
     });
