@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { getSessionRole } from "@/lib/access-control";
+import { getBaseUrl } from "@/lib/server-url";
 
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo";
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3005";
+  const baseUrl = await getBaseUrl();
   const syncPageUrl = `${baseUrl}/admin/sync`;
 
   // ユーザーが同意をキャンセルした場合

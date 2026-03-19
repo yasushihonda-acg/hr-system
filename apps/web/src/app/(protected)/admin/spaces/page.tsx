@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { requireAdmin } from "@/lib/access-control";
-import { getChatSpaces, getLineGroups } from "@/lib/api";
+import { getChatCredentials, getChatSpaces, getLineGroups } from "@/lib/api";
 import { AddSpaceForm } from "./add-space-form";
 import { LineGroupActions } from "./line-group-actions";
 import { SpaceActions } from "./space-actions";
@@ -26,22 +26,42 @@ export default async function AdminSpacesPage({ searchParams }: Props) {
     <div className="space-y-6">
       <SpacesTabNav activeTab={tab} />
 
-      {tab === "chat" && <ChatSpacesTab />}
+      {tab === "chat" && <ChatSpacesContent />}
       {tab === "line" && <LineGroupsTab />}
     </div>
   );
 }
 
-async function ChatSpacesTab() {
-  const { data: spaces } = await getChatSpaces(true);
-  const syncAccountEmail = process.env.CHAT_SYNC_ACCOUNT_EMAIL ?? "yasushi.honda@aozora-cg.com";
+async function ChatSpacesContent() {
+  const [{ data: spaces }, credentials] = await Promise.all([
+    getChatSpaces(true),
+    getChatCredentials()
+      .then((r) => r.data)
+      .catch((err) => {
+        console.error("[admin/spaces] getChatCredentials failed:", err);
+        return null;
+      }),
+  ]);
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-amber-200/60 bg-amber-50 p-4">
         <p className="text-sm text-amber-800">
-          ⚠ 追加するスペースには <span className="font-mono font-medium">{syncAccountEmail}</span>{" "}
-          が参加している必要があります。
+          {credentials?.email ? (
+            <>
+              ⚠ 追加するスペースには{" "}
+              <span className="font-mono font-medium">{credentials.email}</span>{" "}
+              が参加している必要があります。
+            </>
+          ) : (
+            <>
+              ⚠ 同期アカウントが未連携です。
+              <a href="/admin/sync" className="underline font-medium hover:text-amber-900">
+                同期ページ
+              </a>
+              でアカウントを連携してください。
+            </>
+          )}
         </p>
         <details className="mt-2">
           <summary className="cursor-pointer text-xs text-amber-700 hover:text-amber-900 select-none">
