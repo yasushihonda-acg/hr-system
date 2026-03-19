@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-19（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `0405ce1` — ui: スペース追加バナーからメールアドレスを除去し汎用ルールに変更 (#388)）
+**最終更新**: 2026-03-20（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `6fb3488` — chore: GitHub Actions を Node.js 24 対応バージョンに更新 (#394)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 同期タブ・スペースタブの UI 再構成、Google Chat 連携アカウントの説明文改善、LINE グループ管理機能追加、同期監視の自動更新・鮮度チェック強化。
 
-**CI**: Deploy to Cloud Run (0405ce1) — **success**
+**CI**: Deploy to Cloud Run (#394) — success
 
 ---
 
@@ -32,6 +32,28 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### chore: GitHub Actions を Node.js 24 対応バージョンに更新 (#394) (6fb3488)
+- `actions/setup-node@v4`, `actions/cache@v4`, `actions/checkout@v4` に更新（Node.js 20非推奨対応）
+- CI: Deploy to Cloud Run — **success**
+
+### refactor: ソート可能ヘッダーのclassNameを定数化 (#393) (8585e58)
+- `SortableHeader` の `className` をインライン文字列から定数に切り出し、可読性・保守性を向上
+- CI: Deploy to Cloud Run — **success**
+
+### fix: ソート関数のテスト追加・aria-sort対応・ORDER定数の二重定義解消 (#392) (5ba2811)
+- ソート関数のユニットテストを追加、`aria-sort` 属性でアクセシビリティ対応
+- `ORDER` 定数の二重定義を解消
+- CI: Deploy to Cloud Run — success
+
+### ui: タスクテーブルのカラムヘッダークリックでソート機能を追加 (#391) (53dbdfc)
+- タスクテーブルのカラムヘッダーをクリックすると昇順/降順ソートが可能に
+- 優先度・期限・割り振り・カテゴリ等の列でソート対応
+- CI: Deploy to Cloud Run — success
+
+### ui: 割り振りフィールドをクリックでリスト選択に変更 (#390) (a168457)
+- タスクテーブルの割り振り（担当者）フィールドをクリックするとリスト選択UIに変更
+- CI: Deploy to Cloud Run — success
 
 ### ui: スペース追加バナーからメールアドレスを除去し汎用ルールに変更 (#388) (0405ce1)
 - 具体的なメールアドレス表示が「このアカウント固定」と誤解されるため、汎用的なルール説明に変更
@@ -257,8 +279,7 @@
 ## 次のアクション候補
 
 1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-3. **E2E テスト自動化**（Playwright による本番フロー検証）
-4. **Node.js 20 Actions 非推奨対応**（GitHub Actions を Node.js 24 対応バージョンへ更新。期限: 2026-06-02）
+2. **E2E テスト自動化**（Playwright による本番フロー検証）
 
 ---
 
