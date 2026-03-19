@@ -34,6 +34,7 @@ function serialize(id: string, msg: Record<string, unknown>) {
     deadline: msg.deadline ? toISO(msg.deadline as FirebaseFirestore.Timestamp) : null,
     responseStatus: (msg.responseStatus as string) ?? "unresponded",
     categories: (msg.categories as string[]) ?? [],
+    taskSummary: (msg.taskSummary as string) ?? null,
     workflowSteps: (msg.workflowSteps as Record<string, unknown>) ?? null,
     notes: (msg.notes as string) ?? null,
     createdAt: toISO(msg.createdAt as FirebaseFirestore.Timestamp),
@@ -333,6 +334,7 @@ const updateWorkflowSchema = z
     notes: z.string().max(2000).nullable().optional(),
     workflowSteps: workflowStepsSchema.optional(),
     categories: z.array(z.enum(CHAT_CATEGORIES)).min(1).optional(),
+    taskSummary: z.string().max(500).nullable().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "更新するフィールドを1つ以上指定してください",
@@ -369,6 +371,9 @@ lineMessageRoutes.patch("/:id/workflow", zValidator("json", updateWorkflowSchema
   }
   if (body.categories !== undefined) {
     updates.categories = body.categories;
+  }
+  if (body.taskSummary !== undefined) {
+    updates.taskSummary = body.taskSummary;
   }
 
   if (Object.keys(updates).length > 0) {

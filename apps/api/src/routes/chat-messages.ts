@@ -748,6 +748,7 @@ const patchWorkflowSchema = z.object({
   deadline: z.string().datetime({ offset: true }).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   workflowSteps: workflowStepsSchema.optional(),
+  categories: z.array(z.enum(CHAT_CATEGORIES)).min(1).optional(),
 });
 
 chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema), async (c) => {
@@ -778,6 +779,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
     updates.deadline = body.deadline ? Timestamp.fromDate(new Date(body.deadline)) : null;
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.workflowSteps !== undefined) updates.workflowSteps = body.workflowSteps;
+  if (body.categories !== undefined) updates.categories = body.categories;
 
   await db.runTransaction(async (tx) => {
     if (!intentSnap.empty) {

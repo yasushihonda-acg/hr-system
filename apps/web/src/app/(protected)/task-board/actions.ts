@@ -104,6 +104,7 @@ export async function updateManualTaskAction(
     content?: string;
     taskPriority?: TaskPriority;
     responseStatus?: ResponseStatus;
+    categories?: string[];
     assignees?: string | null;
     deadline?: string | null;
   },
@@ -154,7 +155,12 @@ export async function updateLineDeadlineFromTaskBoard(messageId: string, deadlin
 
 export async function updateLineWorkflowFromTaskBoard(
   messageId: string,
-  body: { workflowSteps?: WorkflowSteps; notes?: string | null; categories?: string[] },
+  body: {
+    workflowSteps?: WorkflowSteps;
+    notes?: string | null;
+    categories?: string[];
+    taskSummary?: string | null;
+  },
 ) {
   await requireAccess();
   await updateLineWorkflow(messageId, body);
@@ -190,5 +196,44 @@ export async function updateChatDeadlineFromTaskBoard(
   await updateWorkflow(chatMessageId, { deadline });
   revalidatePath("/inbox");
   revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
+
+export async function updateChatTaskSummaryFromTaskBoard(
+  chatMessageId: string,
+  taskSummary: string | null,
+) {
+  await requireAccess();
+  await updateWorkflow(chatMessageId, { taskSummary });
+  revalidatePath("/inbox");
+  revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
+
+export async function updateChatCategoriesFromTaskBoard(
+  chatMessageId: string,
+  categories: string[],
+) {
+  await requireAccess();
+  await updateWorkflow(chatMessageId, { categories });
+  revalidatePath("/inbox");
+  revalidatePath("/chat-messages");
+  revalidatePath("/task-board");
+}
+
+export async function updateLineCategoriesFromTaskBoard(messageId: string, categories: string[]) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, { categories });
+  revalidatePath("/inbox");
+  revalidatePath("/task-board");
+}
+
+export async function updateLineTaskSummaryFromTaskBoard(
+  messageId: string,
+  taskSummary: string | null,
+) {
+  await requireAccess();
+  await updateLineWorkflow(messageId, { taskSummary });
+  revalidatePath("/inbox");
   revalidatePath("/task-board");
 }

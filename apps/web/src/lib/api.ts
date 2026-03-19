@@ -457,6 +457,7 @@ export function updateLineWorkflow(
     notes?: string | null;
     workflowSteps?: WorkflowSteps;
     categories?: string[];
+    taskSummary?: string | null;
   },
 ) {
   return request<{ success: boolean }>(`/api/line-messages/${encodeURIComponent(id)}/workflow`, {
@@ -521,7 +522,9 @@ export function updateManualTask(
     content?: string;
     taskPriority?: TaskPriority;
     responseStatus?: ResponseStatus;
+    categories?: string[];
     assignees?: string | null;
+    deadline?: string | null;
     notes?: string | null;
     workflowSteps?: WorkflowSteps;
   },
