@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-20（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `6fb3488` — chore: GitHub Actions を Node.js 24 対応バージョンに更新 (#394)）
+**ブランチ**: `main`（最新コミット: `414faee` — fix: LINE Bot招待ヘルプ画像のBot名をACG人事Botに修正 (#398)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 同期タブ・スペースタブの UI 再構成、Google Chat 連携アカウントの説明文改善、LINE グループ管理機能追加、同期監視の自動更新・鮮度チェック強化。
 
-**CI**: Deploy to Cloud Run (#394) — success
+**CI**: Deploy to Cloud Run (#398) — success
 
 ---
 
@@ -32,6 +32,23 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### fix: LINE Bot招待ヘルプ画像のBot名をACG人事Botに修正 (#398) (414faee)
+- 画像内のBot名「HR AI Agent」→「ACG人事Bot」に修正、下部キャプションの日本語崩れも修正
+- CI: Deploy to Cloud Run — **success**
+
+### fix: LINE Bot招待ヘルプのBot名をACG人事Botに修正 (#397) (dce14a1)
+- ヘルプテキストのステップ③「HR AI Agent」→「ACG人事Bot」に修正（LINE Developers設定に合わせる）
+- CI: Deploy to Cloud Run — **success**
+
+### ui: LINEタブにBot招待ヘルプ（展開式）を追加 (#396) (9a6d08f)
+- LINEタブの青い案内ボックスに、Bot招待手順の展開式ヘルプ（Collapsible）を追加
+- Google Chatヘルプ（PR #395）と同じUIパターンで統一、Gemini生成の3ステップ説明画像付き
+- CI: Deploy to Cloud Run — **success**
+
+### ui: スペース追加ダイアログにSpace ID取得ヘルプを追加 (#395) (a74eef7)
+- スペース追加ダイアログに、Space IDの確認方法を展開式ヘルプ（Collapsible + 説明画像）で追加
+- CI: Deploy to Cloud Run — **success**
 
 ### chore: GitHub Actions を Node.js 24 対応バージョンに更新 (#394) (6fb3488)
 - `actions/setup-node@v4`, `actions/cache@v4`, `actions/checkout@v4` に更新（Node.js 20非推奨対応）
