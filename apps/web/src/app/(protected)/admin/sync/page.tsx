@@ -1,4 +1,4 @@
-import { CheckCircle2, MessageSquare } from "lucide-react";
+import { AlertCircle, CheckCircle2, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -27,13 +27,20 @@ function formatRelativeTime(iso: string | null): string {
 
 export default async function AdminSyncPage() {
   await requireAdmin();
-  const [status, config, lineGroupFreshness] = await Promise.all([
+  const [status, config, lineGroupResult] = await Promise.all([
     getChatSyncStatus(),
     getChatSyncConfig(),
     getLineGroupFreshness()
-      .then((r) => r.groups)
-      .catch(() => [] as LineGroupFreshness[]),
+      .then((r) => ({ groups: r.groups, error: null }))
+      .catch((err) => {
+        console.error("[admin/sync] getLineGroupFreshness failed:", err);
+        return {
+          groups: [] as LineGroupFreshness[],
+          error: "LINE グループ情報の取得に失敗しました",
+        };
+      }),
   ]);
+  const { groups: lineGroupFreshness, error: lineGroupError } = lineGroupResult;
 
   return (
     <div className="space-y-8">
@@ -74,6 +81,14 @@ export default async function AdminSyncPage() {
             </p>
           </div>
         </div>
+
+        {/* LINE API error banner */}
+        {lineGroupError && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200/60 bg-amber-50 p-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <p className="text-sm text-amber-800">{lineGroupError}</p>
+          </div>
+        )}
 
         {/* Webhook ステータス */}
         <div className="rounded-xl border border-border/60 bg-card p-6">
