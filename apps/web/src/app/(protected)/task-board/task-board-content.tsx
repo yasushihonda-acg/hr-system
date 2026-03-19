@@ -50,6 +50,7 @@ interface Props {
   tasks: TaskItem[];
   initialSelectedId: string | null;
   pageOffset?: number;
+  memberNames?: string[];
   children: React.ReactNode;
 }
 
@@ -64,7 +65,13 @@ export const useSelectTask = () => useContext(SelectTaskContext);
  * タスク選択時に Server Action 経由で詳細データを取得し、受信箱と同等の
  * DetailPane を表示する。
  */
-export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, children }: Props) {
+export function TaskBoardContent({
+  tasks,
+  initialSelectedId,
+  pageOffset = 0,
+  memberNames = [],
+  children,
+}: Props) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState(initialSelectedId);
   const [dialogTaskId, setDialogTaskId] = useState<string | null>(null);
@@ -182,6 +189,7 @@ export function TaskBoardContent({ tasks, initialSelectedId, pageOffset = 0, chi
             onSelect={setSelectedId}
             onOpenDialog={handleOpenDialog}
             pageOffset={pageOffset}
+            memberNames={memberNames}
           />
         </div>
       </div>
