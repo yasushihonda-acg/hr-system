@@ -795,7 +795,7 @@ chatMessageRoutes.patch("/:id/workflow", zValidator("json", patchWorkflowSchema)
       const intentRef = collections.intentRecords.doc();
       tx.set(intentRef, {
         chatMessageId,
-        categories: ["other"] as ChatCategory[],
+        categories: (body.categories as ChatCategory[]) ?? (["other"] as ChatCategory[]),
         confidenceScore: 0,
         extractedParams: null,
         classificationMethod: "manual",

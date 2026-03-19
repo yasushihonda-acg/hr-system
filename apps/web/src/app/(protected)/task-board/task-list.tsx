@@ -433,6 +433,8 @@ function TaskRow({
       aria-selected={isSelected}
       onClick={() => onSelect(isSelected ? null : compositeId)}
       onKeyDown={(e) => {
+        const tag = (e.target as HTMLElement).tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelect(isSelected ? null : compositeId);

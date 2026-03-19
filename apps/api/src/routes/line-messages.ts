@@ -251,6 +251,7 @@ lineMessageRoutes.get("/:id", async (c) => {
     deadline: msg.deadline ? toISO(msg.deadline) : null,
     responseStatus: msg.responseStatus ?? "unresponded",
     categories: msg.categories ?? [],
+    taskSummary: msg.taskSummary ?? null,
     responseStatusUpdatedBy: msg.responseStatusUpdatedBy ?? null,
     responseStatusUpdatedAt: msg.responseStatusUpdatedAt
       ? toISO(msg.responseStatusUpdatedAt)
