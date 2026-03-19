@@ -2,8 +2,8 @@
 
 import {
   CHAT_CATEGORIES,
-  type ResponseStatus,
   RESPONSE_STATUSES,
+  type ResponseStatus,
   type TaskPriority,
   type WorkflowStepStatus,
   type WorkflowSteps,
@@ -16,7 +16,6 @@ import {
   MessageSquareText,
 } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { TaskPriorityDot } from "@/components/task-priority-selector";
 import {
   CATEGORY_LABELS,
   RESPONSE_STATUS_BADGE_COLORS,
@@ -587,6 +586,7 @@ function TaskRow({
                     key={cat}
                     className="flex items-center gap-2 px-2 py-1 text-[11px] hover:bg-accent cursor-pointer"
                     onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
                   >
                     <input
                       type="checkbox"
