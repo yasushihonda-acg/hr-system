@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, LinkIcon, Mail, MessageSquare, Unlink } from "lucide-react";
+import { AlertCircle, AlertTriangle, LinkIcon, Mail, MessageSquare, Unlink } from "lucide-react";
 import { useCallback, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ interface ChatSpacesSectionProps {
 export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpacesSectionProps) {
   const [credentials, setCredentials] = useState<ChatCredentialsInfo | null>(initialCredentials);
   const [isPending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleChatConnect = useCallback(() => {
     if (
@@ -46,14 +47,27 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
   }, []);
 
   const handleDisconnect = useCallback(() => {
+    setActionError(null);
     startTransition(async () => {
-      await disconnectChatAccountAction();
-      setCredentials(null);
+      try {
+        await disconnectChatAccountAction();
+        setCredentials(null);
+      } catch {
+        setActionError("連携解除に失敗しました");
+      }
     });
   }, []);
 
   return (
     <div className="space-y-4">
+      {/* Action error banner */}
+      {actionError && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200/60 bg-amber-50 p-4">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <p className="text-sm text-amber-800">{actionError}</p>
+        </div>
+      )}
+
       {/* 連携アカウントカード */}
       <div className="rounded-xl border border-border/60 bg-card p-6">
         <div className="flex items-start gap-3">

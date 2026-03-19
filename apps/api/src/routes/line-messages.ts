@@ -114,6 +114,10 @@ lineMessageRoutes.get("/group-freshness", async (c) => {
     return c.json({ error: "Forbidden" }, 403);
   }
 
+  const CACHE_KEY = "line-group-freshness";
+  const cached = getCached<{ groups: Array<Record<string, unknown>> }>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
   // 全 LINE グループ設定を取得
   const groupsSnap = await collections.lineGroups.get();
   const groupMap = new Map<string, { groupName: string; isActive: boolean }>();
@@ -125,7 +129,7 @@ lineMessageRoutes.get("/group-freshness", async (c) => {
     });
   }
 
-  // 各グループの最新メッセージを取得
+  // 各グループの最新メッセージを取得（グループ 0 件時は lineMessages を参照しない）
   const groupIds = Array.from(groupMap.keys());
   const freshnessResults = await Promise.all(
     groupIds.map(async (groupId) => {
@@ -148,7 +152,9 @@ lineMessageRoutes.get("/group-freshness", async (c) => {
     }),
   );
 
-  return c.json({ groups: freshnessResults });
+  const result = { groups: freshnessResults };
+  setCache(CACHE_KEY, result, TTL.INBOX_COUNTS);
+  return c.json(result);
 });
 
 // ---------------------------------------------------------------------------
