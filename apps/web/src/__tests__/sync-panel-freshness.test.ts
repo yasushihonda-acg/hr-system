@@ -8,7 +8,7 @@
  * - lastSyncedAt null → stale（未同期 = Infinity）
  * - intervalMinutes による閾値変動
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isSyncStale } from "@/lib/sync-freshness";
 import type { SyncStatus } from "@/lib/types";
 
@@ -19,20 +19,24 @@ const BASE: SyncStatus = {
   errorMessage: null,
 };
 
+const NOW = new Date("2026-03-19T12:00:00Z").getTime();
+
 describe("isSyncStale", () => {
+  beforeEach(() => vi.setSystemTime(NOW));
+  afterEach(() => vi.useRealTimers());
   it("idle + 閾値超過 → true", () => {
-    const old = new Date(Date.now() - 16 * 60_000).toISOString();
+    const old = new Date(NOW - 16 * 60_000).toISOString();
     expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: old }, 5)).toBe(true);
   });
 
   it("idle + ちょうど閾値 → false（> で比較）", () => {
     // 15分ちょうどは閾値以内
-    const exact = new Date(Date.now() - 15 * 60_000).toISOString();
+    const exact = new Date(NOW - 15 * 60_000).toISOString();
     expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: exact }, 5)).toBe(false);
   });
 
   it("idle + 閾値以内 → false", () => {
-    const recent = new Date(Date.now() - 10 * 60_000).toISOString();
+    const recent = new Date(NOW - 10 * 60_000).toISOString();
     expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: recent }, 5)).toBe(false);
   });
 
@@ -41,18 +45,18 @@ describe("isSyncStale", () => {
   });
 
   it("error 状態 → false", () => {
-    const old = new Date(Date.now() - 20 * 60_000).toISOString();
+    const old = new Date(NOW - 20 * 60_000).toISOString();
     expect(isSyncStale({ ...BASE, status: "error", lastSyncedAt: old }, 5)).toBe(false);
   });
 
   it("running 状態 → false", () => {
-    const old = new Date(Date.now() - 20 * 60_000).toISOString();
+    const old = new Date(NOW - 20 * 60_000).toISOString();
     expect(isSyncStale({ ...BASE, status: "running", lastSyncedAt: old }, 5)).toBe(false);
   });
 
   it("intervalMinutes=10 → 閾値30分", () => {
-    const min25 = new Date(Date.now() - 25 * 60_000).toISOString();
-    const min35 = new Date(Date.now() - 35 * 60_000).toISOString();
+    const min25 = new Date(NOW - 25 * 60_000).toISOString();
+    const min35 = new Date(NOW - 35 * 60_000).toISOString();
     expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: min25 }, 10)).toBe(false);
     expect(isSyncStale({ ...BASE, status: "idle", lastSyncedAt: min35 }, 10)).toBe(true);
   });
