@@ -11,6 +11,7 @@ import { requireAdmin } from "@/lib/access-control";
 import { getChatCredentials, getChatSpaces, getLineGroups } from "@/lib/api";
 import { ChatSpacesSection } from "./chat-spaces-section";
 import { LineGroupActions } from "./line-group-actions";
+import { LineGroupHelp } from "./line-group-help";
 import { SpacesTabNav } from "./spaces-tab-nav";
 
 interface Props {
@@ -63,7 +64,7 @@ async function LineGroupsTab() {
             ・<strong>無効</strong>: メッセージの受信を停止します（Bot
             はグループに残るため、再度有効にできます）
           </p>
-          <p>・新しいグループを追加するには、LINE アプリでグループに Bot を招待してください</p>
+          <LineGroupHelp />
         </div>
       </div>
 
