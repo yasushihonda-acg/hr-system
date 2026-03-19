@@ -76,7 +76,7 @@ async function main() {
   const sorted = snap.docs
     .map((d) => ({ ref: d.ref, id: d.id, ...(d.data() as DocData) }))
     .filter((d) => d.createdAt)
-    .sort((a, b) => b.createdAt!.toMillis() - a.createdAt!.toMillis())
+    .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
     .slice(0, 100);
 
   console.log(`対象: 最新 ${sorted.length} 件`);
@@ -91,7 +91,8 @@ async function main() {
   let skipped = 0;
 
   for (let i = 0; i < sorted.length; i++) {
-    const doc = sorted[i]!;
+    const doc = sorted[i];
+    if (!doc) continue;
     const spaceName = doc.spaceId ? `spaces/${doc.spaceId}` : SPACE_NAME;
     const msgName =
       doc.googleMessageId ??

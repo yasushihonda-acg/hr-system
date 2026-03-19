@@ -399,6 +399,18 @@ export interface ManualTask {
   updatedAt: Timestamp;
 }
 
+/** Chat API 連携アカウント認証情報（app_config/chat_credentials） */
+export interface ChatCredentials {
+  /** 連携アカウントのメール */
+  email: string;
+  /** OAuth リフレッシュトークン */
+  refreshToken: string;
+  /** 連携操作した管理者のメール */
+  connectedBy: string;
+  /** 連携日時 */
+  connectedAt: Timestamp;
+}
+
 /** LLM分類ルール（システムプロンプト・Few-shot例） */
 export interface LlmClassificationRule {
   type: "system_prompt" | "few_shot_example" | "category_definition";

@@ -17,11 +17,18 @@ vi.mock("google-auth-library", () => ({
       return { getRequestHeaders: mockGetRequestHeaders };
     }
   },
+  OAuth2Client: class MockOAuth2Client {
+    setCredentials() {}
+    async getRequestHeaders() {
+      return mockGetRequestHeaders();
+    }
+  },
 }));
 
 vi.mock("@hr-system/db", () => ({
   db: {
     runTransaction: mockRunTransaction,
+    doc: vi.fn(() => ({ get: vi.fn().mockResolvedValue({ exists: false }) })),
   },
   loadClassificationConfig: vi.fn().mockResolvedValue({
     regexRules: [],

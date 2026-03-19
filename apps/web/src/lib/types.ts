@@ -436,3 +436,10 @@ export interface ChatMessageDetail extends ChatMessageSummary {
     createdAt: string;
   }>;
 }
+
+/** Chat API 連携アカウント情報（トークンを含まない安全な型） */
+export interface ChatCredentialsInfo {
+  email: string;
+  connectedBy: string;
+  connectedAt: string;
+}

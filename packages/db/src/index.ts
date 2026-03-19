@@ -15,6 +15,7 @@ export type {
   AuditLog,
   ChatAnnotation,
   ChatAttachment,
+  ChatCredentials,
   ChatMessage,
   ChatSpaceConfig,
   ChatSyncConfig,

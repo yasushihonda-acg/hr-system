@@ -10,7 +10,7 @@ import { classifyIntent } from "@hr-system/ai";
 import type { ChatAnnotation, ChatAttachment, ChatSyncConfig, SyncMetadata } from "@hr-system/db";
 import { collections, db, loadClassificationConfig } from "@hr-system/db";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { GoogleAuth } from "google-auth-library";
+import { GoogleAuth, OAuth2Client } from "google-auth-library";
 
 // --- 分類設定キャッシュ（Worker の classification-config.ts と同パターン）---
 const CONFIG_TTL_MS = 5 * 60 * 1000; // 5分
@@ -88,12 +88,47 @@ function sanitizeDocId(googleMessageId: string): string {
   return googleMessageId.replace(/\//g, "_").replace(/\./g, "_");
 }
 
-/** ADC（開発者 OAuth クレデンシャル）で Chat API 用の認証ヘッダーを取得
+// --- 連携トークンキャッシュ（Firestore 読み取りを毎回行わない）---
+const CRED_TTL_MS = 4 * 60 * 1000; // 4分
+let credTokenCache: { refreshToken: string; loadedAt: number } | null = null;
+
+/** Chat API 用の認証ヘッダーを取得
  *
- * getAccessToken() ではなく getRequestHeaders() を使用することで
- * authorized_user 認証時に必要な x-goog-user-project ヘッダーが自動付与される
+ * 1. Firestore に保存された OAuth リフレッシュトークン（管理画面から連携）を優先
+ * 2. フォールバック: 従来の ADC（開発者 OAuth クレデンシャル）
  */
 export async function getAuthHeaders(): Promise<{ [key: string]: string }> {
+  // 1. キャッシュまたは Firestore から chat_credentials を取得
+  let refreshToken: string | null = null;
+  if (credTokenCache && Date.now() - credTokenCache.loadedAt < CRED_TTL_MS) {
+    refreshToken = credTokenCache.refreshToken;
+  } else {
+    const credDoc = await db.doc("app_config/chat_credentials").get();
+    if (credDoc.exists) {
+      refreshToken = (credDoc.data() as { refreshToken: string }).refreshToken;
+      credTokenCache = { refreshToken, loadedAt: Date.now() };
+    } else {
+      credTokenCache = null;
+    }
+  }
+
+  if (refreshToken) {
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID ?? "";
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET ?? "";
+      const oauth2 = new OAuth2Client(clientId, clientSecret);
+      oauth2.setCredentials({ refresh_token: refreshToken });
+      const rawHeaders = (await oauth2.getRequestHeaders()) as unknown as Record<string, string>;
+      const projectId = process.env.GCP_PROJECT_ID ?? "hr-system-487809";
+      return { ...rawHeaders, "x-goog-user-project": projectId };
+    } catch (err) {
+      // トークン失効時は ADC にフォールバック
+      console.warn("Stored refresh token failed, falling back to ADC:", err);
+      credTokenCache = null;
+    }
+  }
+
+  // 2. フォールバック: 従来の ADC
   const auth = new GoogleAuth({
     scopes: [
       "https://www.googleapis.com/auth/chat.messages.readonly",
