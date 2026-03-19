@@ -140,9 +140,8 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
           <p className="text-xs text-amber-800">
             {credentials?.email ? (
               <>
-                ⚠ 連携アカウント（
-                <span className="font-mono font-medium">{credentials.email}</span>
-                ）が参加しているスペースのみ同期できます。
+                <span className="font-mono font-medium">{credentials.email}</span>{" "}
+                が参加しているスペースを追加できます。
               </>
             ) : (
               <>
