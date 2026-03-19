@@ -158,6 +158,16 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
     });
   }, [interval]);
 
+  const handleChatConnect = useCallback(() => {
+    if (
+      window.confirm(
+        "このアカウントで Google Chat の認証を行います。\n連携するアカウントは、対象の Chat スペースに参加しているメンバーである必要があります。\n\n続行しますか？",
+      )
+    ) {
+      window.location.href = "/api/auth/chat-connect";
+    }
+  }, []);
+
   const handleDisconnect = useCallback(() => {
     setActionError(null);
     startTransition(async () => {
@@ -227,7 +237,8 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
       <div className="rounded-xl border border-border/60 bg-card p-6">
         <h2 className="text-sm font-semibold">連携アカウント</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Chat API の認証に使用する Google アカウント
+          Chat API の認証に使用する Google アカウント。
+          連携するアカウントは対象スペースのメンバーである必要があります。
         </p>
 
         <div className="mt-4">
@@ -244,11 +255,9 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" asChild>
-                  <a href="/api/auth/chat-connect">
-                    <LinkIcon className="mr-2 h-4 w-4" />
-                    アカウントを変更
-                  </a>
+                <Button variant="outline" size="sm" onClick={handleChatConnect}>
+                  <LinkIcon className="mr-2 h-4 w-4" />
+                  アカウントを変更
                 </Button>
                 <Button
                   variant="ghost"
@@ -270,11 +279,9 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
                   未連携（サーバー既定の認証を使用中）
                 </p>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <a href="/api/auth/chat-connect">
-                  <LinkIcon className="mr-2 h-4 w-4" />
-                  アカウントを連携
-                </a>
+              <Button variant="outline" size="sm" onClick={handleChatConnect}>
+                <LinkIcon className="mr-2 h-4 w-4" />
+                アカウントを連携
               </Button>
             </div>
           )}

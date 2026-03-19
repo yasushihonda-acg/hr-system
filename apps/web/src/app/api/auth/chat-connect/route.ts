@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSessionRole } from "@/lib/access-control";
+import { getBaseUrl } from "@/lib/server-url";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 
@@ -24,7 +25,7 @@ export async function GET() {
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID ?? "";
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3005";
+  const baseUrl = await getBaseUrl();
   const redirectUri = `${baseUrl}/api/auth/chat-connect/callback`;
 
   // CSRF トークン
