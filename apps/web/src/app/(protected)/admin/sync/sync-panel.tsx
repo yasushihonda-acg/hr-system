@@ -1,16 +1,6 @@
 "use client";
 
-import {
-  AlertCircle,
-  AlertTriangle,
-  CheckCircle2,
-  LinkIcon,
-  Loader2,
-  Mail,
-  MessageSquare,
-  RefreshCw,
-  Unlink,
-} from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,19 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { getMinutesSinceLastSync, isSyncStale } from "@/lib/sync-freshness";
-import type { ChatCredentialsInfo, SyncConfig, SyncStatus } from "@/lib/types";
-import {
-  disconnectChatAccountAction,
-  getChatCredentialsAction,
-  getSyncStatusAction,
-  triggerSyncAction,
-  updateSyncConfigAction,
-} from "./actions";
+import type { SyncConfig, SyncStatus } from "@/lib/types";
+import { getSyncStatusAction, triggerSyncAction, updateSyncConfigAction } from "./actions";
 
 interface SyncPanelProps {
   initialStatus: SyncStatus;
   initialConfig: SyncConfig;
-  initialCredentials: ChatCredentialsInfo | null;
 }
 
 function formatDate(iso: string | null): string {
@@ -45,15 +28,6 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function formatShortDate(iso: string | null): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
 const statusBadge = {
   idle: { label: "正常", variant: "default" as const, className: "bg-green-600" },
   stale: { label: "停止中", variant: "default" as const, className: "bg-yellow-600" },
@@ -61,17 +35,15 @@ const statusBadge = {
   error: { label: "エラー", variant: "destructive" as const, className: "" },
 } as const;
 
-export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: SyncPanelProps) {
+export function SyncPanel({ initialStatus, initialConfig }: SyncPanelProps) {
   const [status, setStatus] = useState<SyncStatus>(initialStatus);
   const [config, setConfig] = useState<SyncConfig>(initialConfig);
-  const [credentials, setCredentials] = useState<ChatCredentialsInfo | null>(initialCredentials);
   const [interval, setInterval] = useState(String(initialConfig.intervalMinutes));
   const [isPending, startTransition] = useTransition();
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // ポーリング用: sync status のみ（credentials は操作時のみ更新）
-  const refreshStatus = useCallback(() => {
+  const refresh = useCallback(() => {
     setActionError(null);
     startTransition(async () => {
       try {
@@ -85,28 +57,9 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
     });
   }, []);
 
-  // 完全リフレッシュ: タブ復帰時など credentials も含む
-  const refresh = useCallback(() => {
-    setActionError(null);
-    startTransition(async () => {
-      try {
-        const [syncResult, credResult] = await Promise.all([
-          getSyncStatusAction(),
-          getChatCredentialsAction(),
-        ]);
-        setStatus(syncResult.status);
-        setConfig(syncResult.config);
-        setInterval(String(syncResult.config.intervalMinutes));
-        setCredentials(credResult);
-      } catch {
-        setActionError("ステータスの取得に失敗しました");
-      }
-    });
-  }, []);
-
-  // 60秒ポーリング（status のみ）+ タブ復帰時の完全リフレッシュ
+  // 60秒ポーリング + タブ復帰時リフレッシュ
   useEffect(() => {
-    const id = window.setInterval(refreshStatus, 60_000);
+    const id = window.setInterval(refresh, 60_000);
     const onVisible = () => {
       if (document.visibilityState === "visible") refresh();
     };
@@ -115,7 +68,7 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [refresh, refreshStatus]);
+  }, [refresh]);
 
   const handleSync = useCallback(() => {
     setSyncMessage(null);
@@ -158,28 +111,6 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
       }
     });
   }, [interval]);
-
-  const handleChatConnect = useCallback(() => {
-    if (
-      window.confirm(
-        "このアカウントで Google Chat の認証を行います。\n連携するアカウントは、対象の Chat スペースに参加しているメンバーである必要があります。\n\n続行しますか？",
-      )
-    ) {
-      window.location.href = "/api/auth/chat-connect";
-    }
-  }, []);
-
-  const handleDisconnect = useCallback(() => {
-    setActionError(null);
-    startTransition(async () => {
-      try {
-        await disconnectChatAccountAction();
-        setCredentials(null);
-      } catch {
-        setActionError("連携解除に失敗しました");
-      }
-    });
-  }, []);
 
   const stale = isSyncStale(status, config.intervalMinutes);
   const staleMinutes = Math.floor(getMinutesSinceLastSync(status.lastSyncedAt));
@@ -233,74 +164,6 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
           <p className="text-sm text-green-800">{syncMessage}</p>
         </div>
       )}
-
-      {/* Chat Credentials card */}
-      <div className="rounded-xl border border-border/60 bg-card p-6">
-        <div className="flex items-start gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
-            <MessageSquare className="h-4 w-4 text-emerald-700" />
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold">Google Chat 連携アカウント</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Google Chat スペースのメッセージ取得に使用するアカウント。
-              対象スペースに参加しているメンバーのアカウントが必要です。
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4">
-          {credentials ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <div>
-                  <p className="text-sm font-medium">{credentials.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {credentials.source === "adc" ? (
-                      "サーバー既定の認証（ADC）を使用中"
-                    ) : (
-                      <>
-                        {formatShortDate(credentials.connectedAt)} に連携
-                        {credentials.connectedBy && ` (${credentials.connectedBy})`}
-                      </>
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleChatConnect}>
-                  <LinkIcon className="mr-2 h-4 w-4" />
-                  {credentials.source === "adc" ? "アカウントを連携" : "アカウントを変更"}
-                </Button>
-                {credentials.source !== "adc" && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDisconnect}
-                    disabled={isPending}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Unlink className="mr-2 h-4 w-4" />
-                    解除
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <p className="text-sm text-muted-foreground">認証情報を取得できませんでした</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleChatConnect}>
-                <LinkIcon className="mr-2 h-4 w-4" />
-                アカウントを連携
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Status card */}
       <div className="rounded-xl border border-border/60 bg-card p-6">

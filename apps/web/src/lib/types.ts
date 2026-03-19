@@ -404,6 +404,14 @@ export interface LineGroupStat {
   count: number;
 }
 
+/** GET /api/line-messages/group-freshness のグループ鮮度情報 */
+export interface LineGroupFreshness {
+  groupId: string;
+  groupName: string;
+  isActive: boolean;
+  lastMessageAt: string | null;
+}
+
 /** GET /api/manual-tasks の1件 */
 export interface ManualTaskSummary {
   id: string;

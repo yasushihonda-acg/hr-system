@@ -106,6 +106,58 @@ lineMessageRoutes.get("/", zValidator("query", listQuerySchema), async (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /api/line-messages/group-freshness — グループ別最終取得日時
+// ---------------------------------------------------------------------------
+lineMessageRoutes.get("/group-freshness", async (c) => {
+  const actorRole = c.get("actorRole");
+  if (!actorRole || !["hr_staff", "hr_manager", "ceo"].includes(actorRole)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  const CACHE_KEY = "line-group-freshness";
+  const cached = getCached<{ groups: Array<Record<string, unknown>> }>(CACHE_KEY);
+  if (cached) return c.json(cached);
+
+  // 全 LINE グループ設定を取得
+  const groupsSnap = await collections.lineGroups.get();
+  const groupMap = new Map<string, { groupName: string; isActive: boolean }>();
+  for (const doc of groupsSnap.docs) {
+    const data = doc.data();
+    groupMap.set(data.groupId, {
+      groupName: data.displayName ?? data.groupId,
+      isActive: data.isActive ?? true,
+    });
+  }
+
+  // 各グループの最新メッセージを取得（グループ 0 件時は lineMessages を参照しない）
+  const groupIds = Array.from(groupMap.keys());
+  const freshnessResults = await Promise.all(
+    groupIds.map(async (groupId) => {
+      const snap = await collections.lineMessages
+        .where("groupId", "==", groupId)
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+      const lastMsg = snap.docs[0]?.data();
+      const lastMessageAt = lastMsg?.createdAt
+        ? toISO(lastMsg.createdAt as FirebaseFirestore.Timestamp)
+        : null;
+      const info = groupMap.get(groupId);
+      return {
+        groupId,
+        groupName: info?.groupName ?? groupId,
+        isActive: info?.isActive ?? true,
+        lastMessageAt,
+      };
+    }),
+  );
+
+  const result = { groups: freshnessResults };
+  setCache(CACHE_KEY, result, TTL.INBOX_COUNTS);
+  return c.json(result);
+});
+
+// ---------------------------------------------------------------------------
 // GET /api/line-messages/stats — グループ別統計
 // ---------------------------------------------------------------------------
 lineMessageRoutes.get("/stats", async (c) => {
