@@ -1,3 +1,4 @@
+import { MessageSquare } from "lucide-react";
 import { requireAdmin } from "@/lib/access-control";
 import { getChatCredentials, getChatSyncConfig, getChatSyncStatus } from "@/lib/api";
 import { SyncPanel } from "./sync-panel";
@@ -14,11 +15,16 @@ export default async function AdminSyncPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-sm font-semibold">Chat同期</h2>
-        <p className="text-xs text-muted-foreground">
-          Google Chatメッセージの同期状態を監視し、手動同期を実行できます
-        </p>
+      <div className="flex items-center gap-3">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
+          <MessageSquare className="h-4 w-4 text-emerald-700" />
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold">Google Chat 同期</h2>
+          <p className="text-xs text-muted-foreground">
+            Google Chat スペースのメッセージ取得・同期を管理します
+          </p>
+        </div>
       </div>
       <SyncPanel initialStatus={status} initialConfig={config} initialCredentials={credentials} />
     </div>

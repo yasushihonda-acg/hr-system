@@ -7,6 +7,7 @@ import {
   LinkIcon,
   Loader2,
   Mail,
+  MessageSquare,
   RefreshCw,
   Unlink,
 } from "lucide-react";
@@ -235,11 +236,18 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
 
       {/* Chat Credentials card */}
       <div className="rounded-xl border border-border/60 bg-card p-6">
-        <h2 className="text-sm font-semibold">Google Chat 連携アカウント</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Google Chat スペースのメッセージ取得に使用するアカウント。
-          対象スペースに参加しているメンバーのアカウントが必要です。
-        </p>
+        <div className="flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100">
+            <MessageSquare className="h-4 w-4 text-emerald-700" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold">Google Chat 連携アカウント</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Google Chat スペースのメッセージ取得に使用するアカウント。
+              対象スペースに参加しているメンバーのアカウントが必要です。
+            </p>
+          </div>
+        </div>
 
         <div className="mt-4">
           {credentials ? (
