@@ -440,6 +440,7 @@ export interface ChatMessageDetail extends ChatMessageSummary {
 /** Chat API 連携アカウント情報（トークンを含まない安全な型） */
 export interface ChatCredentialsInfo {
   email: string;
-  connectedBy: string;
-  connectedAt: string;
+  connectedBy: string | null;
+  connectedAt: string | null;
+  source?: "oauth" | "adc";
 }

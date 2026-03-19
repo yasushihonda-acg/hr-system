@@ -249,35 +249,41 @@ export function SyncPanel({ initialStatus, initialConfig, initialCredentials }: 
                 <div>
                   <p className="text-sm font-medium">{credentials.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatShortDate(credentials.connectedAt)} に連携
-                    {credentials.connectedBy && ` (${credentials.connectedBy})`}
+                    {credentials.source === "adc" ? (
+                      "サーバー既定の認証（ADC）を使用中"
+                    ) : (
+                      <>
+                        {formatShortDate(credentials.connectedAt)} に連携
+                        {credentials.connectedBy && ` (${credentials.connectedBy})`}
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleChatConnect}>
                   <LinkIcon className="mr-2 h-4 w-4" />
-                  アカウントを変更
+                  {credentials.source === "adc" ? "アカウントを連携" : "アカウントを変更"}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDisconnect}
-                  disabled={isPending}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Unlink className="mr-2 h-4 w-4" />
-                  解除
-                </Button>
+                {credentials.source !== "adc" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDisconnect}
+                    disabled={isPending}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Unlink className="mr-2 h-4 w-4" />
+                    解除
+                  </Button>
+                )}
               </div>
             </div>
           ) : (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <p className="text-sm text-muted-foreground">
-                  未連携（サーバー既定の認証を使用中）
-                </p>
+                <p className="text-sm text-muted-foreground">認証情報を取得できませんでした</p>
               </div>
               <Button variant="outline" size="sm" onClick={handleChatConnect}>
                 <LinkIcon className="mr-2 h-4 w-4" />

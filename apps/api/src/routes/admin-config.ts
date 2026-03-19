@@ -133,6 +133,35 @@ adminConfigRoutes.get("/chat-credentials", async (c) => {
 
   const doc = await db.doc(`app_config/${CHAT_CRED_DOC_ID}`).get();
   if (!doc.exists) {
+    // ADC フォールバック: 現在使用中のサービスアカウント/ユーザーの email を取得
+    try {
+      const { GoogleAuth } = await import("google-auth-library");
+      const auth = new GoogleAuth();
+      const cred = await auth.getCredentials();
+      if (cred.client_email) {
+        return c.json({
+          data: { email: cred.client_email, connectedBy: null, connectedAt: null, source: "adc" },
+        });
+      }
+      // ユーザー ADC の場合は client_email が無い → tokeninfo で取得
+      const client = await auth.getClient();
+      const token = await client.getAccessToken();
+      if (token?.token) {
+        const res = await fetch(
+          `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token.token}`,
+        );
+        if (res.ok) {
+          const info = (await res.json()) as { email?: string };
+          if (info.email) {
+            return c.json({
+              data: { email: info.email, connectedBy: null, connectedAt: null, source: "adc" },
+            });
+          }
+        }
+      }
+    } catch {
+      // ADC 情報取得失敗 → null を返す
+    }
     return c.json({ data: null });
   }
 
@@ -142,6 +171,7 @@ adminConfigRoutes.get("/chat-credentials", async (c) => {
       email: raw.email,
       connectedBy: raw.connectedBy,
       connectedAt: toISO(raw.connectedAt),
+      source: "oauth",
     },
   });
 });
