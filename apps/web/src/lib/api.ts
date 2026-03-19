@@ -14,6 +14,7 @@ import type {
   DraftSummary,
   IntentStatsSummary,
   LineGroupConfig,
+  LineGroupFreshness,
   LineGroupStat,
   LineMessageDetail,
   LineMessageSummary,
@@ -462,6 +463,10 @@ export function updateLineWorkflow(
     method: "PATCH",
     body: JSON.stringify(body),
   });
+}
+
+export function getLineGroupFreshness() {
+  return request<{ groups: LineGroupFreshness[] }>("/api/line-messages/group-freshness");
 }
 
 // --- Manual Tasks ---
