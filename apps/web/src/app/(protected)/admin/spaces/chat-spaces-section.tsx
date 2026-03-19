@@ -39,7 +39,7 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
   const handleChatConnect = useCallback(() => {
     if (
       window.confirm(
-        "このアカウントで Google Chat の認証を行います。\n連携するアカウントは、対象の Chat スペースに参加しているメンバーである必要があります。\n\n続行しますか？",
+        "Google Chat スペースからメッセージを取得するために、Google アカウントを連携します。\n\n連携するアカウントは、同期したいスペースに参加しているメンバーのアカウントを選んでください。\n\n続行しますか？",
       )
     ) {
       window.location.href = "/api/auth/chat-connect";
@@ -77,8 +77,8 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
           <div>
             <h2 className="text-sm font-semibold">Google Chat 連携アカウント</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Google Chat スペースのメッセージ取得に使用するアカウント。
-              対象スペースに参加しているメンバーのアカウントが必要です。
+              Google Chat スペースからメッセージを取得するために、スペースに参加している Google
+              アカウントを連携します。
             </p>
           </div>
         </div>
@@ -92,7 +92,7 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
                   <p className="text-sm font-medium">{credentials.email}</p>
                   <p className="text-xs text-muted-foreground">
                     {credentials.source === "adc" ? (
-                      "サーバー既定の認証（ADC）を使用中"
+                      "自動検出されたアカウント（未連携）"
                     ) : (
                       <>
                         {formatShortDate(credentials.connectedAt)} に連携
@@ -140,12 +140,15 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
           <p className="text-xs text-amber-800">
             {credentials?.email ? (
               <>
-                ⚠ 追加するスペースには{" "}
-                <span className="font-mono font-medium">{credentials.email}</span>{" "}
-                が参加している必要があります。
+                ⚠ 連携アカウント（
+                <span className="font-mono font-medium">{credentials.email}</span>
+                ）が参加しているスペースのみ同期できます。
               </>
             ) : (
-              <>⚠ 同期アカウントが未連携です。上のボタンからアカウントを連携してください。</>
+              <>
+                ⚠
+                アカウントが未連携です。スペースのメッセージを取得するには、上のボタンからアカウントを連携してください。
+              </>
             )}
           </p>
           <details className="mt-2">
@@ -154,11 +157,12 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
             </summary>
             <div className="mt-3 space-y-3 text-xs text-amber-800">
               <div>
-                <p className="font-semibold mb-1">■ なぜこの制約があるのか</p>
+                <p className="font-semibold mb-1">■ なぜアカウント連携が必要なのか</p>
                 <p className="leading-relaxed">
-                  Google Chat スペースが「外部ユーザーの招待を禁止」に設定されている場合、
-                  システムのサービスアカウントを Chat App としてスペースにインストールできません。
-                  そのため、スペースに参加済みの開発者アカウントの認証情報でデータを取得しています。
+                  Google Chat
+                  のメッセージを読み取るには、そのスペースに参加しているアカウントの権限が必要です。
+                  組織の設定により外部アプリの直接インストールが制限されている場合があるため、
+                  スペースに参加しているメンバーのアカウントを連携してデータを取得します。
                 </p>
               </div>
               <div>
