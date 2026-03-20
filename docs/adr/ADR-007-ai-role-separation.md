@@ -238,5 +238,5 @@ graph TD
 
 - [ADR-001: 全体アーキテクチャ — GCPベース構成](./ADR-001-gcp-architecture.md)
 - [ADR-002: LLM選定 — Vertex AI (Gemini)](./ADR-002-llm-selection.md)
-- [ADR-003: データベース選定 — Cloud SQL (PostgreSQL)](./ADR-003-database-selection.md)
+- [ADR-003: データベース選定 — Firestore + BigQuery ハイブリッド](./ADR-003-database-selection.md)
 - [ADR-006: Human-in-the-loop 設計パターン](./ADR-006-human-in-the-loop.md)
