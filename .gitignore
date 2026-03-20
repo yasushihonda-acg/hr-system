@@ -26,6 +26,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Screenshots (PR確認用の一時ファイル)
+/*.png
+
 # GCP
 service-account-key*.json
 *.key.json
