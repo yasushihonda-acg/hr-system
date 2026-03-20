@@ -1,7 +1,7 @@
 # HR-AI Agent — Session Handoff
 
 **最終更新**: 2026-03-20（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `414faee` — fix: LINE Bot招待ヘルプ画像のBot名をACG人事Botに修正 (#398)）
+**ブランチ**: `main`（最新コミット: `df9b7b1` — ui: アカウント連携ボタンに本人操作が必要な旨の説明を追加 (#401)）
 
 ---
 
@@ -11,7 +11,7 @@
 
 同期タブ・スペースタブの UI 再構成、Google Chat 連携アカウントの説明文改善、LINE グループ管理機能追加、同期監視の自動更新・鮮度チェック強化。
 
-**CI**: Deploy to Cloud Run (#398) — success
+**CI**: Deploy to Cloud Run (#401) — success
 
 ---
 
@@ -32,6 +32,19 @@
 ---
 
 ## 直近の変更（最新5件）
+
+### ui: アカウント連携ボタンに本人操作が必要な旨の説明を追加 (#401) (df9b7b1)
+- 確認ダイアログに「連携したいアカウントの本人が操作する必要がある」旨を追加
+- 「詳しく見る」セクションに「連携時の注意事項」を新設（OAuth認証の仕組み上、管理者が代理連携できない理由を説明）
+- CI: Deploy to Cloud Run — **success**
+
+### chore: ルートのスクリーンショット画像を整理し .gitignore に追加 (#400) (72d9b89)
+- PR確認用の一時スクリーンショット8枚を削除、`.gitignore` にルートの `/*.png` パターンを追加
+- CI: Deploy to Cloud Run — **success**
+
+### docs: LATEST.md を最新セッション(#395-#398)に更新 (#399) (7c01ad8)
+- LATEST.md を最新セッション内容に更新
+- CI: Deploy to Cloud Run — **success**
 
 ### fix: LINE Bot招待ヘルプ画像のBot名をACG人事Botに修正 (#398) (414faee)
 - 画像内のBot名「HR AI Agent」→「ACG人事Bot」に修正、下部キャプションの日本語崩れも修正
@@ -331,7 +344,11 @@
 
 ## オープン GitHub Issues
 
-現在オープンな Issue なし（全 Issue がクローズ済み）。
+| # | タイトル | ラベル |
+|---|---------|--------|
+| #361 | feat: Chat同期エラー時のグローバルアラートバナー | enhancement, P1 |
+| #360 | sync API の GET エンドポイント権限チェック + PII 混入防止 | enhancement, P2 |
+| #357 | bug: Google Chat メッセージが 03/07 以降取得されていない可能性 | bug, P0 |
 
 ---
 
