@@ -39,7 +39,7 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
   const handleChatConnect = useCallback(() => {
     if (
       window.confirm(
-        "Google Chat スペースからメッセージを取得するために、Google アカウントを連携します。\n\n連携するアカウントは、同期したいスペースに参加しているメンバーのアカウントを選んでください。\n\n続行しますか？",
+        "Google Chat スペースからメッセージを取得するために、Google アカウントを連携します。\n\n⚠ 重要：連携したいアカウントの本人が、自分のブラウザでこのボタンを押して操作する必要があります（管理者が代理で連携することはできません）。\n\n連携するアカウントは、同期したいスペースに参加しているメンバーのアカウントを選んでください。\n\n続行しますか？",
       )
     ) {
       window.location.href = "/api/auth/chat-connect";
@@ -161,6 +161,15 @@ export function ChatSpacesSection({ initialSpaces, initialCredentials }: ChatSpa
                   のメッセージを読み取るには、そのスペースに参加しているアカウントの権限が必要です。
                   組織の設定により外部アプリの直接インストールが制限されている場合があるため、
                   スペースに参加しているメンバーのアカウントを連携してデータを取得します。
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold mb-1">■ 連携時の注意事項</p>
+                <p className="leading-relaxed">
+                  「アカウントを連携」ボタンは、<strong>連携したいアカウントの本人</strong>
+                  が自分のブラウザで操作する必要があります。 OAuth
+                  認証の仕組み上、現在ブラウザにログインしている Google
+                  アカウントで認証が行われるため、管理者が他のユーザーのアカウントを代理で連携することはできません。
                 </p>
               </div>
               <div>
