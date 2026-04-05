@@ -1,17 +1,20 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-03-20（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `df9b7b1` — ui: アカウント連携ボタンに本人操作が必要な旨の説明を追加 (#401)）
+**最終更新**: 2026-04-05（セッション終了時点・最終更新）
+**ブランチ**: `main`（最新コミット: `e0eb0af` — docs: LATEST.md のオープンIssue一覧を実態に合わせて更新 (#405)）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 11 完了後 — UI/UX 継続改善**
+**Phase 12 進行中 — SmartHR MCP サーバー構築（Issue #406）**
 
-同期タブ・スペースタブの UI 再構成、Google Chat 連携アカウントの説明文改善、LINE グループ管理機能追加、同期監視の自動更新・鮮度チェック強化。
+SmartHR API と Claude Code を繋ぐ MCP サーバー（`packages/mcp-smarthr`）を新規作成中。
+P1-6（テスト作成）が進行中、P1-7（ビルド・lint・型チェック全PASS + コミット）が未着手。
 
-**CI**: Deploy to Cloud Run (#401) — success
+ADR-008（AIエージェント拡張 MCP + Function Calling 段階導入）のPR #409 がオープン中（feature/adr-008-ai-agent-extension ブランチ）。
+
+**CI**: docs: ADR-008 AIエージェント拡張 PR #409 — success
 
 ---
 
@@ -28,47 +31,37 @@
 | Phase 9 | 担当者・期限インライン編集・手動タスクUI改善・AI判定パネル削除 | 完了 |
 | Phase 10 | タスクテーブルビュー拡充（列分離・カテゴリタグ/フィルタ・ワークフローステップ列・メモ列） | 完了 |
 | Phase 11 | 受信箱・タスクボードのメモ機能統一（notes フィールド統合） | 完了 |
+| Phase 12 | SmartHR MCP サーバー構築（packages/mcp-smarthr）+ ADR-008 | 進行中 |
 
 ---
 
 ## 直近の変更（最新5件）
 
+### Phase 12: packages/mcp-smarthr 新規作成（今セッション・未コミット）
+- `packages/mcp-smarthr/` — SmartHR MCP サーバーパッケージを新規追加
+  - `src/types.ts`: SmartHR API 型定義（Employee, Crew, Department, Payroll 等）
+  - `src/smarthr-client.ts`: SmartHR REST API クライアント
+  - `src/tools.ts`: MCP ツール定義（list_employees, get_employee, list_departments 等）
+  - `src/index.ts`: MCP サーバーエントリポイント
+  - `src/__tests__/smarthr-client.test.ts`: テスト（進行中）
+- `.env.example` に `SMARTHR_API_KEY`, `SMARTHR_TENANT_ID` を追加
+- `.mcp.json` を新規作成（Claude Code からローカル起動設定）
+- `pnpm-lock.yaml` を更新（@modelcontextprotocol/sdk, zod 追加）
+
+### docs: LATEST.md のオープンIssue一覧を実態に合わせて更新 (#405) (e0eb0af)
+- オープンIssue一覧を全件Close実態に合わせて更新（#402-#405 参照）
+- CI: Deploy to Cloud Run — **success**
+
+### docs: ADR-006/007 のADR-003参照テキストを実態に合わせて修正 (#404) (e2a1068)
+- ADR-003 参照テキストを実態の表現に修正
+- CI: Deploy to Cloud Run — **success**
+
+### docs: LATEST.md のオープンIssue一覧を実態に合わせて更新 (#403) (7a97525)
+- オープンIssue一覧更新
+- CI: Deploy to Cloud Run — **success**
+
 ### ui: アカウント連携ボタンに本人操作が必要な旨の説明を追加 (#401) (df9b7b1)
 - 確認ダイアログに「連携したいアカウントの本人が操作する必要がある」旨を追加
-- 「詳しく見る」セクションに「連携時の注意事項」を新設（OAuth認証の仕組み上、管理者が代理連携できない理由を説明）
-- CI: Deploy to Cloud Run — **success**
-
-### chore: ルートのスクリーンショット画像を整理し .gitignore に追加 (#400) (72d9b89)
-- PR確認用の一時スクリーンショット8枚を削除、`.gitignore` にルートの `/*.png` パターンを追加
-- CI: Deploy to Cloud Run — **success**
-
-### docs: LATEST.md を最新セッション(#395-#398)に更新 (#399) (7c01ad8)
-- LATEST.md を最新セッション内容に更新
-- CI: Deploy to Cloud Run — **success**
-
-### fix: LINE Bot招待ヘルプ画像のBot名をACG人事Botに修正 (#398) (414faee)
-- 画像内のBot名「HR AI Agent」→「ACG人事Bot」に修正、下部キャプションの日本語崩れも修正
-- CI: Deploy to Cloud Run — **success**
-
-### fix: LINE Bot招待ヘルプのBot名をACG人事Botに修正 (#397) (dce14a1)
-- ヘルプテキストのステップ③「HR AI Agent」→「ACG人事Bot」に修正（LINE Developers設定に合わせる）
-- CI: Deploy to Cloud Run — **success**
-
-### ui: LINEタブにBot招待ヘルプ（展開式）を追加 (#396) (9a6d08f)
-- LINEタブの青い案内ボックスに、Bot招待手順の展開式ヘルプ（Collapsible）を追加
-- Google Chatヘルプ（PR #395）と同じUIパターンで統一、Gemini生成の3ステップ説明画像付き
-- CI: Deploy to Cloud Run — **success**
-
-### ui: スペース追加ダイアログにSpace ID取得ヘルプを追加 (#395) (a74eef7)
-- スペース追加ダイアログに、Space IDの確認方法を展開式ヘルプ（Collapsible + 説明画像）で追加
-- CI: Deploy to Cloud Run — **success**
-
-### chore: GitHub Actions を Node.js 24 対応バージョンに更新 (#394) (6fb3488)
-- `actions/setup-node@v4`, `actions/cache@v4`, `actions/checkout@v4` に更新（Node.js 20非推奨対応）
-- CI: Deploy to Cloud Run — **success**
-
-### refactor: ソート可能ヘッダーのclassNameを定数化 (#393) (8585e58)
-- `SortableHeader` の `className` をインライン文字列から定数に切り出し、可読性・保守性を向上
 - CI: Deploy to Cloud Run — **success**
 
 ### fix: ソート関数のテスト追加・aria-sort対応・ORDER定数の二重定義解消 (#392) (5ba2811)

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "smarthr": {
+      "command": "npx",
+      "args": ["tsx", "packages/mcp-smarthr/src/index.ts"],
+      "env": {
+        "SMARTHR_API_KEY": "${SMARTHR_API_KEY}",
+        "SMARTHR_TENANT_ID": "${SMARTHR_TENANT_ID}"
+      }
+    }
+  }
+}
