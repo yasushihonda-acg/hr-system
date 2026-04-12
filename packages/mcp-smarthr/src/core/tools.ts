@@ -19,9 +19,22 @@ const TOOL_NAMES = [
 
 export type ToolName = (typeof TOOL_NAMES)[number];
 
+/** MCP ツールアノテーション（readOnlyHint, destructiveHint 等） */
+export interface ToolAnnotation {
+  /** true = 読み取り専用（副作用なし） */
+  readOnlyHint?: boolean;
+  /** true = 破壊的操作（データ削除等） */
+  destructiveHint?: boolean;
+  /** true = 同じパラメータで複数回呼んでも結果が変わらない */
+  idempotentHint?: boolean;
+  /** ツール表示名（人間向け） */
+  title?: string;
+}
+
 interface ToolDefinition {
   description: string;
-  shape: Record<string, unknown>;
+  shape: Record<string, z.ZodTypeAny>;
+  annotations: ToolAnnotation;
   handler: (params: never) => Promise<unknown>;
 }
 
@@ -31,6 +44,7 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
     list_employees: {
       description: "SmartHRの従業員一覧を取得します。ページネーション対応。",
       shape: paginationShape,
+      annotations: { readOnlyHint: true, idempotentHint: true, title: "従業員一覧" },
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listEmployees(params);
         return formatListResult("従業員", result.data, result.totalCount);
@@ -42,6 +56,7 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
       shape: {
         id: z.string().describe("SmartHR従業員ID"),
       },
+      annotations: { readOnlyHint: true, idempotentHint: true, title: "従業員詳細" },
       handler: async (params: { id: string }) => {
         return await client.getEmployee(params.id);
       },
@@ -53,6 +68,7 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
         query: z.string().describe("検索キーワード（名前、社員番号等）"),
         ...paginationShape,
       },
+      annotations: { readOnlyHint: true, idempotentHint: true, title: "従業員検索" },
       handler: async (params: { query: string; page?: number; per_page?: number }) => {
         const result = await client.searchEmployees(params.query, {
           page: params.page,
@@ -63,7 +79,9 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
     },
 
     get_pay_statements: {
-      description: "SmartHRの給与明細を取得します。従業員ID・年・月で絞り込み可能。",
+      description:
+        "SmartHRの給与明細を取得します。従業員ID・年・月で絞り込み可能。admin権限が必要です。",
+      annotations: { readOnlyHint: true, idempotentHint: true, title: "給与明細" },
       shape: {
         crew_id: z.string().optional().describe("従業員ID（絞り込み）"),
         year: z.number().int().optional().describe("年（例: 2026）"),
@@ -85,6 +103,7 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
     list_departments: {
       description: "SmartHRの部署一覧を取得します。",
       shape: paginationShape,
+      annotations: { readOnlyHint: true, idempotentHint: true, title: "部署一覧" },
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listDepartments(params);
         return formatListResult("部署", result.data, result.totalCount);
@@ -94,6 +113,7 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
     list_positions: {
       description: "SmartHRの役職一覧を取得します。",
       shape: paginationShape,
+      annotations: { readOnlyHint: true, idempotentHint: true, title: "役職一覧" },
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listPositions(params);
         return formatListResult("役職", result.data, result.totalCount);

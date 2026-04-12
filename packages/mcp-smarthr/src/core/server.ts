@@ -49,89 +49,97 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
   for (const [name, tool] of Object.entries(tools)) {
     if (!(name in TOOL_PERMISSIONS)) continue;
 
-    server.tool(name, tool.description, tool.shape, async (params: Record<string, unknown>) => {
-      // --- fail-closed: 認証コンテキスト解決・認可チェックの失敗はアクセス拒否 ---
-      let authContext: AuthContext;
-      try {
-        authContext = resolveAuthContext();
-      } catch (error) {
-        console.error(
-          JSON.stringify({
-            severity: "ERROR",
-            message: "Failed to resolve auth context",
-            tool: name,
-            error: error instanceof Error ? error.message : String(error),
-            source: "mcp-smarthr",
-          }),
-        );
-        return {
-          content: [{ type: "text" as const, text: "Error: 認証コンテキストの解決に失敗しました" }],
-          isError: true,
-        };
-      }
-
-      let authResult: Awaited<ReturnType<typeof authorizer.authorize>>;
-      try {
-        authResult = await authorizer.authorize(authContext, name);
-      } catch (error) {
-        console.error(
-          JSON.stringify({
-            severity: "ERROR",
-            message: "Authorization system failure - denying access",
-            tool: name,
-            email: authContext.email,
-            error: error instanceof Error ? error.message : String(error),
-            source: "mcp-smarthr",
-          }),
-        );
-        return {
-          content: [{ type: "text" as const, text: "Error: 認証システムエラー" }],
-          isError: true,
-        };
-      }
-
-      if (!authResult.authorized) {
-        // 拒否時も監査ログを記録（失敗しても拒否レスポンスは返す）
+    server.tool(
+      name,
+      tool.description,
+      tool.shape,
+      tool.annotations,
+      async (params: Record<string, unknown>) => {
+        // --- fail-closed: 認証コンテキスト解決・認可チェックの失敗はアクセス拒否 ---
+        let authContext: AuthContext;
         try {
-          await auditLogger.logToolCall(name, authContext.email, params, async () => {
-            throw new Error(authResult.reason ?? "アクセスが拒否されました");
-          });
-        } catch {
-          // logToolCall は内部で fn の throw を re-throw するため、ここで捕捉する
-          // 監査ログの出力自体は logToolCall の finally ブロックで完了済み
+          authContext = resolveAuthContext();
+        } catch (error) {
+          console.error(
+            JSON.stringify({
+              severity: "ERROR",
+              message: "Failed to resolve auth context",
+              tool: name,
+              error: error instanceof Error ? error.message : String(error),
+              source: "mcp-smarthr",
+            }),
+          );
+          return {
+            content: [
+              { type: "text" as const, text: "Error: 認証コンテキストの解決に失敗しました" },
+            ],
+            isError: true,
+          };
         }
-        return {
-          content: [{ type: "text" as const, text: `アクセス拒否: ${authResult.reason}` }],
-          isError: true,
-        };
-      }
 
-      // 認可OK → 監査ログ付きでハンドラ実行 → PII フィルタ適用
-      try {
-        const result: unknown = await auditLogger.logToolCall(name, authContext.email, params, () =>
-          tool.handler(params as never),
-        );
+        let authResult: Awaited<ReturnType<typeof authorizer.authorize>>;
+        try {
+          authResult = await authorizer.authorize(authContext, name);
+        } catch (error) {
+          console.error(
+            JSON.stringify({
+              severity: "ERROR",
+              message: "Authorization system failure - denying access",
+              tool: name,
+              email: authContext.email,
+              error: error instanceof Error ? error.message : String(error),
+              source: "mcp-smarthr",
+            }),
+          );
+          return {
+            content: [{ type: "text" as const, text: "Error: 認証システムエラー" }],
+            isError: true,
+          };
+        }
 
-        // handler はオブジェクトを返すため、直接 PII フィルタを適用
-        const filtered = filterPII(result, authResult.role);
-        return { content: [{ type: "text" as const, text: JSON.stringify(filtered, null, 2) }] };
-      } catch (error) {
-        // エラーメッセージに PII が含まれる可能性があるため、汎用メッセージを返す
-        console.error(
-          JSON.stringify({
-            severity: "ERROR",
-            message: error instanceof Error ? error.message : String(error),
-            tool: name,
-            email: authContext.email,
-            source: "mcp-smarthr",
-          }),
-        );
-        return {
-          content: [{ type: "text" as const, text: "Error: ツール実行中にエラーが発生しました" }],
-          isError: true,
-        };
-      }
-    });
+        if (!authResult.authorized) {
+          const reason = authResult.reason ?? "アクセスが拒否されました";
+          try {
+            await auditLogger.logDenied(name, authContext.email, params, reason);
+          } catch {
+            // 監査ログの失敗がツールレスポンスをブロックしないようにする
+          }
+          return {
+            content: [{ type: "text" as const, text: `アクセス拒否: ${reason}` }],
+            isError: true,
+          };
+        }
+
+        // 認可OK → 監査ログ付きでハンドラ実行 → PII フィルタ適用
+        try {
+          const result: unknown = await auditLogger.logToolCall(
+            name,
+            authContext.email,
+            params,
+            () => tool.handler(params as never),
+          );
+
+          // handler はオブジェクトを返すため、直接 PII フィルタを適用
+          const filtered = filterPII(result, authResult.role);
+          return { content: [{ type: "text" as const, text: JSON.stringify(filtered, null, 2) }] };
+        } catch (error) {
+          // エラーメッセージに PII が含まれる可能性があるため、汎用メッセージを返す
+          console.error(
+            JSON.stringify({
+              severity: "ERROR",
+              message: error instanceof Error ? error.message : String(error),
+              tool: name,
+              email: authContext.email,
+              source: "mcp-smarthr",
+            }),
+          );
+          return {
+            content: [{ type: "text" as const, text: "Error: ツール実行中にエラーが発生しました" }],
+            isError: true,
+          };
+        }
+      },
+    );
   }
 
   return server;

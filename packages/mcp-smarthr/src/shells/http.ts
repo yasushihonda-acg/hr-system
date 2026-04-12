@@ -19,6 +19,9 @@ import { OAuth2Client } from "google-auth-library";
 import { cors } from "hono/cors";
 import type { AuthContext, UserStore } from "../core/middleware/auth.js";
 import { createAuthContext } from "../core/middleware/auth.js";
+import type { OAuthConfig } from "../core/oauth/config.js";
+import { verifyAccessToken } from "../core/oauth/jwt.js";
+import { createOAuthRoutes } from "../core/oauth/routes.js";
 import { createMcpServer } from "../core/server.js";
 import { SmartHRClient } from "../core/smarthr-client.js";
 
@@ -33,6 +36,13 @@ export interface HttpShellOptions {
   authDisabled?: boolean;
   /** true にすると Anthropic IP 範囲のみ /mcp へのアクセスを許可する */
   ipRestrictionEnabled?: boolean;
+  /** OAuth 設定（指定時は OAuth 2.1 AS を有効化） */
+  oauth?: {
+    googleClientSecret: string;
+    jwtSecret: string;
+    serverUrl: string;
+    jwtExpiresIn?: number;
+  };
 }
 
 /**
@@ -138,10 +148,45 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
   const oauthClient = new OAuth2Client(googleClientId);
   const app = createMcpHonoApp({ host: "0.0.0.0" });
 
-  // CORS（MCP ヘッダーを expose）
+  // OAuth 2.1 Authorization Server ルート（指定時のみ有効化）
+  const oauthConfig: OAuthConfig | undefined = options.oauth
+    ? {
+        serverUrl: options.oauth.serverUrl,
+        googleClientId,
+        googleClientSecret: options.oauth.googleClientSecret,
+        jwtSecret: options.oauth.jwtSecret,
+        jwtExpiresIn: options.oauth.jwtExpiresIn,
+        allowedDomain,
+      }
+    : undefined;
+
+  if (oauthConfig) {
+    const oauthRoutes = createOAuthRoutes(oauthConfig, userStore);
+    app.route("", oauthRoutes);
+    console.log(
+      JSON.stringify({
+        severity: "INFO",
+        message: "OAuth 2.1 Authorization Server enabled",
+        serverUrl: oauthConfig.serverUrl,
+        source: "mcp-smarthr",
+      }),
+    );
+  }
+
+  // CORS（許可オリジンリスト + MCP ヘッダーを expose）
+  // claude.ai / Cowork からのサーバー間通信は CORS 対象外だが、
+  // ブラウザベースクライアント（自社アプリ等）のために設定
+  const allowedOrigins = [
+    "https://claude.ai",
+    "https://app.cowork.com",
+    ...(oauthConfig ? [oauthConfig.serverUrl] : []),
+  ];
   app.use(
     cors({
-      origin: "*",
+      origin: (origin) => {
+        if (!origin) return origin; // サーバー間通信（Origin なし）は許可
+        return allowedOrigins.includes(origin) ? origin : null;
+      },
       allowHeaders: ["Content-Type", "Authorization", "Mcp-Session-Id", "Mcp-Protocol-Version"],
       exposeHeaders: ["WWW-Authenticate", "Mcp-Session-Id", "Mcp-Protocol-Version"],
     }),
@@ -213,8 +258,40 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     if (authDisabled) {
       // デモモード: 認証スキップ、デフォルト AuthContext を使用
       authContext = createAuthContext("demo@aozora-cg.com", "http");
+    } else if (oauthConfig) {
+      // OAuth モード: 自前 JWT 検証
+      const authHeader = c.req.header("authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        const resourceMetadataUrl = `${oauthConfig.serverUrl}/.well-known/oauth-protected-resource`;
+        c.header(
+          "WWW-Authenticate",
+          `Bearer resource_metadata="${resourceMetadataUrl}", scope="mcp:read"`,
+        );
+        return c.json({ error: "Authorization required" }, 401);
+      }
+
+      const token = authHeader.slice(7);
+      try {
+        const claims = await verifyAccessToken(token, oauthConfig.jwtSecret, oauthConfig.serverUrl);
+        authContext = createAuthContext(claims.email, "http", claims.domain);
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            severity: "WARNING",
+            message: "JWT verification failed",
+            error: error instanceof Error ? error.message : String(error),
+            source: "mcp-smarthr",
+          }),
+        );
+        const resourceMetadataUrl = `${oauthConfig.serverUrl}/.well-known/oauth-protected-resource`;
+        c.header(
+          "WWW-Authenticate",
+          `Bearer error="invalid_token", resource_metadata="${resourceMetadataUrl}"`,
+        );
+        return c.json({ error: "Invalid or expired token" }, 401);
+      }
     } else {
-      // 本番モード: Google OAuth トークン検証
+      // レガシーモード: Google ID トークン直接検証
       const result = await verifyGoogleToken(
         oauthClient,
         googleClientId,
