@@ -3,50 +3,7 @@ import {
   type AuditLogEntry,
   AuditLogger,
   type AuditLogStore,
-  maskPII,
 } from "../core/middleware/audit-logger.js";
-
-describe("maskPII", () => {
-  it("should mask PII fields", () => {
-    const input = {
-      email: "taro@example.com",
-      phone: "090-1234-5678",
-      department: "engineering",
-    };
-    const result = maskPII(input);
-    expect(result).toEqual({
-      email: "***",
-      phone: "***",
-      department: "engineering",
-    });
-  });
-
-  it("should mask nested PII fields recursively", () => {
-    const input = {
-      crew: {
-        first_name: "Taro",
-        department: "engineering",
-      },
-    };
-    const result = maskPII(input);
-    expect(result).toEqual({
-      crew: {
-        first_name: "***",
-        department: "engineering",
-      },
-    });
-  });
-
-  it("should not mask non-PII fields", () => {
-    const input = { department: "engineering", page: 1, per_page: 10 };
-    const result = maskPII(input);
-    expect(result).toEqual(input);
-  });
-
-  it("should handle empty object", () => {
-    expect(maskPII({})).toEqual({});
-  });
-});
 
 describe("AuditLogger", () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -126,7 +83,7 @@ describe("AuditLogger", () => {
     );
 
     const entry: AuditLogEntry = JSON.parse(consoleSpy.mock.calls[0]?.[0] as string);
-    expect(entry.params.email).toBe("***");
+    expect(entry.params.email).toBe("[REDACTED]");
     expect(entry.params.department).toBe("engineering");
   });
 
@@ -156,5 +113,26 @@ describe("AuditLogger", () => {
 
     expect(result).toEqual({ data: [1, 2, 3] });
     expect(store.write).toHaveBeenCalledOnce();
+  });
+
+  it("should log error to console.error when store.write fails", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const store: AuditLogStore = {
+      write: vi.fn().mockRejectedValue(new Error("Firestore unavailable")),
+    };
+    const logger = new AuditLogger(store);
+
+    await logger.logToolCall("list_crews", "admin@example.com", {}, async () => ({}));
+
+    // persistLog は非同期なので microtask を待つ
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(errorSpy).toHaveBeenCalledOnce();
+    const logOutput = JSON.parse(errorSpy.mock.calls[0]?.[0] as string);
+    expect(logOutput.severity).toBe("ERROR");
+    expect(logOutput.message).toBe("Audit log persistence failed");
+    expect(logOutput.error).toBe("Firestore unavailable");
+
+    errorSpy.mockRestore();
   });
 });

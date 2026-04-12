@@ -7,15 +7,33 @@ const paginationShape = {
   per_page: z.number().int().min(1).max(100).optional().describe("1ページあたりの件数（最大100）"),
 };
 
+/** ツール名一覧（TOOL_PERMISSIONS との同期を型で強制するために定義） */
+const TOOL_NAMES = [
+  "list_employees",
+  "get_employee",
+  "search_employees",
+  "get_pay_statements",
+  "list_departments",
+  "list_positions",
+] as const;
+
+export type ToolName = (typeof TOOL_NAMES)[number];
+
+interface ToolDefinition {
+  description: string;
+  shape: Record<string, unknown>;
+  handler: (params: never) => Promise<unknown>;
+}
+
 /** ツール定義一覧 */
-export function defineTools(client: SmartHRClient) {
+export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinition> {
   return {
     list_employees: {
       description: "SmartHRの従業員一覧を取得します。ページネーション対応。",
       shape: paginationShape,
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listEmployees(params);
-        return formatListResult("従業員", result.data.length, result.totalCount, result.data);
+        return formatListResult("従業員", result.data, result.totalCount);
       },
     },
 
@@ -25,8 +43,7 @@ export function defineTools(client: SmartHRClient) {
         id: z.string().describe("SmartHR従業員ID"),
       },
       handler: async (params: { id: string }) => {
-        const crew = await client.getEmployee(params.id);
-        return formatResult(crew);
+        return await client.getEmployee(params.id);
       },
     },
 
@@ -41,7 +58,7 @@ export function defineTools(client: SmartHRClient) {
           page: params.page,
           per_page: params.per_page,
         });
-        return formatListResult("従業員", result.data.length, result.totalCount, result.data);
+        return formatListResult("従業員", result.data, result.totalCount);
       },
     },
 
@@ -61,7 +78,7 @@ export function defineTools(client: SmartHRClient) {
         per_page?: number;
       }) => {
         const result = await client.getPayStatements(params);
-        return formatListResult("給与明細", result.data.length, result.totalCount, result.data);
+        return formatListResult("給与明細", result.data, result.totalCount);
       },
     },
 
@@ -70,7 +87,7 @@ export function defineTools(client: SmartHRClient) {
       shape: paginationShape,
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listDepartments(params);
-        return formatListResult("部署", result.data.length, result.totalCount, result.data);
+        return formatListResult("部署", result.data, result.totalCount);
       },
     },
 
@@ -79,28 +96,19 @@ export function defineTools(client: SmartHRClient) {
       shape: paginationShape,
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listPositions(params);
-        return formatListResult("役職", result.data.length, result.totalCount, result.data);
+        return formatListResult("役職", result.data, result.totalCount);
       },
     },
-  } as const;
-}
-
-function formatResult(data: unknown): string {
-  return JSON.stringify(data, null, 2);
+  };
 }
 
 function formatListResult(
   label: string,
-  count: number,
-  totalCount: number,
   data: unknown[],
-): string {
-  return JSON.stringify(
-    {
-      summary: `${label}: ${count}件 / 全${totalCount}件`,
-      data,
-    },
-    null,
-    2,
-  );
+  totalCount: number,
+): { summary: string; data: unknown[] } {
+  return {
+    summary: `${label}: ${data.length}件 / 全${totalCount}件`,
+    data,
+  };
 }

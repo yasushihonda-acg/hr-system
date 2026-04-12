@@ -1,5 +1,6 @@
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { AuthContext, UserStore } from "../core/middleware/auth.js";
+import type { UserStore } from "../core/middleware/auth.js";
+import { createAuthContext } from "../core/middleware/auth.js";
 import { createMcpServer } from "../core/server.js";
 import { SmartHRClient } from "../core/smarthr-client.js";
 
@@ -32,12 +33,14 @@ export async function startStdio(): Promise<void> {
   }
 
   const userEmail = process.env.MCP_USER_EMAIL ?? "local@aozora-cg.com";
+  if (!process.env.MCP_USER_EMAIL) {
+    console.error(
+      "Warning: MCP_USER_EMAIL not set. Using default identity local@aozora-cg.com. " +
+        "Audit logs will not reflect actual user identity.",
+    );
+  }
 
-  const authContext: AuthContext = {
-    email: userEmail,
-    domain: userEmail.split("@")[1] ?? "",
-    transport: "stdio",
-  };
+  const authContext = createAuthContext(userEmail, "stdio");
 
   const client = new SmartHRClient({ accessToken: apiKey, tenantId });
   const server = createMcpServer({

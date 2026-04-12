@@ -12,14 +12,33 @@
 // Role は pii-filter.ts で定義済み — 重複を避けて re-export
 export type { Role } from "./pii-filter.js";
 
+import type { ToolName } from "../tools.js";
 import type { Role } from "./pii-filter.js";
 
 /** Shell 層から渡される認証コンテキスト */
 export interface AuthContext {
-  email: string;
-  /** hd クレーム or email のドメイン部分 */
-  domain: string;
-  transport: "stdio" | "http";
+  readonly email: string;
+  /** email から自動導出されたドメイン部分（hd クレームがある場合はそちらを優先） */
+  readonly domain: string;
+  readonly transport: "stdio" | "http";
+}
+
+/**
+ * AuthContext を生成するファクトリ関数。
+ * domain は email から自動導出し、email/domain の不整合を防止する。
+ * HTTP トランスポートで hd クレームを優先する場合は hdOverride を指定する。
+ */
+export function createAuthContext(
+  email: string,
+  transport: "stdio" | "http",
+  hdOverride?: string,
+): AuthContext {
+  if (!email.includes("@")) {
+    throw new Error(`Invalid email format: ${email}`);
+  }
+  const emailDomain = email.split("@")[1] ?? "";
+  const domain = hdOverride ?? emailDomain;
+  return Object.freeze({ email, domain, transport });
 }
 
 /** ユーザー許可リスト（DI） */
@@ -27,8 +46,8 @@ export interface UserStore {
   getUser(email: string): Promise<{ role: Role; enabled: boolean } | null>;
 }
 
-/** ツール権限マッピング */
-export const TOOL_PERMISSIONS: Record<string, Role> = {
+/** ツール権限マッピング（defineTools の全ツールに対応を強制） */
+export const TOOL_PERMISSIONS: Record<ToolName, Role> = {
   list_employees: "readonly",
   get_employee: "readonly",
   search_employees: "readonly",
@@ -98,8 +117,8 @@ export class Authorizer {
       };
     }
 
-    // Layer 4: ツール権限（H3修正: 未登録ツールは deny）
-    const requiredRole = TOOL_PERMISSIONS[toolName];
+    // Layer 4: ツール権限（未登録ツールは deny）
+    const requiredRole = TOOL_PERMISSIONS[toolName as ToolName];
     if (!requiredRole) {
       return {
         authorized: false,
@@ -140,8 +159,8 @@ export class Authorizer {
       };
     }
 
-    // H3修正: 未登録ツールは deny
-    const requiredRole = TOOL_PERMISSIONS[toolName];
+    // 未登録ツールは deny
+    const requiredRole = TOOL_PERMISSIONS[toolName as ToolName];
     if (!requiredRole) {
       return {
         authorized: false,
