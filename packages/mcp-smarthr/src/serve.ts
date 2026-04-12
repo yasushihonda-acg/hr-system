@@ -33,6 +33,23 @@ if (!apiKey || !tenantId || !googleClientId) {
   process.exit(1);
 }
 
+// OAuth 設定（環境変数が揃っている場合のみ有効化）
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const jwtSecret = process.env.JWT_SECRET;
+const serverUrl = process.env.SERVER_URL;
+
+const oauthEnabled = !!(googleClientSecret && jwtSecret && serverUrl);
+if (oauthEnabled) {
+  console.log(
+    JSON.stringify({
+      severity: "INFO",
+      message: "OAuth 2.1 mode enabled",
+      serverUrl,
+      source: "mcp-smarthr",
+    }),
+  );
+}
+
 startHttp({
   smarthrApiKey: apiKey,
   smarthrTenantId: tenantId,
@@ -42,6 +59,15 @@ startHttp({
   port: Number(process.env.PORT) || 8080,
   authDisabled: process.env.AUTH_DISABLED === "true",
   ipRestrictionEnabled: process.env.IP_RESTRICTION_ENABLED === "true",
+  oauth:
+    oauthEnabled && googleClientSecret && jwtSecret && serverUrl
+      ? {
+          googleClientSecret,
+          jwtSecret,
+          serverUrl,
+          jwtExpiresIn: Number(process.env.JWT_EXPIRES_IN) || 3600,
+        }
+      : undefined,
 }).catch((error) => {
   console.error(
     JSON.stringify({

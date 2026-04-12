@@ -19,6 +19,8 @@ export interface AuditLogEntry {
   result: "success" | "error" | "denied";
   durationMs: number;
   requestId: string;
+  /** 拒否理由（result === "denied" 時のみ） */
+  reason?: string;
   source: "mcp-smarthr";
 }
 
@@ -37,6 +39,32 @@ export class AuditLogger {
    * - params は PII マスク済みでログに含める
    * - store が提供されている場合は Firestore にも非同期書き込み（失敗してもツール実行には影響しない）
    */
+  /**
+   * 認可拒否を記録する（fn を実行しない）。
+   * server.ts で denied と error を明確に分離するために使用。
+   */
+  async logDenied(
+    tool: string,
+    userEmail: string,
+    params: Record<string, unknown>,
+    reason: string,
+  ): Promise<void> {
+    const entry: AuditLogEntry = {
+      timestamp: new Date().toISOString(),
+      severity: "WARNING",
+      tool,
+      userEmail,
+      params: maskPII(params) as Record<string, unknown>,
+      result: "denied",
+      durationMs: 0,
+      requestId: randomUUID(),
+      reason,
+      source: "mcp-smarthr",
+    };
+    this.emitLog(entry);
+    this.persistLog(entry);
+  }
+
   async logToolCall<T>(
     tool: string,
     userEmail: string,
