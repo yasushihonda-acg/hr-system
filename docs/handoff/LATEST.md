@@ -2,70 +2,94 @@
 
 **最終更新**: 2026-04-12（セッション終了時点）
 **ブランチ**: `main`
-**main 最新**: `7abe1ea` — feat: SmartHR MCP HTTP Shell + Dockerfile（Phase B）(#414)
+**main 最新**: `0ff736d` — fix: claude.ai からの接続で 406 エラーを修正 (#419)
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 12 進行中 — SmartHR MCP サーバー構築**
+**Phase 12 — SmartHR MCP サーバー構築（Phase C 完了・デモ稼働中）**
 
 ### 今セッションの成果
 
-1. **PR #412 レビュー + マージ**（Phase A）
-   - 6エージェント並列レビュー実施（code-reviewer, test-analyzer, failure-hunter, type-analyzer, comment-analyzer, code-simplifier）
-   - Critical 4件 + Important 2件の指摘を修正（PR #413）
-   - 修正内容: 空catch除去、JSON二重シリアライズ解消、PII マスキング統合、AuthContext ファクトリ、fail-closed、TOOL_PERMISSIONS 型安全化
-   - テスト: 62→63件
+1. **Phase C: GCP インフラ構築**（PR なし — gcloud CLI 操作）
+   - C1: Secret Manager に `smarthr-api-key`, `smarthr-tenant-id` 登録（`GOOGLE_CLIENT_ID` は既存再利用）
+   - C2: SA `mcp-smarthr@` 作成 + IAM 設定（Secret Accessor, Firestore User, Logging Writer）
+   - C3: Cloud Run デプロイ（`mcp-smarthr`, asia-northeast1, `--allow-unauthenticated`）
+   - Docker ビルド時の `--platform linux/amd64` 必須（Apple Silicon 環境）
 
-2. **Phase B 実装 + マージ**（PR #414）
-   - HTTP Shell: Hono + MCP Streamable HTTP + Google OAuth ID トークン検証
-   - Dockerfile: multi-stage build（node:22-slim）
-   - serve.ts: HTTP エントリポイント（Cloud Run 用）
-   - テスト: 63→69件（HTTP Shell 6件追加）
+2. **Phase D: 接続テスト + 検証**
+   - D1 stdio テスト: initialize → tools/list（6ツール）→ list_employees（実データ2413件）→ PII フィルタ → RBAC 検証 全 PASS
+   - D3 HTTP テスト: /health 200, 認証なし 401, 無効トークン 401 全 PASS
+   - セキュリティレビュー: Critical 0, Important 3（既知の設計判断）
+
+3. **デモ対応**（PR #416〜#419）
+   - AUTH_DISABLED モード追加（claude.ai コネクタは Google OAuth 直接検証非対応）
+   - Anthropic IP 制限追加（X-Forwarded-For が 0.0.0.0 になる問題あり → 一時無効化）
+   - Accept ヘッダー補正（claude.ai が application/json のみ送信 → 406 修正）
+   - ドキュメントページ追加（/docs、Mermaid.js + Tailwind CSS）
+
+4. **社長デモ成功**
+   - claude.ai（Team プラン）からカスタムコネクタ接続成功
+   - Cowork（個人 Pro）からも接続確認済み
+   - テスト利用開始
 
 ### マージ済み PR
 
 | PR | 内容 | 状態 |
 |----|------|------|
-| #412 | Phase A: Core + Shell アーキテクチャ | マージ済 |
-| #413 | Phase A レビュー指摘修正 | マージ済 |
-| #414 | Phase B: HTTP Shell + Dockerfile | マージ済 |
+| #416 | AUTH_DISABLED デモモード追加 | マージ済 |
+| #417 | Anthropic IP 制限追加 | マージ済 |
+| #418 | ドキュメントページ (/docs) 追加 | マージ済 |
+| #419 | claude.ai 406 エラー修正 | マージ済 |
 
 ---
 
-## 次のアクション（WBS Phase C-D）
+## 次のアクション（社長 GO 後）
 
-### Phase C: GCP インフラ（未着手）← 次セッションで着手
-- C1: Secret Manager にトークン登録（SMARTHR_API_KEY, SMARTHR_TENANT_ID, GOOGLE_CLIENT_ID）
-- C2: サービスアカウント作成 + IAM 設定（Secret Accessor, Cloud Run 用）
-- C3: Cloud Run デプロイ（`mcp-smarthr`, asia-northeast1）
-- 品質ゲート: `/codex review` (security)
+### Phase E: OAuth 2.0 実装（最優先）
+- E1: MCP OAuth Authorization Server 実装（Google OAuth リダイレクト → トークン発行）
+- E2: claude.ai コネクタの Advanced Settings で OAuth Client ID/Secret 設定
+- E3: ユーザー特定（email）→ 監査ログに実名記録
+- E4: admin/readonly ロール分け → get_pay_statements の admin 限定解除
 
-### Phase D: 接続テスト + 検証（未着手）
-- D1: Claude Code stdio 接続テスト
-- D2: Claude Desktop stdio 接続テスト
-- D3: claude.ai カスタムコネクタ登録 + テスト
-- D4: E2E 全 AC 検証
-- 品質ゲート: `/simplify` + `/safe-refactor` + Evaluator 分離 + `/review-pr`
+### Phase F: セキュリティ強化
+- F1: IP 制限修正（Cloud Run の X-Forwarded-For が 0.0.0.0 になる問題の調査・修正）
+- F2: Firestore 許可リスト実装（serve.ts の httpUserStore を差し替え）
+- F3: CORS 制限（`origin: "*"` → ホワイトリスト化）
+- F4: AUTH_DISABLED=false に戻す
+
+### 既存 Issues
+- #407: Phase 2: Anthropic HR Plugin 導入
+- #408: Phase 3: 本番 AI エージェント + 実験 UI
 
 ---
 
-## 重要な設計判断（確定済み）
+## 重要な設計判断（確定済み + 今セッション追加）
 
 | 判断 | 決定 | 理由 |
 |------|------|------|
 | SmartHR API MCP | 公式・OSS なし → ACG 専用で自作 | 給与 PII の安全性、最小権限 |
 | アーキテクチャ | Core + Shell パターン | Claude Code / claude.ai / 自社アプリ全対応 |
 | 接続パターン | パブリック Cloud Run + アプリ内 OAuth | IAP は claude.ai コネクタと共存不可 |
-| 認証 | 4層（トランスポート→ドメイン→許可リスト→ツール権限） | SmartHR API トークンがスコープなし |
-| HTTP フレームワーク | Hono + @modelcontextprotocol/hono | MCP SDK 公式サポート、既存 apps/ と統一 |
-| OAuth 検証 | google-auth-library | Google ID トークン直接検証 |
-| セッション管理 | ステートレス | Cloud Run スケーリングとの相性 |
-| 監査ログ | Cloud Logging + Firestore 両方 | 7年保持 + 運用性 |
-| PII フィルタ | pii-filter.ts に統合（maskPII 1系統） | レビュー指摘 C3 対応 |
-| AuthContext | ファクトリ関数 createAuthContext で email/domain 整合保証 | レビュー指摘 C4 対応 |
-| TOOL_PERMISSIONS | Record<ToolName, Role> で型安全化 | レビュー指摘 I5 対応 |
+| デモ認証 | AUTH_DISABLED=true（一時的） | claude.ai コネクタが Google ID トークン直接検証に非対応 |
+| Accept ヘッダー | ミドルウェアで補正 | claude.ai (python-httpx) が片方のみ送信 → MCP SDK が 406 |
+| IP 制限 | 実装済みだが一時無効 | X-Forwarded-For が 0.0.0.0 になる Cloud Run の挙動要調査 |
+| ドキュメント | /docs エンドポイント（静的 HTML） | static/ に HTML、認証・IP 制限対象外 |
+
+---
+
+## Cloud Run 環境変数（現在の設定）
+
+| 変数 | 値 | 備考 |
+|------|-----|------|
+| NODE_ENV | production | |
+| ALLOWED_DOMAIN | aozora-cg.com | |
+| SMARTHR_API_KEY | Secret Manager | smarthr-api-key:latest (v4) |
+| SMARTHR_TENANT_ID | Secret Manager | smarthr-tenant-id:latest |
+| GOOGLE_CLIENT_ID | Secret Manager | GOOGLE_CLIENT_ID:latest |
+| AUTH_DISABLED | **true** | デモ用。GO 後に false に戻す |
+| IP_RESTRICTION_ENABLED | **false** | X-Forwarded-For 問題で無効化中 |
 
 ---
 
@@ -73,23 +97,13 @@
 
 | フェーズ | 内容 | 状態 |
 |---------|------|------|
-| Phase 1〜5 | コア基盤（給与計算・Chat連携・LINE連携・認証・CI/CD） | 完了 |
-| Phase 6 | Inbox（受信箱）+ ワークフロー管理 | 完了 |
-| Phase 7 | UI再設計（3ペイン Inbox・タスクサイドパネル・Admin 統合） | 完了 |
-| Phase 8 | タスク優先度・手動タスク・セキュリティ強化・パフォーマンス改善 | 完了 |
-| Phase 9 | 担当者・期限インライン編集・手動タスクUI改善・AI判定パネル削除 | 完了 |
-| Phase 10 | タスクテーブルビュー拡充 | 完了 |
-| Phase 11 | 受信箱・タスクボードのメモ機能統一 | 完了 |
-| Phase 12 | SmartHR MCP サーバー構築 | **Phase A+B 完了、C-D 未着手** |
-
----
-
-## オープン GitHub Issues
-
-| # | タイトル | ラベル |
-|---|---------|--------|
-| #408 | Phase 3: 本番AIエージェント + 実験UI（/agent-lab） | enhancement |
-| #407 | Phase 2: Anthropic HR Plugin 導入（開発用ツール） | enhancement |
+| Phase 1〜11 | コア基盤〜メモ機能統一 | 完了 |
+| Phase 12A | Core + Shell アーキテクチャ | 完了 |
+| Phase 12B | HTTP Shell + Dockerfile | 完了 |
+| Phase 12C | GCP インフラ + デプロイ | 完了 |
+| Phase 12D | 接続テスト + デモ | **完了（社長接続成功）** |
+| Phase 12E | OAuth 2.0 実装 | 未着手（GO 後） |
+| Phase 12F | セキュリティ強化 | 未着手（GO 後） |
 
 ---
 
@@ -97,10 +111,10 @@
 
 | サービス | 状態 | URL/識別子 |
 |---------|------|-----------|
-| Cloud Run (Worker) | デプロイ済み | `hr-worker` (asia-northeast1) |
-| Cloud Run (API) | デプロイ済み | `hr-api` (asia-northeast1) |
-| Cloud Run (Web) | デプロイ済み | `hr-web` (asia-northeast1) |
-| Cloud Run (MCP) | **未デプロイ**（Phase C） | `mcp-smarthr` (asia-northeast1) |
+| Cloud Run (Worker) | デプロイ済み | `hr-worker` |
+| Cloud Run (API) | デプロイ済み | `hr-api` |
+| Cloud Run (Web) | デプロイ済み | `hr-web` |
+| Cloud Run (MCP) | **デプロイ済み** | `mcp-smarthr` (rev 00007) |
 
 ---
 
@@ -119,18 +133,14 @@
 
 ```bash
 cd /Users/yyyhhh/Projects/ACG/hr-system
-
-# main ブランチで最新状態
 git checkout main && git pull
 
-# Phase C 着手
-# → docs/plans/smarthr-mcp-server-impl-plan.md の Phase C セクションを参照
-# → C1: Secret Manager、C2: SA+IAM、C3: Cloud Run デプロイ
-# → GCP プロジェクト: hr-system-487809, リージョン: asia-northeast1
+# 現在の Cloud Run 状態確認
+gcloud run services describe mcp-smarthr --region=asia-northeast1 --format="yaml(spec.template.spec.containers[0].env)"
 
-# 参考: 実装計画
-cat docs/plans/smarthr-mcp-server-impl-plan.md
+# 社長 GO 後 → Phase E (OAuth) に着手
+# 参考: docs/plans/smarthr-mcp-server-impl-plan.md
 
-# 参考: Dockerfile
-cat packages/mcp-smarthr/Dockerfile
+# ドキュメントページ確認
+# https://mcp-smarthr-1021020088552.asia-northeast1.run.app/docs
 ```
