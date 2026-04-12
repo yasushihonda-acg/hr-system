@@ -1,63 +1,78 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-04-12（セッション終了時点）
+**最終更新**: 2026-04-13（セッション終了時点）
 **ブランチ**: `main`
-**main 最新**: `0ff736d` — fix: claude.ai からの接続で 406 エラーを修正 (#419)
+**main 最新**: `78eb40c` — feat: OAuth 2.1 Authorization Server + セキュリティ強化（Phase E+F1） (#421)
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 12 — SmartHR MCP サーバー構築（Phase C 完了・デモ稼働中）**
+**Phase 12 — SmartHR MCP サーバー構築（Phase E+F1 完了・OAuth 本番稼働中）**
 
 ### 今セッションの成果
 
-1. **Phase C: GCP インフラ構築**（PR なし — gcloud CLI 操作）
-   - C1: Secret Manager に `smarthr-api-key`, `smarthr-tenant-id` 登録（`GOOGLE_CLIENT_ID` は既存再利用）
-   - C2: SA `mcp-smarthr@` 作成 + IAM 設定（Secret Accessor, Firestore User, Logging Writer）
-   - C3: Cloud Run デプロイ（`mcp-smarthr`, asia-northeast1, `--allow-unauthenticated`）
-   - Docker ビルド時の `--platform linux/amd64` 必須（Apple Silicon 環境）
+1. **Phase E: OAuth 2.1 Authorization Server**（PR #421）
+   - E0: ツールアノテーション追加（readOnlyHint, idempotentHint）+ 監査ログ denied/error 分離 + SDK ピン（1.26.0）
+   - E1: MCP 仕様準拠 OAuth AS 実装
+     - `/.well-known/oauth-protected-resource`（RFC 9728）
+     - `/.well-known/oauth-authorization-server`（RFC 8414）
+     - `/authorize` → Google OIDC 委譲（PKCE S256 必須）
+     - `/oauth/callback` → 認可コード発行
+     - `/token` → JWT 交換（一回限り、PKCE 検証）
+     - `/register` → Dynamic Client Registration（RFC 7591）
+   - E2: Firestore UserStore 実装（`mcp-users` コレクション、`USE_FIRESTORE_USER_STORE=true` で有効化）
+   - E3: JWT 検証モード追加 + AUTH_DISABLED=false（本番認証有効）
+   - E4: Cloud Run デプロイ + Cowork から OAuth ログイン → ツール実行成功
 
-2. **Phase D: 接続テスト + 検証**
-   - D1 stdio テスト: initialize → tools/list（6ツール）→ list_employees（実データ2413件）→ PII フィルタ → RBAC 検証 全 PASS
-   - D3 HTTP テスト: /health 200, 認証なし 401, 無効トークン 401 全 PASS
-   - セキュリティレビュー: Critical 0, Important 3（既知の設計判断）
+2. **Phase F1: CORS ホワイトリスト化**（PR #421）
+   - `origin: "*"` → 許可オリジンリスト（claude.ai, Cowork, 自サーバー）
 
-3. **デモ対応**（PR #416〜#419）
-   - AUTH_DISABLED モード追加（claude.ai コネクタは Google OAuth 直接検証非対応）
-   - Anthropic IP 制限追加（X-Forwarded-For が 0.0.0.0 になる問題あり → 一時無効化）
-   - Accept ヘッダー補正（claude.ai が application/json のみ送信 → 406 修正）
-   - ドキュメントページ追加（/docs、Mermaid.js + Tailwind CSS）
+3. **レビュー指摘対応**（Codex セカンドオピニオン + 4 エージェント並列レビュー）
+   - fail-open → fail-closed（UserStore null 時はアクセス拒否）
+   - ドメイン漏洩修正（エラーレスポンスから内部情報除去）
+   - clientState 型安全性（`Record<string, unknown>` キャスト → 型定義）
+   - /register サイズ上限追加（DoS 防止）
+   - /token の redirect_uri を必須に（OAuth 2.1 準拠）
+   - セキュリティイベントログ追加（PKCE, client_id, redirect_uri 失敗）
 
-4. **社長デモ成功**
-   - claude.ai（Team プラン）からカスタムコネクタ接続成功
-   - Cowork（個人 Pro）からも接続確認済み
-   - テスト利用開始
+4. **Codex セカンドオピニオンによる設計判断**
+   - 自前 AS vs マネージド AS → 自前（10-30名の社内ツールに Auth0 は過剰）
+   - CRUD を OAuth と分離 → Phase G は E+F 安定後に着手
+   - DELETE 初期スコープ外 → SmartHR の退職処理は PATCH（resigned_at）が正規フロー
+   - IP 制限 → Cloud Armor に移行（アプリ内 XFF パースは脆弱）
 
 ### マージ済み PR
 
 | PR | 内容 | 状態 |
 |----|------|------|
-| #416 | AUTH_DISABLED デモモード追加 | マージ済 |
-| #417 | Anthropic IP 制限追加 | マージ済 |
-| #418 | ドキュメントページ (/docs) 追加 | マージ済 |
-| #419 | claude.ai 406 エラー修正 | マージ済 |
+| #421 | OAuth 2.1 AS + セキュリティ強化（Phase E+F1） | マージ済 |
 
 ---
 
-## 次のアクション（社長 GO 後）
+## 次のアクション
 
-### Phase E: OAuth 2.0 実装（最優先）
-- E1: MCP OAuth Authorization Server 実装（Google OAuth リダイレクト → トークン発行）
-- E2: claude.ai コネクタの Advanced Settings で OAuth Client ID/Secret 設定
-- E3: ユーザー特定（email）→ 監査ログに実名記録
-- E4: admin/readonly ロール分け → get_pay_statements の admin 限定解除
+### 即時（次セッション）
 
-### Phase F: セキュリティ強化
-- F1: IP 制限修正（Cloud Run の X-Forwarded-For が 0.0.0.0 になる問題の調査・修正）
-- F2: Firestore 許可リスト実装（serve.ts の httpUserStore を差し替え）
-- F3: CORS 制限（`origin: "*"` → ホワイトリスト化）
-- F4: AUTH_DISABLED=false に戻す
+1. **チームプラン カスタムコネクタ有効化**
+   - 組織オーナー（社長）がカスタムコネクタ追加を許可
+   - チームメンバーの接続テスト
+
+2. **Firestore UserStore 有効化**
+   - `USE_FIRESTORE_USER_STORE=true` に変更
+   - 初期ユーザー登録（admin: 社長, readonly: 他メンバー）
+   - 現在はフォールバック（全ドメインユーザー readonly）で運用中
+
+### Phase F2: Cloud Armor IP 制限
+- Cloud Armor ポリシーで Anthropic IP 範囲（160.79.104.0/21）を許可
+- アプリ内の XFF パースコード削除
+- IP_RESTRICTION_ENABLED 環境変数廃止
+
+### Phase G: CRUD 操作（E+F 安定後）
+- G1: SmartHR Client に PATCH/POST メソッド追加（DELETE なし）
+- G2: 2 フェーズ書き込み（prepare_* → confirm_*）
+- G3: フィールド許可リスト + 1 操作 = 1 従業員制限
+- G4: admin 限定 RBAC + 監査ログ
 
 ### 既存 Issues
 - #407: Phase 2: Anthropic HR Plugin 導入
@@ -69,13 +84,14 @@
 
 | 判断 | 決定 | 理由 |
 |------|------|------|
-| SmartHR API MCP | 公式・OSS なし → ACG 専用で自作 | 給与 PII の安全性、最小権限 |
-| アーキテクチャ | Core + Shell パターン | Claude Code / claude.ai / 自社アプリ全対応 |
-| 接続パターン | パブリック Cloud Run + アプリ内 OAuth | IAP は claude.ai コネクタと共存不可 |
-| デモ認証 | AUTH_DISABLED=true（一時的） | claude.ai コネクタが Google ID トークン直接検証に非対応 |
-| Accept ヘッダー | ミドルウェアで補正 | claude.ai (python-httpx) が片方のみ送信 → MCP SDK が 406 |
-| IP 制限 | 実装済みだが一時無効 | X-Forwarded-For が 0.0.0.0 になる Cloud Run の挙動要調査 |
-| ドキュメント | /docs エンドポイント（静的 HTML） | static/ に HTML、認証・IP 制限対象外 |
+| OAuth AS | 自前（Google OIDC 委譲） | 10-30名の社内ツール。Auth0 は過剰な依存・コスト |
+| OAuth 方式 | auth-code + PKCE のみ、リフレッシュトークンなし | Codex セカンドオピニオン: 意図的に狭い AS |
+| JWT | HS256, 1時間有効, aud/iss バインド | 短寿命でセキュリティ確保 |
+| fail-closed | UserStore null → アクセス拒否 | HR データ（PII）保護。fail-open は禁止 |
+| CRUD 方針 | PATCH のみ（PUT 禁止）、DELETE スコープ外 | SmartHR API のフィールド消失リスク回避 |
+| IP 制限 | Cloud Armor に移行予定 | アプリ内 XFF パースは脆弱（Codex 指摘） |
+| インスタンス | min=1, max=1 | インメモリ OAuth 状態保持 + コールドスタート防止 |
+| CORS | ホワイトリスト | claude.ai, Cowork, 自サーバーのみ |
 
 ---
 
@@ -85,11 +101,15 @@
 |------|-----|------|
 | NODE_ENV | production | |
 | ALLOWED_DOMAIN | aozora-cg.com | |
-| SMARTHR_API_KEY | Secret Manager | smarthr-api-key:latest (v4) |
+| SMARTHR_API_KEY | Secret Manager | smarthr-api-key:latest |
 | SMARTHR_TENANT_ID | Secret Manager | smarthr-tenant-id:latest |
 | GOOGLE_CLIENT_ID | Secret Manager | GOOGLE_CLIENT_ID:latest |
-| AUTH_DISABLED | **true** | デモ用。GO 後に false に戻す |
-| IP_RESTRICTION_ENABLED | **false** | X-Forwarded-For 問題で無効化中 |
+| GOOGLE_CLIENT_SECRET | Secret Manager | GOOGLE_CLIENT_SECRET:latest |
+| JWT_SECRET | Secret Manager | mcp-jwt-secret:latest |
+| SERVER_URL | https://mcp-smarthr-bdr4g3rk2q-an.a.run.app | OAuth issuer/audience |
+| AUTH_DISABLED | **false** | 本番認証有効 |
+| IP_RESTRICTION_ENABLED | false | Cloud Armor 移行予定 |
+| USE_FIRESTORE_USER_STORE | **false** | 次セッションで true に変更予定 |
 
 ---
 
@@ -101,9 +121,11 @@
 | Phase 12A | Core + Shell アーキテクチャ | 完了 |
 | Phase 12B | HTTP Shell + Dockerfile | 完了 |
 | Phase 12C | GCP インフラ + デプロイ | 完了 |
-| Phase 12D | 接続テスト + デモ | **完了（社長接続成功）** |
-| Phase 12E | OAuth 2.0 実装 | 未着手（GO 後） |
-| Phase 12F | セキュリティ強化 | 未着手（GO 後） |
+| Phase 12D | 接続テスト + デモ | 完了（社長接続成功） |
+| Phase 12E | OAuth 2.1 実装 | **完了（Cowork 接続成功）** |
+| Phase 12F1 | CORS ホワイトリスト | **完了** |
+| Phase 12F2 | Cloud Armor IP 制限 | 未着手 |
+| Phase 12G | CRUD 操作 | 未着手（E+F 安定後） |
 
 ---
 
@@ -114,7 +136,7 @@
 | Cloud Run (Worker) | デプロイ済み | `hr-worker` |
 | Cloud Run (API) | デプロイ済み | `hr-api` |
 | Cloud Run (Web) | デプロイ済み | `hr-web` |
-| Cloud Run (MCP) | **デプロイ済み** | `mcp-smarthr` (rev 00007) |
+| Cloud Run (MCP) | **OAuth 本番稼働中** | `mcp-smarthr` (rev 00010, min=1/max=1) |
 
 ---
 
@@ -122,7 +144,7 @@
 
 | パッケージ | テスト数 | 状態 |
 |-----------|---------|------|
-| packages/mcp-smarthr | **69** | ✅ 全PASS |
+| packages/mcp-smarthr | **88** | ✅ 全PASS |
 | apps/api | 22+ | ✅ |
 | apps/worker | 80 | ✅ |
 | apps/web | 207 | ✅ |
@@ -138,9 +160,11 @@ git checkout main && git pull
 # 現在の Cloud Run 状態確認
 gcloud run services describe mcp-smarthr --region=asia-northeast1 --format="yaml(spec.template.spec.containers[0].env)"
 
-# 社長 GO 後 → Phase E (OAuth) に着手
-# 参考: docs/plans/smarthr-mcp-server-impl-plan.md
+# OAuth エンドポイント動作確認
+curl -s https://mcp-smarthr-1021020088552.asia-northeast1.run.app/.well-known/oauth-protected-resource | python3 -m json.tool
 
-# ドキュメントページ確認
-# https://mcp-smarthr-1021020088552.asia-northeast1.run.app/docs
+# 次のタスク:
+# 1. チームプラン カスタムコネクタ有効化
+# 2. USE_FIRESTORE_USER_STORE=true + ユーザー登録
+# 3. Phase F2: Cloud Armor IP 制限
 ```
