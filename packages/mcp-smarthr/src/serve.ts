@@ -40,6 +40,7 @@ startHttp({
   allowedDomain: process.env.ALLOWED_DOMAIN ?? "aozora-cg.com",
   userStore: httpUserStore,
   port: Number(process.env.PORT) || 8080,
+  authDisabled: process.env.AUTH_DISABLED === "true",
 }).catch((error) => {
   console.error(
     JSON.stringify({

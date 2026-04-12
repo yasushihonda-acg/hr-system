@@ -26,6 +26,8 @@ export interface HttpShellOptions {
   allowedDomain?: string;
   userStore: UserStore;
   port?: number;
+  /** true にすると OAuth 検証をスキップし、デフォルト AuthContext を使用する（デモ用） */
+  authDisabled?: boolean;
 }
 
 /**
@@ -85,6 +87,7 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     allowedDomain = "aozora-cg.com",
     userStore,
     port = 8080,
+    authDisabled = false,
   } = options;
 
   const smarthrClient = new SmartHRClient({
@@ -107,19 +110,35 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
   // ヘルスチェック（認証不要）
   app.get("/health", (c) => c.json({ status: "ok" }));
 
+  if (authDisabled) {
+    console.log(
+      JSON.stringify({
+        severity: "WARNING",
+        message: "Auth is DISABLED — demo mode. Do NOT use in production.",
+        source: "mcp-smarthr",
+      }),
+    );
+  }
+
   // MCP エンドポイント — 認証 + ステートレス Streamable HTTP
   app.all("/mcp", async (c) => {
-    // Google OAuth トークン検証
-    const result = await verifyGoogleToken(
-      oauthClient,
-      googleClientId,
-      c.req.header("authorization"),
-    );
-    if ("error" in result) {
-      return c.json({ error: result.error }, result.status);
-    }
+    let authContext: AuthContext;
 
-    const { authContext } = result;
+    if (authDisabled) {
+      // デモモード: 認証スキップ、デフォルト AuthContext を使用
+      authContext = createAuthContext("demo@aozora-cg.com", "http");
+    } else {
+      // 本番モード: Google OAuth トークン検証
+      const result = await verifyGoogleToken(
+        oauthClient,
+        googleClientId,
+        c.req.header("authorization"),
+      );
+      if ("error" in result) {
+        return c.json({ error: result.error }, result.status);
+      }
+      authContext = result.authContext;
+    }
 
     const mcpServer = createMcpServer({
       smarthrClient,
