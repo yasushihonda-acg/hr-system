@@ -6,9 +6,14 @@ import {
   type UserStore,
 } from "../core/middleware/auth.js";
 
-/** テスト用モック UserStore */
+import type { Permission } from "../core/middleware/pii-filter.js";
+
+/** テスト用モック UserStore（permissions 対応） */
 function createMockUserStore(
-  users: Record<string, { role: "admin" | "readonly"; enabled: boolean }>,
+  users: Record<
+    string,
+    { role: "admin" | "readonly"; permissions?: Permission[]; enabled: boolean }
+  >,
 ): UserStore {
   return {
     getUser: async (email: string) => users[email] ?? null,
@@ -237,6 +242,108 @@ describe("Authorizer", () => {
 
       expect(result.authorized).toBe(false);
       expect(result.reason).toBe("権限不足");
+    });
+  });
+
+  describe("パーミッションベース認可", () => {
+    it("permissions: ['read', 'write'] → update_employee に成功", async () => {
+      const store = createMockUserStore({
+        "editor@aozora-cg.com": {
+          role: "readonly",
+          permissions: ["read", "write"],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "editor@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const result = await authorizer.authorize(context, "update_employee");
+
+      expect(result.authorized).toBe(true);
+    });
+
+    it("permissions: ['read', 'write'] → get_pay_statements は拒否", async () => {
+      const store = createMockUserStore({
+        "editor@aozora-cg.com": {
+          role: "readonly",
+          permissions: ["read", "write"],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "editor@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const result = await authorizer.authorize(context, "get_pay_statements");
+
+      expect(result.authorized).toBe(false);
+      expect(result.reason).toBe("権限不足");
+    });
+
+    it("permissions: ['read'] → update_employee は拒否", async () => {
+      const store = createMockUserStore({
+        "reader@aozora-cg.com": {
+          role: "readonly",
+          permissions: ["read"],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "reader@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const result = await authorizer.authorize(context, "update_employee");
+
+      expect(result.authorized).toBe(false);
+      expect(result.reason).toBe("権限不足");
+    });
+
+    it("role: 'admin'（permissions なし）→ 全ツールアクセス可（後方互換）", async () => {
+      const store = createMockUserStore({
+        "admin@aozora-cg.com": { role: "admin", enabled: true },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "admin@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const readResult = await authorizer.authorize(context, "list_employees");
+      const writeResult = await authorizer.authorize(context, "update_employee");
+      const payResult = await authorizer.authorize(context, "get_pay_statements");
+
+      expect(readResult.authorized).toBe(true);
+      expect(writeResult.authorized).toBe(true);
+      expect(payResult.authorized).toBe(true);
+    });
+
+    it("role: 'readonly'（permissions なし）→ read のみ（後方互換）", async () => {
+      const store = createMockUserStore({
+        "reader@aozora-cg.com": { role: "readonly", enabled: true },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "reader@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const readResult = await authorizer.authorize(context, "list_employees");
+      const writeResult = await authorizer.authorize(context, "update_employee");
+
+      expect(readResult.authorized).toBe(true);
+      expect(writeResult.authorized).toBe(false);
     });
   });
 });
