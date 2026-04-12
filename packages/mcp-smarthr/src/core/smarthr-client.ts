@@ -120,7 +120,11 @@ export class SmartHRClient {
       body: fields,
     });
     const data = (await response.json()) as SmartHRCrew;
-    this.invalidateCrewCache(id);
+    try {
+      this.invalidateCrewCache(id);
+    } catch {
+      // キャッシュ無効化失敗は書き込み成功をブロックしない
+    }
     return data;
   }
 
@@ -131,7 +135,11 @@ export class SmartHRClient {
       body: fields,
     });
     const data = (await response.json()) as SmartHRCrew;
-    this.invalidateCrewCache();
+    try {
+      this.invalidateCrewCache();
+    } catch {
+      // キャッシュ無効化失敗は書き込み成功をブロックしない
+    }
     return data;
   }
 
@@ -190,6 +198,15 @@ export class SmartHRClient {
       this.rateLimiter.onResponse(response.headers);
 
       if (response.status === 429 && attempt < MAX_RETRIES) {
+        // POST は非冪等のためリトライしない（従業員重複作成リスク回避）
+        if (method !== "GET" && method !== "PATCH") {
+          const body = await response.text().catch(() => "");
+          throw new SmartHRApiError(
+            `SmartHR API rate limited on ${method} request (not retrying non-idempotent)`,
+            429,
+            body,
+          );
+        }
         const delay = this.rateLimiter.getRetryDelay(response.headers, attempt);
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;

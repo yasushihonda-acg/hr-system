@@ -2,7 +2,7 @@
  * Firestore ベースの UserStore 実装
  *
  * コレクション: mcp-users/{email}
- * ドキュメント構造: { role: "admin" | "readonly", enabled: boolean, createdAt, updatedAt }
+ * ドキュメント構造: { role: "admin" | "readonly", permissions?: Permission[], enabled: boolean, createdAt, updatedAt }
  *
  * Cloud Run 上では ADC（Application Default Credentials）で認証。
  * SA `mcp-smarthr@` に Firestore User 権限が付与済み。

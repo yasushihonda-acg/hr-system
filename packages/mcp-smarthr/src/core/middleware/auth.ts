@@ -4,7 +4,7 @@
  * Layer 1: トランスポート認証（Shell 層で処理、Core には AuthContext として渡る）
  * Layer 2: ドメイン検証（aozora-cg.com）
  * Layer 3: ユーザー許可リスト（UserStore 経由）
- * Layer 4: ツール権限（ロール別アクセス制御）
+ * Layer 4: ツール権限（パーミッションベースのアクセス制御）
  *
  * トランスポート非依存: stdio / HTTP 両方で利用可能。
  */
@@ -70,9 +70,15 @@ export interface AuthResult {
   reason?: string;
 }
 
+const VALID_PERMISSIONS = new Set<string>(["read", "write", "pay_statements"]);
+
 /** ユーザーの実効パーミッションを解決する（permissions フィールド優先、なければ role から導出） */
 function resolvePermissions(user: { role: Role; permissions?: Permission[] }): Permission[] {
-  return user.permissions ?? ROLE_TO_PERMISSIONS[user.role];
+  if (!user.permissions || !Array.isArray(user.permissions)) {
+    return ROLE_TO_PERMISSIONS[user.role];
+  }
+  const valid = user.permissions.filter((p): p is Permission => VALID_PERMISSIONS.has(p));
+  return valid.length > 0 ? valid : ROLE_TO_PERMISSIONS[user.role];
 }
 
 /** パーミッションベースのアクセス判定 */
@@ -80,7 +86,7 @@ function hasPermission(userPermissions: Permission[], requiredPermission: Permis
   return userPermissions.includes(requiredPermission);
 }
 
-/** PII フィルタ用のロールを導出（admin パーミッションがあれば admin 扱い） */
+/** PII フィルタ用のロールを導出（pay_statements + write の両方があれば admin 扱い） */
 function deriveRole(permissions: Permission[]): Role {
   return permissions.includes("pay_statements") && permissions.includes("write")
     ? "admin"

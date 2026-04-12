@@ -35,11 +35,26 @@ const updatableFieldsShape: Record<string, z.ZodTypeAny> = {
   employment_type: z.string().optional().describe("雇用形態ID"),
 };
 
-/** undefined・空文字列を除去する（SmartHR の空上書き防止） */
+/** undefined・null・空文字列・空白のみ文字列を除去する（SmartHR の空上書き防止） */
 function stripEmptyValues(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined && value !== "") {
+    if (value === undefined || value === null || value === "") continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    result[key] = value;
+  }
+  return result;
+}
+
+/** ランタイムでフィールド許可リストを強制する（defense-in-depth） */
+function filterAllowedFields(
+  obj: Record<string, unknown>,
+  allowedFields: readonly string[],
+): Record<string, unknown> {
+  const allowed = new Set<string>(allowedFields);
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (allowed.has(key)) {
       result[key] = value;
     }
   }
@@ -121,7 +136,7 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
 
     get_pay_statements: {
       description:
-        "SmartHRの給与明細を取得します。従業員ID・年・月で絞り込み可能。admin権限が必要です。",
+        "SmartHRの給与明細を取得します。従業員ID・年・月で絞り込み可能。pay_statements権限が必要です。",
       annotations: { readOnlyHint: true, idempotentHint: true, title: "給与明細" },
       shape: {
         crew_id: z.string().optional().describe("従業員ID（絞り込み）"),
@@ -178,7 +193,8 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
         params: { id: string } & Partial<Record<(typeof UPDATABLE_FIELDS)[number], string>>,
       ) => {
         const { id, ...rest } = params;
-        const fields = stripEmptyValues(rest);
+        const allowed = filterAllowedFields(rest, UPDATABLE_FIELDS);
+        const fields = stripEmptyValues(allowed);
         if (Object.keys(fields).length === 0) {
           throw new Error("更新するフィールドを1つ以上指定してください");
         }
@@ -190,8 +206,8 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
       description:
         "SmartHRに新しい従業員を登録します。write権限が必要です。登録前に必ずユーザーに入力内容を確認してください。",
       shape: {
-        last_name: z.string().describe("姓"),
-        first_name: z.string().describe("名"),
+        last_name: z.string().min(1, "姓は必須です").describe("姓"),
+        first_name: z.string().min(1, "名は必須です").describe("名"),
         last_name_yomi: z.string().optional().describe("姓（よみがな）"),
         first_name_yomi: z.string().optional().describe("名（よみがな）"),
         emp_code: z.string().optional().describe("社員番号"),
