@@ -1,3 +1,4 @@
+import { RateLimiter } from "./lib/rate-limiter.js";
 import type {
   SmartHRConfig,
   SmartHRCrew,
@@ -8,6 +9,7 @@ import type {
 
 const DEFAULT_BASE_URL = "https://{tenantId}.smarthr.jp/api/v1";
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5分
+const MAX_RETRIES = 3;
 
 interface CacheEntry<T> {
   data: T;
@@ -26,11 +28,13 @@ export class SmartHRClient {
   private readonly accessToken: string;
   private readonly cacheTtlMs: number;
   private readonly cache = new Map<string, CacheEntry<unknown>>();
+  private readonly rateLimiter: RateLimiter;
 
   constructor(config: SmartHRConfig) {
     this.accessToken = config.accessToken;
     this.cacheTtlMs = config.cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
     this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL.replace("{tenantId}", config.tenantId);
+    this.rateLimiter = new RateLimiter();
   }
 
   /** 従業員一覧取得 */
@@ -139,23 +143,39 @@ export class SmartHRClient {
 
   private async request(path: string): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${this.accessToken}`,
-        Accept: "application/json",
-      },
-    });
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-      throw new SmartHRApiError(
-        `SmartHR API error: ${response.status} ${response.statusText}`,
-        response.status,
-        body,
-      );
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      await this.rateLimiter.waitForSlot();
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          Accept: "application/json",
+        },
+      });
+
+      this.rateLimiter.onResponse(response.headers);
+
+      if (response.status === 429 && attempt < MAX_RETRIES) {
+        const delay = this.rateLimiter.getRetryDelay(response.headers, attempt);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => "");
+        throw new SmartHRApiError(
+          `SmartHR API error: ${response.status} ${response.statusText}`,
+          response.status,
+          body,
+        );
+      }
+
+      return response;
     }
 
-    return response;
+    // TypeScript: ループ後の到達不能コードだが型安全のために必要
+    throw new SmartHRApiError("SmartHR API error: 429 Too Many Requests", 429, "");
   }
 
   private getFromCache<T>(key: string): T | undefined {

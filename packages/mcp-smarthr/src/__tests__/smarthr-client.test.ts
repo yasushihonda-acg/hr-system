@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SmartHRApiError, SmartHRClient } from "../smarthr-client.js";
+import { SmartHRApiError, SmartHRClient } from "../core/smarthr-client.js";
 
 const TEST_CONFIG = {
   accessToken: "test-token",
@@ -21,6 +21,7 @@ function mockFetchError(status: number, statusText: string, body: string) {
     status,
     statusText,
     text: () => Promise.resolve(body),
+    headers: new Headers(),
   });
 }
 
