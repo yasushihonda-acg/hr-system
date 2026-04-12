@@ -11,16 +11,31 @@
  */
 
 import type { UserStore } from "./core/middleware/auth.js";
+import { FirestoreUserStore } from "./core/stores/firestore-user-store.js";
 import { startHttp } from "./shells/http.js";
 
-/** HTTP 用の簡易 UserStore（将来 Firestore に差し替え） */
-const httpUserStore: UserStore = {
-  async getUser(_email: string) {
-    // Phase C で Firestore ベースの実装に差し替え予定
-    // 現時点では全ドメイン内ユーザーを readonly として許可
-    return { role: "readonly" as const, enabled: true };
-  },
-};
+/** UserStore を環境変数で切り替え */
+function createUserStore(): UserStore {
+  if (process.env.USE_FIRESTORE_USER_STORE === "true") {
+    console.log(
+      JSON.stringify({
+        severity: "INFO",
+        message: "Using Firestore UserStore",
+        source: "mcp-smarthr",
+      }),
+    );
+    return new FirestoreUserStore();
+  }
+
+  // フォールバック: 全ドメイン内ユーザーを readonly として許可
+  return {
+    async getUser(_email: string) {
+      return { role: "readonly" as const, enabled: true };
+    },
+  };
+}
+
+const userStore = createUserStore();
 
 const apiKey = process.env.SMARTHR_API_KEY;
 const tenantId = process.env.SMARTHR_TENANT_ID;
@@ -55,7 +70,7 @@ startHttp({
   smarthrTenantId: tenantId,
   googleClientId,
   allowedDomain: process.env.ALLOWED_DOMAIN ?? "aozora-cg.com",
-  userStore: httpUserStore,
+  userStore,
   port: Number(process.env.PORT) || 8080,
   authDisabled: process.env.AUTH_DISABLED === "true",
   ipRestrictionEnabled: process.env.IP_RESTRICTION_ENABLED === "true",
