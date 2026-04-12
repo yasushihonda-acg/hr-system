@@ -9,11 +9,12 @@
  * トランスポート非依存: stdio / HTTP 両方で利用可能。
  */
 
-// Role は pii-filter.ts で定義済み — 重複を避けて re-export
-export type { Role } from "./pii-filter.js";
+// Role, Permission は pii-filter.ts で定義済み — 重複を避けて re-export
+export type { Permission, Role } from "./pii-filter.js";
 
 import type { ToolName } from "../tools.js";
-import type { Role } from "./pii-filter.js";
+import type { Permission, Role } from "./pii-filter.js";
+import { ROLE_TO_PERMISSIONS } from "./pii-filter.js";
 
 /** Shell 層から渡される認証コンテキスト */
 export interface AuthContext {
@@ -43,17 +44,21 @@ export function createAuthContext(
 
 /** ユーザー許可リスト（DI） */
 export interface UserStore {
-  getUser(email: string): Promise<{ role: Role; enabled: boolean } | null>;
+  getUser(
+    email: string,
+  ): Promise<{ role: Role; permissions?: Permission[]; enabled: boolean } | null>;
 }
 
 /** ツール権限マッピング（defineTools の全ツールに対応を強制） */
-export const TOOL_PERMISSIONS: Record<ToolName, Role> = {
-  list_employees: "readonly",
-  get_employee: "readonly",
-  search_employees: "readonly",
-  get_pay_statements: "admin",
-  list_departments: "readonly",
-  list_positions: "readonly",
+export const TOOL_PERMISSIONS: Record<ToolName, Permission> = {
+  list_employees: "read",
+  get_employee: "read",
+  search_employees: "read",
+  get_pay_statements: "pay_statements",
+  list_departments: "read",
+  list_positions: "read",
+  update_employee: "write",
+  create_employee: "write",
 };
 
 /** 認可チェック結果 */
@@ -65,10 +70,21 @@ export interface AuthResult {
   reason?: string;
 }
 
-/** ロール階層: admin は readonly の権限を包含する */
-function hasPermission(userRole: Role, requiredRole: Role): boolean {
-  if (userRole === "admin") return true;
-  return userRole === requiredRole;
+/** ユーザーの実効パーミッションを解決する（permissions フィールド優先、なければ role から導出） */
+function resolvePermissions(user: { role: Role; permissions?: Permission[] }): Permission[] {
+  return user.permissions ?? ROLE_TO_PERMISSIONS[user.role];
+}
+
+/** パーミッションベースのアクセス判定 */
+function hasPermission(userPermissions: Permission[], requiredPermission: Permission): boolean {
+  return userPermissions.includes(requiredPermission);
+}
+
+/** PII フィルタ用のロールを導出（admin パーミッションがあれば admin 扱い） */
+function deriveRole(permissions: Permission[]): Role {
+  return permissions.includes("pay_statements") && permissions.includes("write")
+    ? "admin"
+    : "readonly";
 }
 
 /** 認可チェッカー */
@@ -118,8 +134,8 @@ export class Authorizer {
     }
 
     // Layer 4: ツール権限（未登録ツールは deny）
-    const requiredRole = TOOL_PERMISSIONS[toolName as ToolName];
-    if (!requiredRole) {
+    const requiredPermission = TOOL_PERMISSIONS[toolName as ToolName];
+    if (!requiredPermission) {
       return {
         authorized: false,
         role: user.role,
@@ -127,10 +143,11 @@ export class Authorizer {
         reason: "未登録ツール",
       };
     }
-    if (!hasPermission(user.role, requiredRole)) {
+    const userPermissions = resolvePermissions(user);
+    if (!hasPermission(userPermissions, requiredPermission)) {
       return {
         authorized: false,
-        role: user.role,
+        role: deriveRole(userPermissions),
         email: context.email,
         reason: "権限不足",
       };
@@ -138,7 +155,7 @@ export class Authorizer {
 
     return {
       authorized: true,
-      role: user.role,
+      role: deriveRole(userPermissions),
       email: context.email,
     };
   }
@@ -146,8 +163,9 @@ export class Authorizer {
   /** stdio トランスポート用: 許可リストを尊重、未登録は readonly（H2修正） */
   private async authorizeStdio(context: AuthContext, toolName: string): Promise<AuthResult> {
     const user = await this.userStore.getUser(context.email);
-    // H2修正: 未登録ユーザーは readonly（admin にしない）
-    const role: Role = user?.role ?? "readonly";
+    // H2修正: 未登録ユーザーは readonly パーミッション
+    const userPermissions = user ? resolvePermissions(user) : ROLE_TO_PERMISSIONS.readonly;
+    const role = deriveRole(userPermissions);
 
     // H2修正: enabled チェックも stdio で実施
     if (user && !user.enabled) {
@@ -160,8 +178,8 @@ export class Authorizer {
     }
 
     // 未登録ツールは deny
-    const requiredRole = TOOL_PERMISSIONS[toolName as ToolName];
-    if (!requiredRole) {
+    const requiredPermission = TOOL_PERMISSIONS[toolName as ToolName];
+    if (!requiredPermission) {
       return {
         authorized: false,
         role,
@@ -169,7 +187,7 @@ export class Authorizer {
         reason: "未登録ツール",
       };
     }
-    if (!hasPermission(role, requiredRole)) {
+    if (!hasPermission(userPermissions, requiredPermission)) {
       return {
         authorized: false,
         role,

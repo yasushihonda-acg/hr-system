@@ -7,6 +7,45 @@ const paginationShape = {
   per_page: z.number().int().min(1).max(100).optional().describe("1ページあたりの件数（最大100）"),
 };
 
+/** 更新可能フィールド（セキュリティ上、ハードコードで制限） */
+const UPDATABLE_FIELDS = [
+  "last_name",
+  "first_name",
+  "last_name_yomi",
+  "first_name_yomi",
+  "emp_code",
+  "entered_at",
+  "resigned_at",
+  "department",
+  "position",
+  "employment_type",
+] as const;
+
+/** update_employee 用の Zod shape（id 以外の全フィールドを optional で定義） */
+const updatableFieldsShape: Record<string, z.ZodTypeAny> = {
+  last_name: z.string().optional().describe("姓"),
+  first_name: z.string().optional().describe("名"),
+  last_name_yomi: z.string().optional().describe("姓（よみがな）"),
+  first_name_yomi: z.string().optional().describe("名（よみがな）"),
+  emp_code: z.string().optional().describe("社員番号"),
+  entered_at: z.string().optional().describe("入社日（YYYY-MM-DD）"),
+  resigned_at: z.string().optional().describe("退職日（YYYY-MM-DD）"),
+  department: z.string().optional().describe("部署ID"),
+  position: z.string().optional().describe("役職ID"),
+  employment_type: z.string().optional().describe("雇用形態ID"),
+};
+
+/** undefined・空文字列を除去する（SmartHR の空上書き防止） */
+function stripEmptyValues(obj: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined && value !== "") {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 /** ツール名一覧（TOOL_PERMISSIONS との同期を型で強制するために定義） */
 const TOOL_NAMES = [
   "list_employees",
@@ -15,6 +54,8 @@ const TOOL_NAMES = [
   "get_pay_statements",
   "list_departments",
   "list_positions",
+  "update_employee",
+  "create_employee",
 ] as const;
 
 export type ToolName = (typeof TOOL_NAMES)[number];
@@ -117,6 +158,67 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
       handler: async (params: { page?: number; per_page?: number }) => {
         const result = await client.listPositions(params);
         return formatListResult("役職", result.data, result.totalCount);
+      },
+    },
+
+    update_employee: {
+      description:
+        "SmartHRの従業員情報を部分更新します（PATCH）。write権限が必要です。更新前に必ずユーザーに変更内容を確認してください。空値を送信するとSmartHR側のデータが消えるため、変更するフィールドのみ指定してください。",
+      shape: {
+        id: z.string().describe("SmartHR従業員ID"),
+        ...updatableFieldsShape,
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        title: "従業員更新",
+      },
+      handler: async (
+        params: { id: string } & Partial<Record<(typeof UPDATABLE_FIELDS)[number], string>>,
+      ) => {
+        const { id, ...rest } = params;
+        const fields = stripEmptyValues(rest);
+        if (Object.keys(fields).length === 0) {
+          throw new Error("更新するフィールドを1つ以上指定してください");
+        }
+        return await client.updateEmployee(id, fields);
+      },
+    },
+
+    create_employee: {
+      description:
+        "SmartHRに新しい従業員を登録します。write権限が必要です。登録前に必ずユーザーに入力内容を確認してください。",
+      shape: {
+        last_name: z.string().describe("姓"),
+        first_name: z.string().describe("名"),
+        last_name_yomi: z.string().optional().describe("姓（よみがな）"),
+        first_name_yomi: z.string().optional().describe("名（よみがな）"),
+        emp_code: z.string().optional().describe("社員番号"),
+        entered_at: z.string().optional().describe("入社日（YYYY-MM-DD）"),
+        department: z.string().optional().describe("部署ID"),
+        position: z.string().optional().describe("役職ID"),
+        employment_type: z.string().optional().describe("雇用形態ID"),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        title: "従業員登録",
+      },
+      handler: async (params: {
+        last_name: string;
+        first_name: string;
+        last_name_yomi?: string;
+        first_name_yomi?: string;
+        emp_code?: string;
+        entered_at?: string;
+        department?: string;
+        position?: string;
+        employment_type?: string;
+      }) => {
+        const fields = stripEmptyValues(params);
+        return await client.createEmployee(fields);
       },
     },
   };

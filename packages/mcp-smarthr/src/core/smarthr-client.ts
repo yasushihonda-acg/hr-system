@@ -17,11 +17,12 @@ interface CacheEntry<T> {
 }
 
 /**
- * SmartHR REST API クライアント（読み取り専用）
+ * SmartHR REST API クライアント
  *
  * - Bearer トークン認証
- * - TTL ベースのインメモリキャッシュ（レート制限対策）
+ * - TTL ベースのインメモリキャッシュ（レート制限対策、読み取りのみ）
  * - レート制限: 5,000 req/hour, 10 req/sec per token
+ * - 書き込み操作（PATCH/POST）はキャッシュ無効化付き
  */
 export class SmartHRClient {
   private readonly baseUrl: string;
@@ -112,6 +113,28 @@ export class SmartHRClient {
     return this.fetchList<SmartHRPosition>(url);
   }
 
+  /** 従業員情報を部分更新（PATCH） */
+  async updateEmployee(id: string, fields: Record<string, unknown>): Promise<SmartHRCrew> {
+    const response = await this.request(`/crews/${id}`, {
+      method: "PATCH",
+      body: fields,
+    });
+    const data = (await response.json()) as SmartHRCrew;
+    this.invalidateCrewCache(id);
+    return data;
+  }
+
+  /** 従業員を新規登録（POST） */
+  async createEmployee(fields: Record<string, unknown>): Promise<SmartHRCrew> {
+    const response = await this.request("/crews", {
+      method: "POST",
+      body: fields,
+    });
+    const data = (await response.json()) as SmartHRCrew;
+    this.invalidateCrewCache();
+    return data;
+  }
+
   /** キャッシュクリア */
   clearCache(): void {
     this.cache.clear();
@@ -141,17 +164,27 @@ export class SmartHRClient {
     return result;
   }
 
-  private async request(path: string): Promise<Response> {
+  private async request(
+    path: string,
+    options?: { method?: string; body?: Record<string, unknown> },
+  ): Promise<Response> {
     const url = `${this.baseUrl}${path}`;
+    const method = options?.method ?? "GET";
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.accessToken}`,
+      Accept: "application/json",
+    };
+    if (options?.body) {
+      headers["Content-Type"] = "application/json";
+    }
 
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       await this.rateLimiter.waitForSlot();
 
       const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-          Accept: "application/json",
-        },
+        method,
+        headers,
+        body: options?.body ? JSON.stringify(options.body) : undefined,
       });
 
       this.rateLimiter.onResponse(response.headers);
@@ -193,6 +226,18 @@ export class SmartHRClient {
       data,
       expiresAt: Date.now() + this.cacheTtlMs,
     });
+  }
+
+  /** 書き込み後に従業員関連キャッシュを無効化する */
+  private invalidateCrewCache(id?: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith("/crews")) {
+        // 特定IDの場合はそのIDと一覧系のみ無効化、IDなしは全crews無効化
+        if (!id || key === `/crews/${id}` || key.includes("?") || key === "/crews") {
+          this.cache.delete(key);
+        }
+      }
+    }
   }
 }
 

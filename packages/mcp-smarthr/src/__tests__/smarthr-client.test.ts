@@ -123,6 +123,89 @@ describe("SmartHRClient", () => {
     });
   });
 
+  describe("updateEmployee", () => {
+    it("PATCH メソッドで従業員を更新する", async () => {
+      const updated = { id: "abc", last_name: "佐藤", first_name: "太郎" };
+      const fetchMock = mockFetchResponse(updated);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await client.updateEmployee("abc", { last_name: "佐藤" });
+
+      expect(result.last_name).toBe("佐藤");
+      const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+      expect(calledUrl).toContain("/crews/abc");
+      const calledOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(calledOptions.method).toBe("PATCH");
+      expect(calledOptions.body).toBe(JSON.stringify({ last_name: "佐藤" }));
+    });
+
+    it("Content-Type: application/json を含める", async () => {
+      const fetchMock = mockFetchResponse({ id: "abc" });
+      vi.stubGlobal("fetch", fetchMock);
+
+      await client.updateEmployee("abc", { last_name: "佐藤" });
+
+      const calledOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(calledOptions.headers).toEqual(
+        expect.objectContaining({
+          "Content-Type": "application/json",
+        }),
+      );
+    });
+
+    it("更新後にキャッシュが無効化される", async () => {
+      // まずキャッシュを作成
+      const fetchMock = mockFetchResponse({ id: "abc", last_name: "田中" });
+      vi.stubGlobal("fetch", fetchMock);
+      await client.getEmployee("abc");
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // 更新
+      const updateMock = mockFetchResponse({ id: "abc", last_name: "佐藤" });
+      vi.stubGlobal("fetch", updateMock);
+      await client.updateEmployee("abc", { last_name: "佐藤" });
+
+      // 再取得するとキャッシュミスで fetch される
+      const refetchMock = mockFetchResponse({ id: "abc", last_name: "佐藤" });
+      vi.stubGlobal("fetch", refetchMock);
+      await client.getEmployee("abc");
+      expect(refetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("422 バリデーションエラーを SmartHRApiError としてスロー", async () => {
+      vi.stubGlobal(
+        "fetch",
+        mockFetchError(422, "Unprocessable Entity", '{"errors":["invalid field"]}'),
+      );
+
+      await expect(client.updateEmployee("abc", { last_name: "" })).rejects.toThrow(
+        SmartHRApiError,
+      );
+      await expect(client.updateEmployee("abc", { last_name: "" })).rejects.toMatchObject({
+        statusCode: 422,
+      });
+    });
+  });
+
+  describe("createEmployee", () => {
+    it("POST メソッドで従業員を作成する", async () => {
+      const created = { id: "new-1", last_name: "新入", first_name: "社員" };
+      const fetchMock = mockFetchResponse(created);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await client.createEmployee({
+        last_name: "新入",
+        first_name: "社員",
+      });
+
+      expect(result.id).toBe("new-1");
+      const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
+      expect(calledUrl).toContain("/crews");
+      const calledOptions = fetchMock.mock.calls[0]?.[1] as RequestInit;
+      expect(calledOptions.method).toBe("POST");
+    });
+  });
+
   describe("認証", () => {
     it("Bearerトークンをヘッダーに含める", async () => {
       const fetchMock = mockFetchResponse([]);

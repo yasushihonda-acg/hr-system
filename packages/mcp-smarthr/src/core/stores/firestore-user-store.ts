@@ -9,12 +9,14 @@
  */
 
 import { Firestore } from "@google-cloud/firestore";
-import type { Role } from "../middleware/pii-filter.js";
+import type { Permission, Role } from "../middleware/pii-filter.js";
 
 const COLLECTION = "mcp-users";
 
 export interface UserDocument {
   role: Role;
+  /** 細粒度パーミッション（省略時は role から自動導出） */
+  permissions?: Permission[];
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +34,9 @@ export class FirestoreUserStore {
     this.collection = options?.collection ?? COLLECTION;
   }
 
-  async getUser(email: string): Promise<{ role: Role; enabled: boolean } | null> {
+  async getUser(
+    email: string,
+  ): Promise<{ role: Role; permissions?: Permission[]; enabled: boolean } | null> {
     const doc = await this.db.collection(this.collection).doc(email).get();
     if (!doc.exists) return null;
 
@@ -41,6 +45,7 @@ export class FirestoreUserStore {
 
     return {
       role: data.role,
+      permissions: data.permissions,
       enabled: data.enabled,
     };
   }
