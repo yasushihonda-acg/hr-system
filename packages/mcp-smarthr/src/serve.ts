@@ -41,6 +41,7 @@ startHttp({
   userStore: httpUserStore,
   port: Number(process.env.PORT) || 8080,
   authDisabled: process.env.AUTH_DISABLED === "true",
+  ipRestrictionEnabled: process.env.IP_RESTRICTION_ENABLED === "true",
 }).catch((error) => {
   console.error(
     JSON.stringify({
