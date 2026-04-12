@@ -173,10 +173,20 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     );
   }
 
-  // CORS（MCP ヘッダーを expose）
+  // CORS（許可オリジンリスト + MCP ヘッダーを expose）
+  // claude.ai / Cowork からのサーバー間通信は CORS 対象外だが、
+  // ブラウザベースクライアント（自社アプリ等）のために設定
+  const allowedOrigins = [
+    "https://claude.ai",
+    "https://app.cowork.com",
+    ...(oauthConfig ? [oauthConfig.serverUrl] : []),
+  ];
   app.use(
     cors({
-      origin: "*",
+      origin: (origin) => {
+        if (!origin) return origin; // サーバー間通信（Origin なし）は許可
+        return allowedOrigins.includes(origin) ? origin : null;
+      },
       allowHeaders: ["Content-Type", "Authorization", "Mcp-Session-Id", "Mcp-Protocol-Version"],
       exposeHeaders: ["WWW-Authenticate", "Mcp-Session-Id", "Mcp-Protocol-Version"],
     }),
