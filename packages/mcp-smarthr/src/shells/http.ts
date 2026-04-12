@@ -189,6 +189,23 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     );
   }
 
+  // Accept ヘッダー補正（claude.ai は片方のみ送信する場合がある）
+  app.use("/mcp", async (c, next) => {
+    const accept = c.req.header("accept") ?? "";
+    if (
+      c.req.method === "POST" &&
+      (!accept.includes("application/json") || !accept.includes("text/event-stream"))
+    ) {
+      c.req.raw = new Request(c.req.raw, {
+        headers: new Headers([
+          ...Array.from(c.req.raw.headers.entries()).filter(([k]) => k !== "accept"),
+          ["accept", "application/json, text/event-stream"],
+        ]),
+      });
+    }
+    await next();
+  });
+
   // MCP エンドポイント — 認証 + ステートレス Streamable HTTP
   app.all("/mcp", async (c) => {
     let authContext: AuthContext;
