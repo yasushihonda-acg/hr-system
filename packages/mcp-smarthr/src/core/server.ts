@@ -23,10 +23,10 @@ export interface CreateServerOptions {
  * McpServer インスタンスを生成する（トランスポート非依存）
  *
  * 全ツール呼び出しに対して以下のパイプラインを強制する:
- *   authorize → audit log → handler → filterPII
+ *   resolveAuthContext → authorize → audit log → handler → filterPII
  *
- * - 未登録ツールは default deny
- * - stdio でも許可リストを尊重（未登録ユーザーは readonly）
+ * - 未登録ツールは default deny（TOOL_PERMISSIONS に無いツールは登録しない）
+ * - 認証・認可の失敗時は fail-closed（アクセス拒否）
  */
 export function createMcpServer(options: CreateServerOptions): McpServer {
   const {
@@ -47,21 +47,59 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
   });
 
   for (const [name, tool] of Object.entries(tools)) {
-    // H3修正: 未登録ツールは登録しない（default deny）
     if (!(name in TOOL_PERMISSIONS)) continue;
 
     server.tool(name, tool.description, tool.shape, async (params: Record<string, unknown>) => {
-      const authContext = resolveAuthContext();
+      // --- fail-closed: 認証コンテキスト解決・認可チェックの失敗はアクセス拒否 ---
+      let authContext: AuthContext;
+      try {
+        authContext = resolveAuthContext();
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            severity: "ERROR",
+            message: "Failed to resolve auth context",
+            tool: name,
+            error: error instanceof Error ? error.message : String(error),
+            source: "mcp-smarthr",
+          }),
+        );
+        return {
+          content: [{ type: "text" as const, text: "Error: 認証コンテキストの解決に失敗しました" }],
+          isError: true,
+        };
+      }
 
-      // Layer 1-4: 認可チェック
-      const authResult = await authorizer.authorize(authContext, name);
+      let authResult: Awaited<ReturnType<typeof authorizer.authorize>>;
+      try {
+        authResult = await authorizer.authorize(authContext, name);
+      } catch (error) {
+        console.error(
+          JSON.stringify({
+            severity: "ERROR",
+            message: "Authorization system failure - denying access",
+            tool: name,
+            email: authContext.email,
+            error: error instanceof Error ? error.message : String(error),
+            source: "mcp-smarthr",
+          }),
+        );
+        return {
+          content: [{ type: "text" as const, text: "Error: 認証システムエラー" }],
+          isError: true,
+        };
+      }
+
       if (!authResult.authorized) {
-        // 拒否時も監査ログを記録
-        await auditLogger
-          .logToolCall(name, authContext.email, params, async () => {
+        // 拒否時も監査ログを記録（失敗しても拒否レスポンスは返す）
+        try {
+          await auditLogger.logToolCall(name, authContext.email, params, async () => {
             throw new Error(authResult.reason ?? "アクセスが拒否されました");
-          })
-          .catch(() => {});
+          });
+        } catch {
+          // logToolCall は内部で fn の throw を re-throw するため、ここで捕捉する
+          // 監査ログの出力自体は logToolCall の finally ブロックで完了済み
+        }
         return {
           content: [{ type: "text" as const, text: `アクセス拒否: ${authResult.reason}` }],
           isError: true,
@@ -70,17 +108,26 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
 
       // 認可OK → 監査ログ付きでハンドラ実行 → PII フィルタ適用
       try {
-        const result = await auditLogger.logToolCall(name, authContext.email, params, () =>
+        const result: unknown = await auditLogger.logToolCall(name, authContext.email, params, () =>
           tool.handler(params as never),
         );
 
-        // H4修正: 結果にPIIフィルタを適用
-        const filtered = filterPII(JSON.parse(result), authResult.role);
+        // handler はオブジェクトを返すため、直接 PII フィルタを適用
+        const filtered = filterPII(result, authResult.role);
         return { content: [{ type: "text" as const, text: JSON.stringify(filtered, null, 2) }] };
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Unknown error";
+        // エラーメッセージに PII が含まれる可能性があるため、汎用メッセージを返す
+        console.error(
+          JSON.stringify({
+            severity: "ERROR",
+            message: error instanceof Error ? error.message : String(error),
+            tool: name,
+            email: authContext.email,
+            source: "mcp-smarthr",
+          }),
+        );
         return {
-          content: [{ type: "text" as const, text: `Error: ${message}` }],
+          content: [{ type: "text" as const, text: "Error: ツール実行中にエラーが発生しました" }],
           isError: true,
         };
       }

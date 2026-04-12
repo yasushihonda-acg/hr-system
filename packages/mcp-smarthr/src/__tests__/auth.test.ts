@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type AuthContext, Authorizer, type UserStore } from "../core/middleware/auth.js";
+import {
+  type AuthContext,
+  Authorizer,
+  createAuthContext,
+  type UserStore,
+} from "../core/middleware/auth.js";
 
 /** テスト用モック UserStore */
 function createMockUserStore(
@@ -233,5 +238,28 @@ describe("Authorizer", () => {
       expect(result.authorized).toBe(false);
       expect(result.reason).toBe("権限不足");
     });
+  });
+});
+
+describe("createAuthContext", () => {
+  it("email からドメインを自動導出する", () => {
+    const ctx = createAuthContext("user@aozora-cg.com", "http");
+    expect(ctx.email).toBe("user@aozora-cg.com");
+    expect(ctx.domain).toBe("aozora-cg.com");
+    expect(ctx.transport).toBe("http");
+  });
+
+  it("hdOverride でドメインを上書きできる", () => {
+    const ctx = createAuthContext("user@aozora-cg.com", "http", "custom-domain.com");
+    expect(ctx.domain).toBe("custom-domain.com");
+  });
+
+  it("不正な email 形式でエラーを投げる", () => {
+    expect(() => createAuthContext("invalid-email", "stdio")).toThrow("Invalid email format");
+  });
+
+  it("返されるオブジェクトが frozen である", () => {
+    const ctx = createAuthContext("user@aozora-cg.com", "stdio");
+    expect(Object.isFrozen(ctx)).toBe(true);
   });
 });

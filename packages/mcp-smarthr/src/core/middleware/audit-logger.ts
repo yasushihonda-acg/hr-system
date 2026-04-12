@@ -3,10 +3,11 @@
  *
  * - Cloud Logging 互換の JSON 構造化ログを console.log で出力
  * - Firestore AuditLog コレクションへの書き込み（オプション、DI で注入）
- * - PII フィールドをマスキングして安全にログ記録
+ * - PII フィールドをマスキングして安全にログ記録（pii-filter.ts の maskPII を使用）
  */
 
 import { randomUUID } from "node:crypto";
+import { maskPII } from "./pii-filter.js";
 
 /** 監査ログエントリ */
 export interface AuditLogEntry {
@@ -24,49 +25,6 @@ export interface AuditLogEntry {
 /** Firestore 書き込み用のインターフェース（DI） */
 export interface AuditLogStore {
   write(entry: AuditLogEntry): Promise<void>;
-}
-
-/**
- * PII と判定するフィールド名パターン。
- * 値を "***" に置換する。
- */
-const PII_FIELD_PATTERNS = [
-  /email/i,
-  /phone/i,
-  /address/i,
-  /birth/i,
-  /salary/i,
-  /wage/i,
-  /pay/i,
-  /bank/i,
-  /account/i,
-  /password/i,
-  /secret/i,
-  /token/i,
-  /name/i,
-  /my_?number/i,
-  /social.*security/i,
-  /ssn/i,
-];
-
-const PII_MASK = "***";
-
-/**
- * パラメータオブジェクトの PII フィールドをマスクする。
- * ネストされたオブジェクトも再帰的に処理する。
- */
-export function maskPII(params: Record<string, unknown>): Record<string, unknown> {
-  const masked: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (PII_FIELD_PATTERNS.some((p) => p.test(key))) {
-      masked[key] = PII_MASK;
-    } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-      masked[key] = maskPII(value as Record<string, unknown>);
-    } else {
-      masked[key] = value;
-    }
-  }
-  return masked;
 }
 
 export class AuditLogger {
@@ -104,7 +62,7 @@ export class AuditLogger {
         severity,
         tool,
         userEmail,
-        params: maskPII(params),
+        params: maskPII(params) as Record<string, unknown>,
         result,
         durationMs,
         requestId,
@@ -123,8 +81,17 @@ export class AuditLogger {
   /** Firestore に非同期書き込み（失敗してもツール実行には影響しない） */
   private persistLog(entry: AuditLogEntry): void {
     if (!this.store) return;
-    this.store.write(entry).catch(() => {
-      // Firestore 書き込み失敗はツール実行に影響させない
+    this.store.write(entry).catch((error) => {
+      console.error(
+        JSON.stringify({
+          severity: "ERROR",
+          message: "Audit log persistence failed",
+          tool: entry.tool,
+          requestId: entry.requestId,
+          error: error instanceof Error ? error.message : String(error),
+          source: "mcp-smarthr",
+        }),
+      );
     });
   }
 }
