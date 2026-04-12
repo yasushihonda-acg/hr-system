@@ -9,6 +9,9 @@
  *   → Core の createMcpServer に委譲
  */
 
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { createMcpHonoApp } from "@modelcontextprotocol/hono";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/server";
@@ -146,6 +149,13 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
 
   // ヘルスチェック（認証不要・IP 制限なし）
   app.get("/health", (c) => c.json({ status: "ok" }));
+
+  // ドキュメントページ（認証不要・IP 制限なし）
+  app.get("/docs", (c) => {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const html = readFileSync(resolve(__dirname, "../../static/docs.html"), "utf-8");
+    return c.html(html);
+  });
 
   // Anthropic IP 制限（/mcp のみ）
   if (ipRestrictionEnabled) {

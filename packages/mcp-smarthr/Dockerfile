@@ -46,6 +46,9 @@ RUN pnpm install --frozen-lockfile --prod
 # ビルド済み JS ファイルのみコピー
 COPY --from=builder /app/packages/mcp-smarthr/dist ./packages/mcp-smarthr/dist
 
+# 静的ファイル（ドキュメント HTML）をコピー
+COPY packages/mcp-smarthr/static ./packages/mcp-smarthr/static
+
 EXPOSE 8080
 
 # 非 root ユーザーで実行

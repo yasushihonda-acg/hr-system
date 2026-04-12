@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACG SmartHR MCP Server - Documentation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  .mermaid { display: flex; justify-content: center; }
+  .mermaid svg { max-width: 100%; height: auto; }
+  pre code { font-size: 0.85rem; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<!-- Header -->
+<header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+  <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-bold text-brand-700">ACG SmartHR MCP</h1>
+      <p class="text-sm text-gray-500">Model Context Protocol Server for SmartHR</p>
+    </div>
+    <span class="text-xs bg-brand-100 text-brand-700 px-3 py-1 rounded-full font-medium">v0.1.0</span>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="bg-white border-b border-gray-100 hidden md:block">
+  <div class="max-w-5xl mx-auto px-6 py-2 flex gap-6 text-sm">
+    <a href="#overview" class="text-gray-600 hover:text-brand-600">概要</a>
+    <a href="#architecture" class="text-gray-600 hover:text-brand-600">アーキテクチャ</a>
+    <a href="#auth" class="text-gray-600 hover:text-brand-600">認証</a>
+    <a href="#tools" class="text-gray-600 hover:text-brand-600">ツール一覧</a>
+    <a href="#setup" class="text-gray-600 hover:text-brand-600">セットアップ</a>
+    <a href="#security" class="text-gray-600 hover:text-brand-600">セキュリティ</a>
+    <a href="#faq" class="text-gray-600 hover:text-brand-600">FAQ</a>
+  </div>
+</nav>
+
+<main class="max-w-5xl mx-auto px-6 py-10 space-y-16">
+
+<!-- Overview -->
+<section id="overview">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">概要</h2>
+  <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+    <p>
+      <strong>ACG SmartHR MCP</strong> は、あおぞらケアグループ（ACG）が社内利用のために構築した
+      <a href="https://modelcontextprotocol.io/" class="text-brand-600 underline" target="_blank">Model Context Protocol (MCP)</a>
+      サーバーです。
+    </p>
+    <p>
+      AI アシスタント（Claude）から SmartHR の人事データを安全に参照できるようにします。
+      読み取り専用の 6 つのツールを提供し、従業員情報・部署・役職・給与明細の参照が可能です。
+    </p>
+    <div class="grid md:grid-cols-3 gap-4 mt-6">
+      <div class="bg-brand-50 rounded-lg p-4 text-center">
+        <div class="text-3xl font-bold text-brand-700">6</div>
+        <div class="text-sm text-gray-600 mt-1">利用可能ツール</div>
+      </div>
+      <div class="bg-brand-50 rounded-lg p-4 text-center">
+        <div class="text-3xl font-bold text-brand-700">4</div>
+        <div class="text-sm text-gray-600 mt-1">認証レイヤー</div>
+      </div>
+      <div class="bg-brand-50 rounded-lg p-4 text-center">
+        <div class="text-3xl font-bold text-brand-700">2</div>
+        <div class="text-sm text-gray-600 mt-1">接続モード</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section id="architecture">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">アーキテクチャ</h2>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+    <h3 class="text-lg font-semibold">Core + Shell パターン</h3>
+    <p class="text-gray-600">
+      トランスポート非依存の <strong>Core</strong>（ビジネスロジック）と、
+      差し替え可能な <strong>Shell</strong>（接続方式）で構成されています。
+    </p>
+
+    <div class="mermaid">
+graph TB
+  subgraph Clients["クライアント"]
+    CC["Claude Code"]
+    CD["Claude Desktop"]
+    CW["Cowork / claude.ai"]
+    APP["自社アプリ"]
+  end
+
+  subgraph Shell["Shell（トランスポート層）"]
+    STDIO["stdio Shell"]
+    HTTP["HTTP Shell<br/>Hono + Streamable HTTP"]
+  end
+
+  subgraph Core["Core（ビジネスロジック）"]
+    AUTH["4層認証"]
+    TOOLS["ツール定義<br/>6ツール"]
+    PII["PII フィルタ"]
+    AUDIT["監査ログ"]
+    RL["レート制限"]
+  end
+
+  SMARTHR["SmartHR API"]
+
+  CC --> STDIO
+  CD --> STDIO
+  CW --> HTTP
+  APP --> HTTP
+  STDIO --> AUTH
+  HTTP --> AUTH
+  AUTH --> TOOLS
+  TOOLS --> PII
+  TOOLS --> AUDIT
+  TOOLS --> RL
+  RL --> SMARTHR
+
+  style Core fill:#e0f2fe,stroke:#0284c7
+  style Shell fill:#f0fdf4,stroke:#16a34a
+  style Clients fill:#fef3c7,stroke:#d97706
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8">接続モード</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="border border-gray-200 px-4 py-2 text-left">モード</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">トランスポート</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">対象クライアント</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">認証</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border border-gray-200 px-4 py-2 font-medium">stdio</td>
+            <td class="border border-gray-200 px-4 py-2">標準入出力</td>
+            <td class="border border-gray-200 px-4 py-2">Claude Code, Claude Desktop</td>
+            <td class="border border-gray-200 px-4 py-2">環境変数（ローカル実行）</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-gray-200 px-4 py-2 font-medium">HTTP</td>
+            <td class="border border-gray-200 px-4 py-2">Streamable HTTP</td>
+            <td class="border border-gray-200 px-4 py-2">Cowork, claude.ai, 自社アプリ</td>
+            <td class="border border-gray-200 px-4 py-2">Google OAuth 2.0</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Auth -->
+<section id="auth">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">認証フロー</h2>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+    <h3 class="text-lg font-semibold">4 層認証モデル</h3>
+    <p class="text-gray-600">
+      SmartHR API トークンにスコープ制限がないため、アプリケーション側で 4 層の認証・認可を実装しています。
+    </p>
+
+    <div class="mermaid">
+flowchart TD
+  REQ["リクエスト受信"] --> L1
+
+  L1{"Layer 1: トランスポート認証"}
+  L1 -->|stdio| L1A["ローカル実行 = 信頼済み"]
+  L1 -->|HTTP| L1B["Google OAuth ID トークン検証"]
+  L1B -->|検証失敗| DENY1["401 Unauthorized"]
+
+  L1A --> L2
+  L1B -->|検証成功| L2
+
+  L2{"Layer 2: ドメイン検証"}
+  L2 -->|"hd == aozora-cg.com"| L3
+  L2 -->|"それ以外"| DENY2["403 Forbidden"]
+
+  L3{"Layer 3: ユーザー許可リスト"}
+  L3 -->|"登録済み"| L4
+  L3 -->|"未登録"| DENY3["403 Forbidden"]
+
+  L4{"Layer 4: ツール権限"}
+  L4 -->|"admin"| ALL["全ツール利用可"]
+  L4 -->|"readonly"| LIMITED["給与明細以外<br/>利用可"]
+
+  style L1 fill:#fef3c7,stroke:#d97706
+  style L2 fill:#e0f2fe,stroke:#0284c7
+  style L3 fill:#f0fdf4,stroke:#16a34a
+  style L4 fill:#fce7f3,stroke:#db2777
+  style DENY1 fill:#fee2e2,stroke:#dc2626
+  style DENY2 fill:#fee2e2,stroke:#dc2626
+  style DENY3 fill:#fee2e2,stroke:#dc2626
+    </div>
+
+    <h3 class="text-lg font-semibold mt-8">ロールと権限</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="border border-gray-200 px-4 py-2 text-left">ロール</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">アクセス可能ツール</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">PII アクセス</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border border-gray-200 px-4 py-2">
+              <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">admin</span>
+            </td>
+            <td class="border border-gray-200 px-4 py-2">全 6 ツール（給与明細含む）</td>
+            <td class="border border-gray-200 px-4 py-2">生年月日・性別・連絡先を含む（マイナンバーは除外）</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-gray-200 px-4 py-2">
+              <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">readonly</span>
+            </td>
+            <td class="border border-gray-200 px-4 py-2">5 ツール（給与明細を除く）</td>
+            <td class="border border-gray-200 px-4 py-2">PII フィールドは自動除外</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Tools -->
+<section id="tools">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">ツール一覧</h2>
+
+  <div class="space-y-4">
+
+    <!-- list_employees -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">list_employees</code>
+        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">readonly</span>
+      </div>
+      <p class="text-gray-600 mb-3">従業員一覧を取得します。ページネーション対応。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">page</code></td><td class="text-gray-500">ページ番号（1始まり、任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">per_page</code></td><td class="text-gray-500">1ページあたりの件数（最大100、任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例（Claude への指示）</p>
+        <code>"従業員一覧を10件取得して"</code>
+      </div>
+    </div>
+
+    <!-- get_employee -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">get_employee</code>
+        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">readonly</span>
+      </div>
+      <p class="text-gray-600 mb-3">従業員IDを指定して詳細情報を取得します。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">id</code> <span class="text-red-500">*</span></td><td class="text-gray-500">SmartHR 従業員ID（必須）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"従業員ID abc123 の詳細を見せて"</code>
+      </div>
+    </div>
+
+    <!-- search_employees -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">search_employees</code>
+        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">readonly</span>
+      </div>
+      <p class="text-gray-600 mb-3">名前・社員番号などで従業員を検索します。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">query</code> <span class="text-red-500">*</span></td><td class="text-gray-500">検索キーワード（必須）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">page</code></td><td class="text-gray-500">ページ番号（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">per_page</code></td><td class="text-gray-500">1ページあたりの件数（任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"田中さんの情報を検索して"</code>
+      </div>
+    </div>
+
+    <!-- get_pay_statements -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">get_pay_statements</code>
+        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">admin</span>
+      </div>
+      <p class="text-gray-600 mb-3">給与明細を取得します。従業員ID・年・月で絞り込み可能。<strong>admin ロール必須。</strong></p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">crew_id</code></td><td class="text-gray-500">従業員ID（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">year</code></td><td class="text-gray-500">年（例: 2026、任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">month</code></td><td class="text-gray-500">月（1-12、任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">page</code></td><td class="text-gray-500">ページ番号（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">per_page</code></td><td class="text-gray-500">1ページあたりの件数（任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"2026年3月の給与明細を見せて"</code>
+      </div>
+    </div>
+
+    <!-- list_departments -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">list_departments</code>
+        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">readonly</span>
+      </div>
+      <p class="text-gray-600 mb-3">部署一覧を取得します。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">page</code></td><td class="text-gray-500">ページ番号（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">per_page</code></td><td class="text-gray-500">1ページあたりの件数（任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"部署の一覧を表示して"</code>
+      </div>
+    </div>
+
+    <!-- list_positions -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">list_positions</code>
+        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">readonly</span>
+      </div>
+      <p class="text-gray-600 mb-3">役職一覧を取得します。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">page</code></td><td class="text-gray-500">ページ番号（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">per_page</code></td><td class="text-gray-500">1ページあたりの件数（任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"役職の一覧を整理して"</code>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Setup -->
+<section id="setup">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">セットアップガイド</h2>
+
+  <div class="space-y-6">
+
+    <!-- Cowork -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
+        <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">推奨</span>
+        Cowork / claude.ai
+      </h3>
+      <ol class="list-decimal list-inside space-y-2 text-gray-600">
+        <li><strong>設定</strong> &gt; <strong>コネクタ</strong> を開く</li>
+        <li><strong>カスタムコネクタを追加</strong> をクリック</li>
+        <li>名前: <code class="bg-gray-100 px-2 py-0.5 rounded text-sm">ACG_SmartHR_MCP</code></li>
+        <li>URL: MCP サーバーの <code class="bg-gray-100 px-2 py-0.5 rounded text-sm">/mcp</code> エンドポイント URL を入力</li>
+        <li><strong>追加</strong> をクリック</li>
+        <li>会話で「従業員一覧を見せて」と入力してテスト</li>
+      </ol>
+      <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+        <strong>注意:</strong> Team/Enterprise プランではカスタムコネクタの追加に組織オーナー権限が必要です。
+        個人 Pro/Max プランでは制限なく追加できます。
+      </div>
+    </div>
+
+    <!-- Claude Code -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-lg font-semibold mb-3">Claude Code（stdio）</h3>
+      <p class="text-gray-600 mb-3"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">.claude.json</code> に以下を追加:</p>
+      <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto"><code>{
+  "mcpServers": {
+    "smarthr": {
+      "command": "npx",
+      "args": ["tsx", "packages/mcp-smarthr/src/index.ts"],
+      "env": {
+        "SMARTHR_API_KEY": "your-api-key",
+        "SMARTHR_TENANT_ID": "your-tenant-id",
+        "MCP_USER_EMAIL": "you@aozora-cg.com",
+        "MCP_USER_ROLE": "readonly"
+      }
+    }
+  }
+}</code></pre>
+    </div>
+
+    <!-- Claude Desktop -->
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 class="text-lg font-semibold mb-3">Claude Desktop（stdio）</h3>
+      <p class="text-gray-600 mb-3"><code class="bg-gray-100 px-2 py-0.5 rounded text-sm">claude_desktop_config.json</code> に以下を追加:</p>
+      <pre class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto"><code>{
+  "mcpServers": {
+    "smarthr": {
+      "command": "node",
+      "args": ["/path/to/packages/mcp-smarthr/dist/index.js"],
+      "env": {
+        "SMARTHR_API_KEY": "your-api-key",
+        "SMARTHR_TENANT_ID": "your-tenant-id",
+        "MCP_USER_EMAIL": "you@aozora-cg.com",
+        "MCP_USER_ROLE": "readonly"
+      }
+    }
+  }
+}</code></pre>
+    </div>
+
+  </div>
+</section>
+
+<!-- Security -->
+<section id="security">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">セキュリティ</h2>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+
+    <div class="mermaid">
+flowchart LR
+  subgraph Protection["多層防御"]
+    direction TB
+    IP["IP 制限<br/>Anthropic IP のみ"]
+    OAUTH["OAuth 2.0<br/>Google 認証"]
+    DOMAIN["ドメイン制限<br/>@aozora-cg.com"]
+    RBAC["RBAC<br/>admin / readonly"]
+    PIIF["PII フィルタ<br/>個人情報保護"]
+    AUDITL["監査ログ<br/>全操作記録"]
+  end
+
+  IP --> OAUTH --> DOMAIN --> RBAC --> PIIF --> AUDITL
+
+  style Protection fill:#f0fdf4,stroke:#16a34a
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h4 class="font-semibold text-sm mb-2">IP アドレス制限</h4>
+        <p class="text-sm text-gray-600">
+          HTTP エンドポイントは Anthropic のサーバー IP 範囲からのアクセスのみ許可。
+          URL を直接ブラウザで開いても 403 Forbidden が返ります。
+        </p>
+      </div>
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h4 class="font-semibold text-sm mb-2">PII フィルタリング</h4>
+        <p class="text-sm text-gray-600">
+          readonly ロールでは生年月日・性別・メールアドレス・電話番号が自動的に除外されます。
+          マイナンバーは全ロールで除外されます。
+        </p>
+      </div>
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h4 class="font-semibold text-sm mb-2">監査ログ</h4>
+        <p class="text-sm text-gray-600">
+          全ツール呼び出しが構造化ログとして記録されます。
+          ツール名・ユーザーメール・パラメータ（PII マスク済み）・実行時間を含みます。
+        </p>
+      </div>
+      <div class="border border-gray-200 rounded-lg p-4">
+        <h4 class="font-semibold text-sm mb-2">レート制限</h4>
+        <p class="text-sm text-gray-600">
+          SmartHR API のレート制限（10 req/sec）に合わせたトークンバケット方式のスロットリングを実装。
+          429 レスポンス時は自動リトライします。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Deployment -->
+<section id="deployment">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">デプロイ構成</h2>
+
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <div class="mermaid">
+graph LR
+  subgraph GCP["Google Cloud Platform"]
+    CR["Cloud Run<br/>mcp-smarthr"]
+    SM["Secret Manager<br/>API Key / Tenant ID"]
+    FS["Firestore<br/>監査ログ / 許可リスト"]
+    CL["Cloud Logging<br/>構造化ログ"]
+  end
+
+  CR --> SM
+  CR --> FS
+  CR --> CL
+  CR --> SMARTHR["SmartHR API"]
+
+  ANTHROPIC["Anthropic<br/>(Cowork/claude.ai)"] --> CR
+
+  style GCP fill:#e0f2fe,stroke:#0284c7
+    </div>
+
+    <div class="mt-6 overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="border border-gray-200 px-4 py-2 text-left">コンポーネント</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">技術スタック</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">役割</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border border-gray-200 px-4 py-2">HTTP サーバー</td>
+            <td class="border border-gray-200 px-4 py-2">Hono + @modelcontextprotocol/hono</td>
+            <td class="border border-gray-200 px-4 py-2">MCP Streamable HTTP トランスポート</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-gray-200 px-4 py-2">ランタイム</td>
+            <td class="border border-gray-200 px-4 py-2">Node.js 22 (node:22-slim)</td>
+            <td class="border border-gray-200 px-4 py-2">コンテナ実行環境</td>
+          </tr>
+          <tr>
+            <td class="border border-gray-200 px-4 py-2">OAuth 検証</td>
+            <td class="border border-gray-200 px-4 py-2">google-auth-library</td>
+            <td class="border border-gray-200 px-4 py-2">Google ID トークン検証</td>
+          </tr>
+          <tr class="bg-gray-50">
+            <td class="border border-gray-200 px-4 py-2">セッション管理</td>
+            <td class="border border-gray-200 px-4 py-2">ステートレス</td>
+            <td class="border border-gray-200 px-4 py-2">Cloud Run スケーリング対応</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">FAQ</h2>
+
+  <div class="space-y-4">
+    <details class="bg-white rounded-xl border border-gray-200 p-6 group" open>
+      <summary class="font-semibold cursor-pointer">データの書き込み・更新はできますか？</summary>
+      <p class="mt-3 text-gray-600">
+        現在は<strong>読み取り専用</strong>です。今後、承認フロー（Human-in-the-loop）を組み込んだ上で、
+        書き込み操作を追加する予定です。AI が直接データを変更することはありません。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-6 group">
+      <summary class="font-semibold cursor-pointer">誰がアクセスできますか？</summary>
+      <p class="mt-3 text-gray-600">
+        @aozora-cg.com ドメインのユーザーのみです。Team プランでは管理者がコネクタを登録した後、
+        チームメンバー全員が利用可能になります。個人プランでは各自がコネクタを登録します。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-6 group">
+      <summary class="font-semibold cursor-pointer">給与情報は誰でも見られますか？</summary>
+      <p class="mt-3 text-gray-600">
+        いいえ。<strong>admin ロール</strong>のユーザーのみが <code>get_pay_statements</code> ツールを利用できます。
+        readonly ユーザーが呼び出すと「権限不足」エラーが返ります。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-6 group">
+      <summary class="font-semibold cursor-pointer">操作ログは残りますか？</summary>
+      <p class="mt-3 text-gray-600">
+        はい。全てのツール呼び出しが監査ログに記録されます（ツール名、ユーザー、パラメータ、実行時間）。
+        パラメータ内の個人情報は自動的にマスキングされます。ログは 7 年間保持されます。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-6 group">
+      <summary class="font-semibold cursor-pointer">Claude が計算ミスをする心配はありませんか？</summary>
+      <p class="mt-3 text-gray-600">
+        MCP サーバーは SmartHR のデータをそのまま返します。AI が計算や加工をすることはありません。
+        給与計算などの金銭計算は、別途確定的なプログラムコードで処理されます（ADR-007）。
+      </p>
+    </details>
+  </div>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="bg-gray-100 border-t border-gray-200 mt-16">
+  <div class="max-w-5xl mx-auto px-6 py-8 text-center text-sm text-gray-500">
+    <p>ACG SmartHR MCP Server v0.1.0</p>
+    <p class="mt-1">&copy; 2026 Aozora Care Group. Internal use only.</p>
+  </div>
+</footer>
+
+<script>mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });</script>
+</body>
+</html>
