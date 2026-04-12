@@ -28,6 +28,42 @@ export interface HttpShellOptions {
   port?: number;
   /** true にすると OAuth 検証をスキップし、デフォルト AuthContext を使用する（デモ用） */
   authDisabled?: boolean;
+  /** true にすると Anthropic IP 範囲のみ /mcp へのアクセスを許可する */
+  ipRestrictionEnabled?: boolean;
+}
+
+/**
+ * Anthropic の公開 IP 範囲（MCP ツール呼び出し用）
+ * @see https://platform.claude.com/docs/en/api/ip-addresses
+ */
+const ANTHROPIC_IP_CIDR = "160.79.104.0/21";
+
+/** CIDR 範囲にIPアドレスが含まれるか判定する */
+function isIpInCidr(ip: string, cidr: string): boolean {
+  const [cidrBase, prefixLenStr] = cidr.split("/");
+  if (!cidrBase || !prefixLenStr) return false;
+  const prefixLen = Number(prefixLenStr);
+
+  const ipNum = ipToNumber(ip);
+  const cidrNum = ipToNumber(cidrBase);
+  if (ipNum === null || cidrNum === null) return false;
+
+  const mask = ~((1 << (32 - prefixLen)) - 1) >>> 0;
+  return (ipNum & mask) === (cidrNum & mask);
+}
+
+function ipToNumber(ip: string): number | null {
+  // IPv4-mapped IPv6 (::ffff:1.2.3.4) を処理
+  const v4 = ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+  const parts = v4.split(".");
+  if (parts.length !== 4) return null;
+  let num = 0;
+  for (const p of parts) {
+    const n = Number(p);
+    if (Number.isNaN(n) || n < 0 || n > 255) return null;
+    num = (num << 8) | n;
+  }
+  return num >>> 0;
 }
 
 /**
@@ -88,6 +124,7 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     userStore,
     port = 8080,
     authDisabled = false,
+    ipRestrictionEnabled = false,
   } = options;
 
   const smarthrClient = new SmartHRClient({
@@ -107,8 +144,30 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     }),
   );
 
-  // ヘルスチェック（認証不要）
+  // ヘルスチェック（認証不要・IP 制限なし）
   app.get("/health", (c) => c.json({ status: "ok" }));
+
+  // Anthropic IP 制限（/mcp のみ）
+  if (ipRestrictionEnabled) {
+    app.use("/mcp", async (c, next) => {
+      // Cloud Run では X-Forwarded-For ヘッダーでクライアント IP を取得
+      const forwarded = c.req.header("x-forwarded-for");
+      const clientIp = forwarded?.split(",")[0]?.trim() ?? "";
+
+      if (!clientIp || !isIpInCidr(clientIp, ANTHROPIC_IP_CIDR)) {
+        console.log(
+          JSON.stringify({
+            severity: "WARNING",
+            message: "Blocked non-Anthropic IP",
+            clientIp,
+            source: "mcp-smarthr",
+          }),
+        );
+        return c.json({ error: "Forbidden" }, 403);
+      }
+      await next();
+    });
+  }
 
   if (authDisabled) {
     console.log(
