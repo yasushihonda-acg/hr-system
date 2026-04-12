@@ -63,11 +63,25 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
       clientId: string;
       redirectUri: string;
       resource?: string;
+      clientState?: string;
       expiresAt: number;
     }
   >();
 
   const serverUrl = config.serverUrl.replace(/\/$/, "");
+  const MAX_REGISTERED_CLIENTS = 100;
+
+  /** セキュリティイベントをログに記録する */
+  function logSecurityEvent(event: string, details?: Record<string, unknown>) {
+    console.log(
+      JSON.stringify({
+        severity: "WARNING",
+        message: event,
+        ...details,
+        source: "mcp-smarthr",
+      }),
+    );
+  }
 
   // 期限切れエントリのクリーンアップ
   function cleanup() {
@@ -151,7 +165,7 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
     if (state) {
       const pending = pendingAuths.get(internalState);
       if (pending) {
-        (pending as Record<string, unknown>).clientState = state;
+        pending.clientState = state;
       }
     }
 
@@ -247,10 +261,19 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
     // ドメイン検証
     const allowedDomain = config.allowedDomain ?? "aozora-cg.com";
     if (domain !== allowedDomain) {
+      console.log(
+        JSON.stringify({
+          severity: "WARNING",
+          message: "Domain validation failed",
+          userDomain: domain,
+          allowedDomain,
+          source: "mcp-smarthr",
+        }),
+      );
       return c.json(
         {
           error: "access_denied",
-          error_description: `Domain ${domain} is not allowed. Only ${allowedDomain} users can access.`,
+          error_description: "Your account is not authorized to access this resource.",
         },
         403,
       );
@@ -271,7 +294,7 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
     // クライアントの redirect_uri に認可コードを返す
     const redirectUrl = new URL(pending.redirectUri);
     redirectUrl.searchParams.set("code", authCode);
-    const clientState = (pending as Record<string, unknown>).clientState as string | undefined;
+    const clientState = pending.clientState;
     if (clientState) {
       redirectUrl.searchParams.set("state", clientState);
     }
@@ -314,6 +337,7 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
 
     // 有効期限チェック
     if (Date.now() > entry.expiresAt) {
+      logSecurityEvent("Authorization code expired", { clientId });
       return c.json(
         { error: "invalid_grant", error_description: "authorization code expired" },
         400,
@@ -322,51 +346,109 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
 
     // クライアント ID 一致チェック
     if (entry.clientId !== clientId) {
+      logSecurityEvent("Client ID mismatch in token exchange", {
+        expected: entry.clientId,
+        received: clientId,
+      });
       return c.json({ error: "invalid_grant", error_description: "client_id mismatch" }, 400);
     }
 
-    // redirect_uri 一致チェック
-    if (redirectUri && entry.redirectUri !== redirectUri) {
+    // redirect_uri 一致チェック（OAuth 2.1: 必須）
+    if (!redirectUri || entry.redirectUri !== redirectUri) {
+      logSecurityEvent("redirect_uri mismatch in token exchange", { clientId });
       return c.json({ error: "invalid_grant", error_description: "redirect_uri mismatch" }, 400);
     }
 
     // PKCE 検証（S256）
     const expectedChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
     if (expectedChallenge !== entry.codeChallenge) {
+      logSecurityEvent("PKCE verification failed", { clientId });
       return c.json({ error: "invalid_grant", error_description: "PKCE verification failed" }, 400);
     }
 
-    // UserStore からロールを取得
-    const user = await userStore.getUser(entry.email);
-    const role = user?.role ?? "readonly";
-    const enabled = user?.enabled ?? true;
+    // UserStore からロールを取得（fail-closed: エラー時はアクセス拒否）
+    let user: Awaited<ReturnType<typeof userStore.getUser>>;
+    try {
+      user = await userStore.getUser(entry.email);
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          severity: "ERROR",
+          message: "UserStore lookup failed",
+          email: entry.email,
+          error: err instanceof Error ? err.message : String(err),
+          source: "mcp-smarthr",
+        }),
+      );
+      return c.json(
+        { error: "server_error", error_description: "Unable to verify user permissions" },
+        500,
+      );
+    }
 
-    if (!enabled) {
-      return c.json({ error: "access_denied", error_description: "user is disabled" }, 403);
+    // fail-closed: 未登録ユーザーはアクセス拒否
+    if (!user) {
+      console.log(
+        JSON.stringify({
+          severity: "WARNING",
+          message: "User not found in store",
+          email: entry.email,
+          source: "mcp-smarthr",
+        }),
+      );
+      return c.json({ error: "access_denied", error_description: "User not provisioned" }, 403);
+    }
+
+    if (!user.enabled) {
+      return c.json({ error: "access_denied", error_description: "User account is disabled" }, 403);
     }
 
     // JWT アクセストークン発行
     const expiresIn = config.jwtExpiresIn ?? 3600;
-    const accessToken = await issueAccessToken(
-      { email: entry.email, domain: entry.domain, role },
-      config.jwtSecret,
-      { serverUrl, expiresIn },
-    );
+    let accessToken: string;
+    try {
+      accessToken = await issueAccessToken(
+        { email: entry.email, domain: entry.domain, role: user.role },
+        config.jwtSecret,
+        { serverUrl, expiresIn },
+      );
+    } catch (err) {
+      console.error(
+        JSON.stringify({
+          severity: "ERROR",
+          message: "JWT issuance failed",
+          error: err instanceof Error ? err.message : String(err),
+          source: "mcp-smarthr",
+        }),
+      );
+      return c.json({ error: "server_error" }, 500);
+    }
 
     return c.json({
       access_token: accessToken,
       token_type: "Bearer",
       expires_in: expiresIn,
-      scope: role === "admin" ? "mcp:read mcp:write" : "mcp:read",
+      scope: user.role === "admin" ? "mcp:read mcp:write" : "mcp:read",
     });
   });
 
   // --- POST /register: Dynamic Client Registration (RFC 7591) ---
   app.post("/register", async (c) => {
+    // サイズ上限チェック（DoS 防止）
+    if (registeredClients.size >= MAX_REGISTERED_CLIENTS) {
+      return c.json(
+        { error: "server_error", error_description: "Registration limit reached" },
+        503,
+      );
+    }
+
     let body: Record<string, unknown>;
     try {
       body = (await c.req.json()) as Record<string, unknown>;
-    } catch {
+    } catch (err) {
+      logSecurityEvent("Invalid JSON in client registration", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       return c.json({ error: "invalid_client_metadata" }, 400);
     }
 

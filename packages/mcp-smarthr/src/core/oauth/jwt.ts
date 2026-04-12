@@ -9,6 +9,7 @@
  */
 
 import * as jose from "jose";
+import type { Role } from "../middleware/pii-filter.js";
 
 export interface McpTokenPayload {
   /** ユーザーメールアドレス */
@@ -16,7 +17,7 @@ export interface McpTokenPayload {
   /** Google Workspace ドメイン */
   domain: string;
   /** ユーザーロール */
-  role: "admin" | "readonly";
+  role: Role;
 }
 
 export interface McpTokenClaims extends McpTokenPayload {

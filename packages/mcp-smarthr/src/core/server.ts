@@ -99,7 +99,11 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
 
         if (!authResult.authorized) {
           const reason = authResult.reason ?? "アクセスが拒否されました";
-          await auditLogger.logDenied(name, authContext.email, params, reason);
+          try {
+            await auditLogger.logDenied(name, authContext.email, params, reason);
+          } catch {
+            // 監査ログの失敗がツールレスポンスをブロックしないようにする
+          }
           return {
             content: [{ type: "text" as const, text: `アクセス拒否: ${reason}` }],
             isError: true,

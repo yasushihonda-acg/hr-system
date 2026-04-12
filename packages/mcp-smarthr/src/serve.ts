@@ -27,7 +27,15 @@ function createUserStore(): UserStore {
     return new FirestoreUserStore();
   }
 
-  // フォールバック: 全ドメイン内ユーザーを readonly として許可
+  // フォールバック: 全ドメイン内ユーザーを readonly として許可（開発/デモ用）
+  console.log(
+    JSON.stringify({
+      severity: "WARNING",
+      message:
+        "Using in-memory UserStore — all domain users get readonly access. Set USE_FIRESTORE_USER_STORE=true for production.",
+      source: "mcp-smarthr",
+    }),
+  );
   return {
     async getUser(_email: string) {
       return { role: "readonly" as const, enabled: true };
