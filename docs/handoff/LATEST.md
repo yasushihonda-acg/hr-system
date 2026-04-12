@@ -1,26 +1,88 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-04-05（セッション終了時点・最終更新）
-**ブランチ**: `main`（最新コミット: `e0eb0af` — docs: LATEST.md のオープンIssue一覧を実態に合わせて更新 (#405)）
+**最終更新**: 2026-04-12（セッション終了時点）
+**ブランチ**: `feature/smarthr-mcp-core-security`（PR #412 レビュー待ち）
+**main 最新**: `f562e41` — docs: ハンドオフ更新（Phase 12 進行中）
 
 ---
 
 ## 現在のフェーズ
 
-**Phase 12 進行中 — SmartHR MCP サーバー構築（Issue #406）**
+**Phase 12 進行中 — SmartHR MCP サーバー構築**
 
-SmartHR API と Claude Code を繋ぐ MCP サーバー（`packages/mcp-smarthr`）を新規作成中。
-P1-6（テスト作成）が進行中、P1-7（ビルド・lint・型チェック全PASS + コミット）が未着手。
+### 今セッションの成果
 
-ADR-008（AIエージェント拡張 MCP + Function Calling 段階導入）のPR #409 がオープン中（feature/adr-008-ai-agent-extension ブランチ）。
+SmartHR MCP サーバーの **Core + Shell アーキテクチャ（Phase A）** を完成。
 
-**CI**: docs: ADR-008 AIエージェント拡張 PR #409 — success
+1. **徹底調査**（6並列エージェント）
+   - SmartHR API 公式ドキュメント、ベストプラクティス、MCP 構築 BP、SmartHR 社 MCP 活用事例、既存 OSS 分析、セキュリティ設計
+   - 結果: `docs/research/smarthr-mcp-server-research.md`
+
+2. **実装計画 v2**
+   - Core + Shell パターン、4層認証、Phase A-D の WBS
+   - 結果: `docs/plans/smarthr-mcp-server-impl-plan.md`
+
+3. **Phase A 実装**（Core 基盤強化）
+   - A1: Core ディレクトリ構造リファクタ
+   - A2: レート制限（100ms間隔 + x-rate-limit監視 + 429 Exponential Backoff）
+   - A3: PII フィルタ（ロール別フィールド除去）
+   - A4: 監査ログ（Cloud Logging + Firestore AuditLog DI）
+   - A5: 4層認証（トランスポート→ドメイン→許可リスト→ツール権限）
+   - A6: ミドルウェアパイプライン統合（Codex 設計レビュー H1-H4, M1 修正）
+
+4. **品質**
+   - テスト: 62件全PASS / lint: PASS / typecheck: PASS
+   - Codex セカンドオピニオン完了（指摘5件全修正）
+
+### PR #412（レビュー待ち）
+
+- `feature/smarthr-mcp-core-security` → `main`
+- +2437行 / 17ファイル
+- **次セッションで `/review-pr` 実施後マージ**
+
+---
+
+## 次のアクション（WBS Phase B-D）
+
+### Phase B: Shell 実装（未着手）
+- B1: stdio Shell（既存 index.ts リファクタ済み、動作確認のみ）
+- B2: HTTP Shell（Hono + Streamable HTTP + Google OAuth）← 最大の実装タスク
+- B3: Dockerfile + Cloud Run デプロイ設定
+
+### Phase C: GCP インフラ（未着手）
+- C1: Secret Manager にトークン登録
+- C2: サービスアカウント + IAM 設定
+- C3: Cloud Run デプロイ
+
+### Phase D: 接続テスト + 検証（未着手）
+- D1: Claude Code stdio 接続テスト
+- D2: Claude Desktop stdio 接続テスト
+- D3: claude.ai カスタムコネクタ登録 + テスト
+- D4: E2E 全 AC 検証
+
+### 品質ゲート
+- Phase B 完了後: lint + typecheck + test
+- Phase C 完了後: `/codex review` (security)
+- Phase D 完了後: `/simplify` + `/safe-refactor` + Evaluator 分離 + `/review-pr`
+
+---
+
+## 重要な設計判断（確定済み）
+
+| 判断 | 決定 | 理由 |
+|------|------|------|
+| SmartHR API MCP | 公式・OSS なし → ACG 専用で自作 | 給与 PII の安全性、最小権限 |
+| アーキテクチャ | Core + Shell パターン | Claude Code / claude.ai / 自社アプリ全対応 |
+| 接続パターン | パブリック Cloud Run + アプリ内 OAuth | IAP は claude.ai コネクタと共存不可 |
+| 認証 | 4層（トランスポート→ドメイン→許可リスト→ツール権限） | SmartHR API トークンがスコープなし |
+| 監査ログ | Cloud Logging + Firestore 両方 | 7年保持 + 運用性 |
+| PII フィルタ | readonly: 個人情報+custom_fields除外 / admin: my_number除外 | Codex レビュー M1 対応 |
+| 未登録ツール | default deny | Codex レビュー H3 対応 |
+| stdio 未登録ユーザー | readonly（admin にしない） | Codex レビュー H2 対応 |
 
 ---
 
 ## MVP 実装状況
-
-詳細な変更履歴は `docs/handoff/archive/2026-03-history.md` を参照。
 
 | フェーズ | 内容 | 状態 |
 |---------|------|------|
@@ -29,280 +91,19 @@ ADR-008（AIエージェント拡張 MCP + Function Calling 段階導入）のPR
 | Phase 7 | UI再設計（3ペイン Inbox・タスクサイドパネル・Admin 統合） | 完了 |
 | Phase 8 | タスク優先度・手動タスク・セキュリティ強化・パフォーマンス改善 | 完了 |
 | Phase 9 | 担当者・期限インライン編集・手動タスクUI改善・AI判定パネル削除 | 完了 |
-| Phase 10 | タスクテーブルビュー拡充（列分離・カテゴリタグ/フィルタ・ワークフローステップ列・メモ列） | 完了 |
-| Phase 11 | 受信箱・タスクボードのメモ機能統一（notes フィールド統合） | 完了 |
-| Phase 12 | SmartHR MCP サーバー構築（packages/mcp-smarthr）+ ADR-008 | 進行中 |
+| Phase 10 | タスクテーブルビュー拡充 | 完了 |
+| Phase 11 | 受信箱・タスクボードのメモ機能統一 | 完了 |
+| Phase 12 | SmartHR MCP サーバー構築 | **Phase A 完了、B-D 未着手** |
 
 ---
 
-## 直近の変更（最新5件）
+## オープン GitHub Issues
 
-### Phase 12: packages/mcp-smarthr 新規作成（今セッション・未コミット）
-- `packages/mcp-smarthr/` — SmartHR MCP サーバーパッケージを新規追加
-  - `src/types.ts`: SmartHR API 型定義（Employee, Crew, Department, Payroll 等）
-  - `src/smarthr-client.ts`: SmartHR REST API クライアント
-  - `src/tools.ts`: MCP ツール定義（list_employees, get_employee, list_departments 等）
-  - `src/index.ts`: MCP サーバーエントリポイント
-  - `src/__tests__/smarthr-client.test.ts`: テスト（進行中）
-- `.env.example` に `SMARTHR_API_KEY`, `SMARTHR_TENANT_ID` を追加
-- `.mcp.json` を新規作成（Claude Code からローカル起動設定）
-- `pnpm-lock.yaml` を更新（@modelcontextprotocol/sdk, zod 追加）
-
-### docs: LATEST.md のオープンIssue一覧を実態に合わせて更新 (#405) (e0eb0af)
-- オープンIssue一覧を全件Close実態に合わせて更新（#402-#405 参照）
-- CI: Deploy to Cloud Run — **success**
-
-### docs: ADR-006/007 のADR-003参照テキストを実態に合わせて修正 (#404) (e2a1068)
-- ADR-003 参照テキストを実態の表現に修正
-- CI: Deploy to Cloud Run — **success**
-
-### docs: LATEST.md のオープンIssue一覧を実態に合わせて更新 (#403) (7a97525)
-- オープンIssue一覧更新
-- CI: Deploy to Cloud Run — **success**
-
-### ui: アカウント連携ボタンに本人操作が必要な旨の説明を追加 (#401) (df9b7b1)
-- 確認ダイアログに「連携したいアカウントの本人が操作する必要がある」旨を追加
-- CI: Deploy to Cloud Run — **success**
-
-### fix: ソート関数のテスト追加・aria-sort対応・ORDER定数の二重定義解消 (#392) (5ba2811)
-- ソート関数のユニットテストを追加、`aria-sort` 属性でアクセシビリティ対応
-- `ORDER` 定数の二重定義を解消
-- CI: Deploy to Cloud Run — success
-
-### ui: タスクテーブルのカラムヘッダークリックでソート機能を追加 (#391) (53dbdfc)
-- タスクテーブルのカラムヘッダーをクリックすると昇順/降順ソートが可能に
-- 優先度・期限・割り振り・カテゴリ等の列でソート対応
-- CI: Deploy to Cloud Run — success
-
-### ui: 割り振りフィールドをクリックでリスト選択に変更 (#390) (a168457)
-- タスクテーブルの割り振り（担当者）フィールドをクリックするとリスト選択UIに変更
-- CI: Deploy to Cloud Run — success
-
-### ui: スペース追加バナーからメールアドレスを除去し汎用ルールに変更 (#388) (0405ce1)
-- 具体的なメールアドレス表示が「このアカウント固定」と誤解されるため、汎用的なルール説明に変更
-- CI: Deploy to Cloud Run — **success**
-
-### ui: Google Chat 連携アカウントの説明文を改善 (#386) (2bbc86d)
-- アカウント連携の目的（メッセージ取得）を先に伝える構成に変更
-- ADC表示を技術用語から平易な表現に、確認ダイアログも目的を明示
-- CI: Deploy to Cloud Run — **success**
-
-### fix: LINE group-freshness のインデックス追記 + エラー表示改善 (#384) (fc9f4db)
-- LINE グループの鮮度チェック用インデックスを追加、エラー表示を改善
-- CI: Deploy to Cloud Run — **success**
-
-### refactor: 同期タブ・スペースタブの UI 再構成 (#383) (7c091fc)
-- 同期タブとスペースタブの UI を再構成し、Google Chat / LINE のタブ切替を整理
-- CI: Deploy to Cloud Run — **success**
-
-### feat: Chat同期アカウントの管理画面切り替え機能 (#381) (ad91ff2)
-- Chat 連携アカウントの OAuth 連携・解除・切り替え機能を管理画面に追加
-- CI: Deploy to Cloud Run — **success**
-
-### fix: 並び替えUIを直感的に改善 — 説明バナー+ホバー表示 (24fa63f)
-- 担当者リスト並び替えUIに説明バナーとホバー表示を追加し直感性を向上
-- CI: Deploy to Cloud Run — **success**
-
-### fix: 表示順の用途説明を追加 (03acde6)
-- 担当者リストの表示順に用途説明テキストを追加
-- CI: Deploy to Cloud Run — **success**
-
-### fix: 表示順UIを番号+シェブロンに改善し直感的に (fc20472)
-- 担当者リストの表示順UIを番号表示+上下シェブロンボタンに変更
-- CI: Deploy to Cloud Run — **success**
-
-### feat: 担当者リストの表示順を管理画面から設定可能に (#348) (4607bb9)
-- 管理画面から担当者リストの表示順を設定する機能を追加
-- CI: Deploy to Cloud Run — **success**
-
-### fix: 全タスクでワークフローステップを編集可能に変更 (ee3db3f)
-- すべてのタスク種別（Chat・LINE・手入力）でワークフローステップのインライン編集を有効化
-- CI: Deploy to Cloud Run — **success**
-
-### feat: ワークフローステップのラベル・並び順変更 (#338) (#339) (463cded)
-- ワークフローステップを「❶SmartHR更新 → ❷本人通知 → ❸社労士共有 → ❹給与DB反映」の順に変更
-- `chat-messages/table-view.tsx` と `task-board/task-list.tsx` の列を整理
-- CI: Deploy to Cloud Run — **success**
-
-### feat: 受信箱・タスクボードのメモ機能統一 (#336) (#337) (631d0cf)
-- 受信箱（Inbox）とタスクボードの `notes` フィールドを統一し、メモ機能を両画面で一貫して利用可能に
-- CI: Deploy to Cloud Run — **success**
-
-### chore: 未使用FilterSelectコンポーネント削除 + devポート3000→3005に変更 (#334) (c6253e6)
-- `filter-select.tsx` を `filter-utils.ts` にリネーム（`buildFilterUrl` のみ残す）
-- `FilterSelect` コンポーネント・`"use client"` / `useRouter` を削除
-- Web dev ポートを 3005 に変更（Open WebUI とのポート 3000 競合を解消）
-- `.env.example` / `CLAUDE.md` のポート記載を更新
-- CI: Deploy to Cloud Run — **success**
-
-### feat: フィルターUI色統一 — ピルボタンにカテゴリ・優先度・ステータス色を適用 (#332) (#333) (361725e)
-- タスクボード: `FilterSelect`（select要素）→ 色付きピルボタン群に置換
-- 受信箱: カテゴリフィルターに `CATEGORY_CONFIG` 色、ステータスにドット追加
-- `chat-messages`: `FilterPill` にカテゴリ色の active/inactive 切替を追加
-- 定数: `PRIORITY_PILL_COLORS`, `SOURCE_PILL_COLORS`, `RESPONSE_STATUS_PILL_COLORS` を `lib/constants.ts` に追加
-- CI: Deploy to Cloud Run — **success**
-
-### feat: category → categories 複数カテゴリ対応 (#330) (#331) (4b72be7)
-- `LineMessage` の `category` フィールドを単一文字列から `categories` 配列に変更
-- Worker・API・Web全レイヤーを複数カテゴリ対応に更新
-- CI: Deploy to Cloud Run — **success**
-
-### fix: LINEメディアアップロードにリトライ追加 + 修復スクリプト (#327, #328) (#329) (8bee185)
-- `uploadWithRetry`: 3回リトライ（指数バックオフ 1s/2s/4s）を追加
-- `scripts/repair-line-images.ts`: contentUrl=null のメディアを修復するスクリプト
-- テスト4件追加（Worker計80テスト）
-- CI: Deploy to Cloud Run — **success**
-
-### feat: 受信箱に Google Chat + LINE 統合「すべて」タブを追加 (#323) (#324) (54f55e9)
-- 受信箱に「すべて」「Google Chat」「LINE」の3タブを追加し、統合表示を実現
-- CI: Deploy to Cloud Run — **success**
-
-### feat: カテゴリバッジをDRY化し、LINE全画面に表示 (#320) (#322) (5f00d15)
-- `CategoryBadge` コンポーネントを共通化し、LINE関連の全画面でカテゴリバッジを表示
-- CI: Deploy to Cloud Run — **success**
-
-### feat: LINEメッセージの自動カテゴリ分類を実装 (#320) (#321) (0ea17f4)
-- LINE Webhook 受信時に `classifyIntent()` で10カテゴリの自動分類を実行
-- 分類結果を `line_messages.category` フィールドに保存（best-effort）
-- CI: Deploy to Cloud Run — **success**
-
-### fix: タスクボードのテーブルヘッダーがスクロール時に固定されない問題を修正 (#319) (0c781a4)
-- task-list.tsx の `overflow-x-auto` ラッパーが sticky を阻害していた問題を修正
-- 親コンテナ（task-board-content.tsx）の `overflow-y-auto` → `overflow-auto` に変更し水平スクロールを委譲
-- CI: Deploy to Cloud Run — **success**
-
-### fix: テーブルコンテナにmax-h+overflow-auto追加でstickyヘッダー修正 (8215e8f)
-- shadcn/ui Table コンポーネントに `max-h-[80vh]` + `overflow-auto` を追加
-- CI: Deploy to Cloud Run — **success**
-
-### feat: 全テーブルヘッダーをスティッキー固定化 (#317) (#318) (93d828e)
-- 全テーブルの `<thead>` に `sticky top-0 z-10` を追加してヘッダーを固定
-- CI: Deploy to Cloud Run — **success**
-
-### feat: ユーザー追加フォームとログインページに許可ドメインのガイド表示を追加 (#315) (#316) (3dd2488)
-- ユーザー追加フォームとログインページに、管理者が設定した許可ドメインをガイドとして表示
-- CI: Deploy to Cloud Run — **success**
-
-### feat: メールドメイン制限を追加 (#312, #313) (#314) (ea433c9)
-- メールドメイン制限機能を追加（管理者が許可ドメインを設定可能）
-- CI: Deploy to Cloud Run — **success**
-
-### chore: 管理設定から従業員・監査ログタブを削除 (#309, #310) (#311) (de1cd21)
-- 管理設定ページから「従業員」タブと「監査ログ」タブを削除
-- CI: Deploy to Cloud Run — **success**
-
-### fix: 検索クエリの改行をスペースに正規化し短すぎるクエリを防止 (#306) (#308) (d9c1df9)
-- 検索クエリに含まれる改行文字をスペースに変換し、クエリが短すぎる場合の問題を防止
-- CI: Deploy to Cloud Run — **success**
-
-### fix: 検索クエリを名詞境界（漢字/カタカナ直後）で切断し検索精度を向上 (#306) (#307) (026d57c)
-- 検索クエリを名詞境界（漢字・カタカナ直後）で切断することで検索精度を改善
-- CI: Deploy to Cloud Run — **success**
-
-### fix: Google Chat検索URLの演算子エンコード問題を修正 (524b481)
-- Google Chat 検索 URL の演算子がエンコードされてしまう問題を修正
-- CI: Deploy to Cloud Run — success
-
-### fix: Google Chat検索URLに日付フィルタを追加して検索精度を向上 (#304) (#305) (7d1f28a)
-- Google Chat 検索 URL に日付フィルタを追加して検索精度を改善
-- CI: Deploy to Cloud Run — success
-
-### fix: Google Chat検索URLの文字列切断を自然な区切りに改善 (#302) (#303) (1624ea4)
-- Google Chat 検索 URL で文字列を自然な区切り位置で切断するよう改善
-- CI: Deploy to Cloud Run — success
-
-### fix: ユーザー削除を物理削除+確認ダイアログに変更 (#300) (#301) (d585cc4)
-- ユーザー削除を論理削除から物理削除へ変更、削除前に確認ダイアログを表示
-- CI: Deploy to Cloud Run — **success**
-
-### fix: タスクボードのURL列を検索URL+別ウィンドウ方式に統一 (#298) (#299) (140d89c)
-- タスクボードのURL列を検索URL+別ウィンドウ方式に統一
-- CI: Deploy to Cloud Run — **success**
-
-### fix: intent_records に category+createdAt 複合インデックス追加 (7b72d6d)
-- intent_records コレクションに category + createdAt の複合インデックスを追加
-- CI: Deploy to Cloud Run — success
-
-### fix: ワークフローステップUIの視認性・操作性を改善 (#294) (#297) (cfedb19)
-- ワークフローステップUIの視認性・操作性を改善
-- CI: Deploy to Cloud Run — success
-
-### feat: LINEメッセージにカテゴリフィルター追加 (#292) (#296) (c22c4cc)
-- LINEメッセージ一覧にカテゴリフィルターを追加
-- CI: Deploy to Cloud Run — failure（IAM 権限 403）
-
-### feat: 受信箱カテゴリフィルター追加 & 手入力タスクにカテゴリ選択追加 (#290, #291) (#295) (25e7d51)
-- 受信箱へカテゴリフィルターを追加、手入力タスクにカテゴリ選択機能を追加
-- CI: Deploy to Cloud Run — success
-
-### feat: LINE・手入力タスクにワークフローステップとメモを追加 (#289) (713dcc1)
-- LINE メッセージ由来タスクと手入力タスクにもワークフローステップとメモ機能を追加（Chat由来タスクとの機能統一）
-- CI: Deploy to Cloud Run — success
-
-### feat: タスクボードにワークフローステップ列とメモ列を追加 (#279) (#282) (e269d4c)
-- タスクボードのテーブルビューにワークフローステップ列とメモ列を追加
-- CI: Deploy to Cloud Run — success
-
-### feat: タスクボードにAIカテゴリタグ表示とカテゴリフィルタを追加 (#278) (#281) (5a3f0d6)
-- AIカテゴリタグをテーブルに表示し、カテゴリフィルタを追加
-- CI: Deploy to Cloud Run — success
-
-### feat: タスクテーブル列を記事のコピー・チャットURL・タスクに分離 (#280) (02dc4b8)
-- タスクテーブルの列構成を整理・分離
-- CI: Deploy to Cloud Run — success
-
-### fix: デッドコード task-detail-panel.tsx を削除し、テストを新テーブルビューに整合 (#276) (e0d21e5)
-- デッドコードになっていた `task-detail-panel.tsx` を削除
-- テストを新しいテーブルビューに整合させて修正
-- CI: Deploy to Cloud Run — success
-
-### feat: タスク一覧をカード型リストからテーブルビュー（スプレッドシート風）に変更 (#274) (#275) (b684e50)
-- タスク一覧UIをカード型からスプレッドシート風テーブルビューに全面変更
-- CI: Deploy to Cloud Run — success
-
-### fix: タスク一覧の優先度付きメッセージ表示漏れを修正 (#273) (5dd2a22)
-- タスク一覧で優先度付きメッセージが表示されない問題を修正
-- CI: Deploy to Cloud Run — success
-
-### fix: 手動タスク作成後のタスク自動選択を Context 経由に変更 (#272) (d4dd9b2)
-- タスク自動選択ロジックを props 経由から Context 経由に変更（クライアント側エラー修正の後続対応）
-- CI: Deploy to Cloud Run — success
-
-### fix: 手動タスク削除時のクライアントエラーを修正 (#271) (e2bb775)
-- 手動タスク削除時に発生していたクライアントエラーを修正
-- CI: Deploy to Cloud Run — success
-
-### feat: 手動タスク作成後に作成タスクを自動選択して詳細パネル表示 (#269) (#270) (0196cc2)
-- 手動タスク作成後、作成したタスクを自動選択して詳細パネルに表示
-- CI: Deploy to Cloud Run — success
-
-### chore: PR #134 で移動済みの旧 ai-settings/page.tsx を削除 (b7c3ead)
-- `apps/web/src/app/(protected)/ai-settings/page.tsx` を `git rm` で削除（残留ファイルのクリーンアップ）
-- CI: Deploy to Cloud Run — success（Web のみ再デプロイ）
-
-### feat: 手動タスク作成フォームをDialogモーダル化 + UI改善 (#268) (6f09f42)
-- 手動タスク作成フォームを独立ページからDialogモーダルに変更
-- CI: Deploy to Cloud Run — success
-
-### refactor: 受信箱/タスクボードの AI判定パネルを削除 (#267) (b07f6b4)
-- 受信箱(Inbox)およびタスクボードの右ペイン AI判定パネルを削除
-- CI: Deploy to Cloud Run — success
-
-### fix: DialogContent の aria-describedby 警告を修正 (#266) (a0a2628)
-- shadcn/ui DialogContent に description が欠落している場合の aria-describedby 警告を修正
-
-### feat: ユーザー管理の操作メニューに「表示名を編集」を追加 (#265) (39bb47c)
-- ユーザー管理テーブルの操作メニューに「表示名を編集」アクションを追加
-
-### fix: 担当者フィールドのIME候補選択で苗字のみ入力される問題を修正 (#264) (67675dc)
-- IME変換候補をクリックまたはEnterで確定した際、苗字のみが入力欄に残る問題を修正
-
----
-
-## 次のアクション候補
-
-1. **SmartHR / Google Sheets / Gmail 連携実装**（Phase 2 後半）
-2. **E2E テスト自動化**（Playwright による本番フロー検証）
+| # | タイトル | ラベル |
+|---|---------|--------|
+| #412 | feat: SmartHR MCP サーバー Core + Shell アーキテクチャ（Phase A） | PR |
+| #408 | Phase 3: 本番AIエージェント + 実験UI（/agent-lab） | enhancement |
+| #407 | Phase 2: Anthropic HR Plugin 導入（開発用ツール） | enhancement |
 
 ---
 
@@ -313,82 +114,31 @@ ADR-008（AIエージェント拡張 MCP + Function Calling 段階導入）のPR
 | Cloud Run (Worker) | デプロイ済み | `hr-worker` (asia-northeast1) |
 | Cloud Run (API) | デプロイ済み | `hr-api` (asia-northeast1) |
 | Cloud Run (Web) | デプロイ済み | `hr-web` (asia-northeast1) |
-| Artifact Registry | 作成済み | `asia-northeast1-docker.pkg.dev/hr-system-487809/hr-system` |
-| Firestore | 本番稼働中 | Native モード (asia-northeast1) |
-| Pub/Sub | 稼働中 | `hr-chat-events` + `hr-chat-events-dlq` |
-| GitHub Actions | CI完了・Deploy完了 | `.github/workflows/deploy.yml` |
+| Cloud Run (MCP) | **未デプロイ**（Phase C） | `mcp-smarthr` (asia-northeast1) |
 
 ---
 
 ## テスト状況
 
-| パッケージ/アプリ | テストファイル | テスト数 |
-|-----------------|--------------|---------|
-| packages/salary | calculator.test.ts | 境界値テスト含む |
-| packages/shared | approval.test.ts + status-transitions.test.ts | |
-| apps/api | auth.test.ts + health.test.ts + salary-drafts.test.ts + intent-stats.test.ts | 22+ |
-| apps/api (integration) | firestore-queries.integration.test.ts | 17 |
-| apps/api (integration) | auth-authz.integration.test.ts | 追加済み |
-| apps/worker | event-parser.test.ts + dedup.test.ts + process-message.test.ts + salary-handler.test.ts + enrich-event.test.ts + line-webhook.test.ts + upload-retry.test.ts | 80 |
-| apps/web | smoke.test.ts + api-contract.test.ts + inbox-3pane.test.tsx + sidebar-nav.test.tsx + sync-status-indicator.test.tsx + help.test.tsx 等 | 207 |
-| **合計** | | **全テストパス** |
-
----
-
-## オープン GitHub Issues
-
-現在オープンな担当 Issue はなし（2026-03-20 確認）。
-
----
-
-## アーキテクチャ概要
-
-```
-apps/
-  api/          Hono (TypeScript) — Cloud Run API サーバー (port 3001)
-  worker/       Hono (TypeScript) — Chat Webhook Worker (port 3002)
-  web/          Next.js 15 App Router — 承認ダッシュボード (port 3005)
-packages/
-  db/           Firestore 型定義・コレクション・クライアント
-  shared/       DraftStatus, ApprovalAction, validateTransition 等
-  salary/       確定的給与計算エンジン（LLM不使用）
-  ai/           Gemini intent分類（正規表現プレ分類レイヤー付き）
-infra/
-  cloud-run/    Terraform（SA + IAM + Workload Identity）
-  oauth/        Terraform（Google OAuth クライアント）
-.github/
-  workflows/    CI（PR時）+ Deploy to Cloud Run（main push時）
-```
-
----
-
-## ステータス遷移（ADR-006 準拠）
-
-```
-draft → reviewed → approved → processing → completed
-          ↓           ↓
-       rejected    rejected
-裁量的変更: reviewed → pending_ceo_approval → approved
-```
-
-行き止まりなし（rejected は再ドラフト可能な設計）
+| パッケージ | テスト数 | 状態 |
+|-----------|---------|------|
+| packages/mcp-smarthr | **62** | ✅ 全PASS |
+| apps/api | 22+ | ✅ |
+| apps/worker | 80 | ✅ |
+| apps/web | 207 | ✅ |
 
 ---
 
 ## 再開手順
 
 ```bash
-cd /Users/yyyhhh/ACG/hr-system
+cd /Users/yyyhhh/Projects/ACG/hr-system
 
-# 開発サーバー起動（API: 3001, Web: 3005, Worker: 3002）
-pnpm dev
+# PR #412 のレビュー・マージ
+gh pr view 412
+# → /review-pr 実行後にマージ
 
-# Firebase Emulator（別ターミナル）
-pnpm emulator
-
-# テスト実行
-pnpm test
-
-# 統合テスト（Firestore Emulator が起動している状態で）
-pnpm --filter @hr-system/api test:integration
+# Phase B 着手
+git checkout feature/smarthr-mcp-core-security  # or main after merge
+# → docs/plans/smarthr-mcp-server-impl-plan.md の Phase B から再開
 ```
