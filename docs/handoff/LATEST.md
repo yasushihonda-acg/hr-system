@@ -66,14 +66,14 @@
    - オーナーが1回登録すれば、メンバーは「連携させる」をクリックするだけ
    - チームメンバーの接続テスト
 
-2. **Firestore UserStore 有効化 + ユーザー登録**
-   - `USE_FIRESTORE_USER_STORE=true` に変更
-   - ユーザー登録（Claude Code セッションで直接実行）
-   - 権限例: `["read", "write", "pay_statements"]` / `["read", "write"]` / `["read"]`
+2. ~~**Firestore UserStore 有効化 + ユーザー登録**~~ ✅ 完了（PR #432）
+   - `USE_FIRESTORE_USER_STORE=true` に変更済み（rev mcp-smarthr-00018-tts）
+   - 10名登録済み（admin 4名 + readonly 6名）
 
 3. **Cowork で CRUD 動作確認**
    - admin ユーザーで `update_employee` / `create_employee` が実行されること
    - readonly ユーザーでは write ツールが拒否されること
+   - 未登録アカウントで接続が拒否されること
 
 ### Phase F2: Cloud Armor IP 制限（優先度低）
 - Cloud Armor ポリシーで Anthropic IP 範囲を許可
@@ -97,6 +97,19 @@
 | JWT | HS256, 1時間有効 | 短寿命でセキュリティ確保 |
 | fail-closed | UserStore null → 拒否 | PII 保護 |
 | CRUD | PATCH + POST のみ | DELETE スコープ外 |
+
+---
+
+## 登録ユーザー（Firestore `mcp-users`）
+
+| ロール | 権限 | アカウント |
+|--------|------|-----------|
+| **admin** | 閲覧 + 更新 + 登録 + 給与明細 | kosuke.omure, tomohiro.arikawa, makoto.tokunaga, yasushi.honda |
+| **readonly** | 閲覧のみ | ryota.yagi, gen.ichihara, rika.komatsu, shoma.horinouchi, tomoko.hommura, yuka.yoshimura |
+
+- 未登録の @aozora-cg.com アカウントはアクセス不可（fail-closed）
+- 削除操作は全ロールで不可（未実装・スコープ外）
+- ユーザー追加・変更: `npx tsx packages/mcp-smarthr/scripts/seed-users.ts` を編集して実行
 
 ---
 
@@ -129,7 +142,7 @@
 | 変数 | 値 | 備考 |
 |------|-----|------|
 | AUTH_DISABLED | false | OAuth 2.1 有効 |
-| USE_FIRESTORE_USER_STORE | **false** | 次セッションで true に変更予定 |
+| USE_FIRESTORE_USER_STORE | **true** | PR #432 で有効化済み |
 | IP_RESTRICTION_ENABLED | false | Cloud Armor 移行予定 |
 
 ---
@@ -138,7 +151,7 @@
 
 | サービス | 状態 |
 |---------|------|
-| Cloud Run (MCP) | rev 00017 稼働中 |
+| Cloud Run (MCP) | rev 00018 稼働中（UserStore 有効化） |
 | Cloud Run (Worker) | デプロイ済み |
 | Cloud Run (API) | デプロイ済み |
 | Cloud Run (Web) | デプロイ済み |
