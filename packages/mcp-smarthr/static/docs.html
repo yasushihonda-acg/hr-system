@@ -49,6 +49,7 @@ tailwind.config = {
     <a href="#setup" class="text-gray-600 hover:text-brand-600">セットアップ</a>
     <a href="#security" class="text-gray-600 hover:text-brand-600">セキュリティ</a>
     <a href="#faq" class="text-gray-600 hover:text-brand-600">FAQ</a>
+    <a href="#references" class="text-gray-600 hover:text-brand-600">参考リンク</a>
   </div>
 </nav>
 
@@ -64,7 +65,9 @@ tailwind.config = {
       サーバーです。
     </p>
     <p>
-      AI アシスタント（Claude）から SmartHR の人事データを安全に参照・更新できるようにします。
+      AI アシスタント（Claude）から
+      <a href="https://developer.smarthr.jp/api" class="text-brand-600 underline" target="_blank">SmartHR API</a>
+      を利用して人事データを安全に参照・更新できるようにします。
       8 つのツールを提供し、従業員情報の閲覧・検索・更新・登録、部署・役職の参照、給与明細の参照が可能です。
     </p>
     <div class="grid md:grid-cols-3 gap-4 mt-6">
@@ -158,7 +161,7 @@ graph TB
             <td class="border border-gray-200 px-4 py-2 font-medium">HTTP</td>
             <td class="border border-gray-200 px-4 py-2">Streamable HTTP</td>
             <td class="border border-gray-200 px-4 py-2">Cowork, claude.ai, 自社アプリ</td>
-            <td class="border border-gray-200 px-4 py-2">Google OAuth 2.0</td>
+            <td class="border border-gray-200 px-4 py-2">OAuth 2.1（Google OIDC 委譲 + JWT）</td>
           </tr>
         </tbody>
       </table>
@@ -182,7 +185,7 @@ flowchart TD
 
   L1{"Layer 1: トランスポート認証"}
   L1 -->|stdio| L1A["ローカル実行 = 信頼済み"]
-  L1 -->|HTTP| L1B["Google OAuth ID トークン検証"]
+  L1 -->|HTTP| L1B["OAuth 2.1 JWT 検証"]
   L1B -->|検証失敗| DENY1["401 Unauthorized"]
 
   L1A --> L2
@@ -516,8 +519,8 @@ flowchart TD
 flowchart LR
   subgraph Protection["多層防御"]
     direction TB
-    IP["IP 制限<br/>Anthropic IP のみ"]
-    OAUTH["OAuth 2.0<br/>Google 認証"]
+    IP["IP 制限<br/>Cloud Armor 移行予定"]
+    OAUTH["OAuth 2.1<br/>Google OIDC + JWT"]
     DOMAIN["ドメイン制限<br/>@aozora-cg.com"]
     RBAC["パーミッション制御<br/>read / write / pay"]
     PIIF["PII フィルタ<br/>個人情報保護"]
@@ -531,10 +534,10 @@ flowchart LR
 
     <div class="grid md:grid-cols-2 gap-4">
       <div class="border border-gray-200 rounded-lg p-4">
-        <h4 class="font-semibold text-sm mb-2">IP アドレス制限</h4>
+        <h4 class="font-semibold text-sm mb-2">IP アドレス制限（Cloud Armor 移行予定）</h4>
         <p class="text-sm text-gray-600">
-          HTTP エンドポイントは Anthropic のサーバー IP 範囲からのアクセスのみ許可。
-          URL を直接ブラウザで開いても 403 Forbidden が返ります。
+          Cloud Armor による IP 制限を導入予定。Anthropic のサーバー IP 範囲のみ許可し、
+          直接アクセスを遮断します。現在は OAuth 2.1 認証で保護されています。
         </p>
       </div>
       <div class="border border-gray-200 rounded-lg p-4">
@@ -607,9 +610,9 @@ graph LR
             <td class="border border-gray-200 px-4 py-2">コンテナ実行環境</td>
           </tr>
           <tr>
-            <td class="border border-gray-200 px-4 py-2">OAuth 検証</td>
-            <td class="border border-gray-200 px-4 py-2">google-auth-library</td>
-            <td class="border border-gray-200 px-4 py-2">Google ID トークン検証</td>
+            <td class="border border-gray-200 px-4 py-2">OAuth 2.1 / JWT</td>
+            <td class="border border-gray-200 px-4 py-2">jose + google-auth-library</td>
+            <td class="border border-gray-200 px-4 py-2">JWT 検証 + Google OIDC 委譲</td>
           </tr>
           <tr class="bg-gray-50">
             <td class="border border-gray-200 px-4 py-2">セッション管理</td>
@@ -668,6 +671,31 @@ graph LR
         給与計算などの金銭計算は、別途確定的なプログラムコードで処理されます（ADR-007）。
       </p>
     </details>
+  </div>
+</section>
+
+<!-- References -->
+<section id="references">
+  <h2 class="text-2xl font-bold mb-4 text-gray-800">参考リンク</h2>
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <div class="grid md:grid-cols-2 gap-4">
+      <a href="https://developer.smarthr.jp/api" target="_blank" class="block border border-gray-200 rounded-lg p-4 hover:border-brand-500 transition-colors">
+        <h4 class="font-semibold text-brand-700">SmartHR API リファレンス</h4>
+        <p class="text-sm text-gray-500 mt-1">本 MCP サーバーが利用する SmartHR REST API の公式ドキュメント</p>
+      </a>
+      <a href="https://developer.smarthr.jp/api/about_api" target="_blank" class="block border border-gray-200 rounded-lg p-4 hover:border-brand-500 transition-colors">
+        <h4 class="font-semibold text-brand-700">SmartHR API 概要</h4>
+        <p class="text-sm text-gray-500 mt-1">認証方式・レート制限・エラーコードの概要</p>
+      </a>
+      <a href="https://modelcontextprotocol.io/" target="_blank" class="block border border-gray-200 rounded-lg p-4 hover:border-brand-500 transition-colors">
+        <h4 class="font-semibold text-brand-700">Model Context Protocol (MCP)</h4>
+        <p class="text-sm text-gray-500 mt-1">AI モデルとツールを接続するオープンプロトコルの公式サイト</p>
+      </a>
+      <a href="/guide" class="block border border-gray-200 rounded-lg p-4 hover:border-brand-500 transition-colors">
+        <h4 class="font-semibold text-brand-700">ご利用ガイド（非エンジニア向け）</h4>
+        <p class="text-sm text-gray-500 mt-1">はじめかた・できること・FAQ</p>
+      </a>
+    </div>
   </div>
 </section>
 
