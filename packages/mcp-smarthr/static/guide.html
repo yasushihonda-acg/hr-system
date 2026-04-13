@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartHR AI アシスタント - ご利用ガイド</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+<!-- Header -->
+<header class="bg-brand-700 text-white">
+  <div class="max-w-3xl mx-auto px-6 py-10 text-center">
+    <h1 class="text-3xl font-bold">SmartHR AI アシスタント</h1>
+    <p class="mt-2 text-brand-100 text-lg">Claude で SmartHR の人事データを検索・更新</p>
+    <p class="mt-4 text-sm text-brand-200">あおぞらケアグループ 社内ツール</p>
+  </div>
+</header>
+
+<main class="max-w-3xl mx-auto px-6 py-10 space-y-12">
+
+<!-- What is this -->
+<section>
+  <h2 class="text-2xl font-bold mb-4">これは何ですか？</h2>
+  <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+    <p>
+      普段お使いの <strong>Claude</strong>（AI チャット）から、SmartHR の従業員情報を
+      <strong>日本語で質問するだけ</strong>で検索・確認・更新ができるツールです。
+    </p>
+    <div class="bg-brand-50 rounded-lg p-4">
+      <p class="font-semibold text-brand-700 mb-2">例えばこんなことができます</p>
+      <ul class="space-y-2 text-gray-700">
+        <li>「田中さんの社員番号を教えて」</li>
+        <li>「人事部の従業員一覧を出して」</li>
+        <li>「新入社員の山田花子さんを登録して」</li>
+        <li>「佐藤さんの部署を営業部に変更して」</li>
+      </ul>
+    </div>
+    <p class="text-sm text-gray-500">
+      ※ SmartHR の画面を開く必要はありません。Claude との会話の中で完結します。
+    </p>
+  </div>
+</section>
+
+<!-- How to start -->
+<section>
+  <h2 class="text-2xl font-bold mb-4">はじめかた</h2>
+  <div class="space-y-4">
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="bg-brand-100 text-brand-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shrink-0">1</div>
+        <div>
+          <h3 class="font-semibold text-lg">Claude にログイン</h3>
+          <p class="text-gray-600 mt-1">
+            <a href="https://claude.ai" class="text-brand-600 underline" target="_blank">claude.ai</a> に
+            <strong>@aozora-cg.com</strong> の Google アカウントでログインしてください。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="bg-brand-100 text-brand-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shrink-0">2</div>
+        <div>
+          <h3 class="font-semibold text-lg">SmartHR コネクタを有効化</h3>
+          <p class="text-gray-600 mt-1">
+            画面左下の <strong>Customize</strong> &gt; <strong>Connectors</strong> から
+            「<strong>SmartHR</strong>」を見つけて <strong>Connect</strong> をクリック。
+            Google アカウントで認証します。
+          </p>
+          <div class="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            <strong>初回のみ:</strong> 管理者がコネクタを追加するまで表示されません。
+            見つからない場合は管理者にお問い合わせください。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-start gap-4">
+        <div class="bg-brand-100 text-brand-700 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shrink-0">3</div>
+        <div>
+          <h3 class="font-semibold text-lg">会話で使う</h3>
+          <p class="text-gray-600 mt-1">
+            新しい会話を始め、チャット入力欄の <strong>+</strong> ボタンから
+            「<strong>Connectors</strong>」で SmartHR を ON にして、日本語で質問するだけです。
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- What you can do -->
+<section>
+  <h2 class="text-2xl font-bold mb-4">できること</h2>
+
+  <div class="grid md:grid-cols-2 gap-4">
+
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🔍</span>
+        <h3 class="font-semibold">検索・閲覧</h3>
+        <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs ml-auto">全員</span>
+      </div>
+      <ul class="text-gray-600 space-y-1 text-sm">
+        <li>従業員の検索（名前・社員番号）</li>
+        <li>従業員の詳細情報の確認</li>
+        <li>部署一覧の表示</li>
+        <li>役職一覧の表示</li>
+      </ul>
+    </div>
+
+    <div class="bg-white rounded-xl border border-green-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">✏️</span>
+        <h3 class="font-semibold">更新・登録</h3>
+        <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs ml-auto">write 権限</span>
+      </div>
+      <ul class="text-gray-600 space-y-1 text-sm">
+        <li>従業員情報の変更（氏名・部署・役職 等）</li>
+        <li>新しい従業員の登録</li>
+        <li>退職日の設定</li>
+      </ul>
+      <p class="text-xs text-gray-400 mt-2">※ AI は実行前に必ず確認を求めます</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-purple-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">💰</span>
+        <h3 class="font-semibold">給与明細</h3>
+        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs ml-auto">特別権限</span>
+      </div>
+      <ul class="text-gray-600 space-y-1 text-sm">
+        <li>給与明細の参照</li>
+        <li>年月や従業員での絞り込み</li>
+      </ul>
+      <p class="text-xs text-gray-400 mt-2">※ 管理者のみアクセス可能</p>
+    </div>
+
+    <div class="bg-gray-100 rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-2xl">🚫</span>
+        <h3 class="font-semibold text-gray-500">できないこと</h3>
+      </div>
+      <ul class="text-gray-500 space-y-1 text-sm">
+        <li>従業員の削除</li>
+        <li>銀行口座・マイナンバーの閲覧</li>
+        <li>給与計算（計算は専用システムで行います）</li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<!-- Safety -->
+<section>
+  <h2 class="text-2xl font-bold mb-4">安全性について</h2>
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="font-semibold mb-2">🔐 アクセス制限</h3>
+        <p class="text-sm text-gray-600">
+          @aozora-cg.com のアカウントでログインしたメンバーのみ利用可能です。
+          外部の人がアクセスすることはできません。
+        </p>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-2">👤 個人情報の保護</h3>
+        <p class="text-sm text-gray-600">
+          権限に応じて、生年月日・性別・電話番号などの個人情報は自動的に非表示になります。
+          マイナンバーは誰にも表示されません。
+        </p>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-2">📝 操作記録</h3>
+        <p class="text-sm text-gray-600">
+          誰がいつ何を見たか・変更したかは全て記録されています。
+          不正な利用は追跡可能です。
+        </p>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-2">✅ 変更前の確認</h3>
+        <p class="text-sm text-gray-600">
+          データを変更する際、AI は必ず「この内容で更新してよいですか？」と確認します。
+          確認なしに勝手に変更されることはありません。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section>
+  <h2 class="text-2xl font-bold mb-4">よくある質問</h2>
+  <div class="space-y-3">
+
+    <details class="bg-white rounded-xl border border-gray-200 p-5 group" open>
+      <summary class="font-semibold cursor-pointer">SmartHR にログインしなくても使えますか？</summary>
+      <p class="mt-3 text-gray-600 text-sm">
+        はい。Claude にログインして SmartHR コネクタを有効にするだけで使えます。
+        SmartHR の画面を開く必要はありません。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-5 group">
+      <summary class="font-semibold cursor-pointer">AI が間違った情報を返すことはありますか？</summary>
+      <p class="mt-3 text-gray-600 text-sm">
+        SmartHR に登録されているデータをそのまま表示するため、データ自体が間違うことはありません。
+        ただし、AI の応答文（要約や解釈）には誤りが含まれる可能性があります。
+        重要な判断は必ず元データを確認してください。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-5 group">
+      <summary class="font-semibold cursor-pointer">うっかり間違ったデータを更新してしまったら？</summary>
+      <p class="mt-3 text-gray-600 text-sm">
+        AI は更新前に必ず確認を求めるので、内容を確認してから承認してください。
+        万が一間違えた場合は、SmartHR の管理画面から修正するか、
+        AI に「元に戻して」と指示してください。全操作は監査ログに記録されています。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-5 group">
+      <summary class="font-semibold cursor-pointer">スマホからも使えますか？</summary>
+      <p class="mt-3 text-gray-600 text-sm">
+        はい。Claude のモバイルアプリまたはブラウザ版（claude.ai）から利用可能です。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-5 group">
+      <summary class="font-semibold cursor-pointer">「権限不足」と表示されます</summary>
+      <p class="mt-3 text-gray-600 text-sm">
+        あなたのアカウントにその操作の権限がありません。
+        必要な場合は管理者に権限の付与を依頼してください。
+      </p>
+    </details>
+
+  </div>
+</section>
+
+<!-- Contact -->
+<section>
+  <div class="bg-brand-50 rounded-xl border border-brand-200 p-6 text-center">
+    <p class="text-brand-700 font-semibold">困ったことがあれば</p>
+    <p class="text-sm text-gray-600 mt-2">
+      管理者または情報システム担当にお問い合わせください。
+    </p>
+  </div>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="bg-gray-100 border-t border-gray-200 mt-16">
+  <div class="max-w-3xl mx-auto px-6 py-6 flex justify-between items-center text-sm text-gray-500">
+    <p>&copy; 2026 Aozora Care Group</p>
+    <a href="/docs" class="text-brand-600 hover:underline">技術ドキュメント &rarr;</a>
+  </div>
+</footer>
+
+</body>
+</html>

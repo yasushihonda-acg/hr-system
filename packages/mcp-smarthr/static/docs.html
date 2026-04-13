@@ -63,12 +63,12 @@ tailwind.config = {
       サーバーです。
     </p>
     <p>
-      AI アシスタント（Claude）から SmartHR の人事データを安全に参照できるようにします。
-      読み取り専用の 6 つのツールを提供し、従業員情報・部署・役職・給与明細の参照が可能です。
+      AI アシスタント（Claude）から SmartHR の人事データを安全に参照・更新できるようにします。
+      8 つのツールを提供し、従業員情報の閲覧・検索・更新・登録、部署・役職の参照、給与明細の参照が可能です。
     </p>
     <div class="grid md:grid-cols-3 gap-4 mt-6">
       <div class="bg-brand-50 rounded-lg p-4 text-center">
-        <div class="text-3xl font-bold text-brand-700">6</div>
+        <div class="text-3xl font-bold text-brand-700">8</div>
         <div class="text-sm text-gray-600 mt-1">利用可能ツール</div>
       </div>
       <div class="bg-brand-50 rounded-lg p-4 text-center">
@@ -110,7 +110,7 @@ graph TB
 
   subgraph Core["Core（ビジネスロジック）"]
     AUTH["4層認証"]
-    TOOLS["ツール定義<br/>6ツール"]
+    TOOLS["ツール定義<br/>8ツール"]
     PII["PII フィルタ"]
     AUDIT["監査ログ"]
     RL["レート制限"]
@@ -196,8 +196,9 @@ flowchart TD
   L3 -->|"未登録"| DENY3["403 Forbidden"]
 
   L4{"Layer 4: ツール権限"}
-  L4 -->|"admin"| ALL["全ツール利用可"]
-  L4 -->|"readonly"| LIMITED["給与明細以外<br/>利用可"]
+  L4 -->|"read+write+pay"| ALL["全ツール利用可"]
+  L4 -->|"read+write"| WRITE["閲覧+更新"]
+  L4 -->|"read"| LIMITED["閲覧のみ"]
 
   style L1 fill:#fef3c7,stroke:#d97706
   style L2 fill:#e0f2fe,stroke:#0284c7
@@ -208,12 +209,13 @@ flowchart TD
   style DENY3 fill:#fee2e2,stroke:#dc2626
     </div>
 
-    <h3 class="text-lg font-semibold mt-8">ロールと権限</h3>
+    <h3 class="text-lg font-semibold mt-8">パーミッションと権限</h3>
+    <p class="text-gray-600 mb-3">アカウント毎に細かく操作権限を設定できます。</p>
     <div class="overflow-x-auto">
       <table class="w-full text-sm border-collapse">
         <thead>
           <tr class="bg-gray-50">
-            <th class="border border-gray-200 px-4 py-2 text-left">ロール</th>
+            <th class="border border-gray-200 px-4 py-2 text-left">パーミッション</th>
             <th class="border border-gray-200 px-4 py-2 text-left">アクセス可能ツール</th>
             <th class="border border-gray-200 px-4 py-2 text-left">PII アクセス</th>
           </tr>
@@ -221,16 +223,23 @@ flowchart TD
         <tbody>
           <tr>
             <td class="border border-gray-200 px-4 py-2">
-              <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">admin</span>
+              <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs font-medium">read + write + pay_statements</span>
             </td>
-            <td class="border border-gray-200 px-4 py-2">全 6 ツール（給与明細含む）</td>
+            <td class="border border-gray-200 px-4 py-2">全 8 ツール（閲覧 + 更新 + 給与明細）</td>
             <td class="border border-gray-200 px-4 py-2">生年月日・性別・連絡先を含む（マイナンバーは除外）</td>
           </tr>
           <tr class="bg-gray-50">
             <td class="border border-gray-200 px-4 py-2">
-              <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">readonly</span>
+              <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">read + write</span>
             </td>
-            <td class="border border-gray-200 px-4 py-2">5 ツール（給与明細を除く）</td>
+            <td class="border border-gray-200 px-4 py-2">閲覧 + 更新・登録（給与明細を除く）</td>
+            <td class="border border-gray-200 px-4 py-2">PII フィールドは自動除外</td>
+          </tr>
+          <tr>
+            <td class="border border-gray-200 px-4 py-2">
+              <span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">read</span>
+            </td>
+            <td class="border border-gray-200 px-4 py-2">閲覧のみ（6 ツール）</td>
             <td class="border border-gray-200 px-4 py-2">PII フィールドは自動除外</td>
           </tr>
         </tbody>
@@ -309,9 +318,9 @@ flowchart TD
     <div class="bg-white rounded-xl border border-gray-200 p-6">
       <div class="flex items-center gap-3 mb-3">
         <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">get_pay_statements</code>
-        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">admin</span>
+        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">pay_statements</span>
       </div>
-      <p class="text-gray-600 mb-3">給与明細を取得します。従業員ID・年・月で絞り込み可能。<strong>admin ロール必須。</strong></p>
+      <p class="text-gray-600 mb-3">給与明細を取得します。従業員ID・年・月で絞り込み可能。<strong>pay_statements 権限必須。</strong></p>
       <div class="bg-gray-50 rounded-lg p-4">
         <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
         <table class="w-full text-sm">
@@ -365,6 +374,56 @@ flowchart TD
       <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
         <p class="text-gray-400 text-xs mb-1">使用例</p>
         <code>"役職の一覧を整理して"</code>
+      </div>
+    </div>
+
+    <!-- update_employee -->
+    <div class="bg-white rounded-xl border border-green-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-green-50 text-green-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">update_employee</code>
+        <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">write</span>
+      </div>
+      <p class="text-gray-600 mb-3">従業員情報を部分更新します（PATCH）。変更するフィールドのみ指定します。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">id</code> <span class="text-red-500">*</span></td><td class="text-gray-500">SmartHR 従業員ID（必須）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">last_name</code></td><td class="text-gray-500">姓（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">first_name</code></td><td class="text-gray-500">名（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">emp_code</code></td><td class="text-gray-500">社員番号（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">entered_at</code></td><td class="text-gray-500">入社日（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">resigned_at</code></td><td class="text-gray-500">退職日（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">department</code></td><td class="text-gray-500">部署ID（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">position</code></td><td class="text-gray-500">役職ID（任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"田中さんの部署を人事部に変更して"</code>
+      </div>
+    </div>
+
+    <!-- create_employee -->
+    <div class="bg-white rounded-xl border border-green-200 p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <code class="bg-green-50 text-green-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">create_employee</code>
+        <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">write</span>
+      </div>
+      <p class="text-gray-600 mb-3">新しい従業員を SmartHR に登録します。</p>
+      <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
+        <table class="w-full text-sm">
+          <tr><td class="py-1"><code class="text-xs">last_name</code> <span class="text-red-500">*</span></td><td class="text-gray-500">姓（必須）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">first_name</code> <span class="text-red-500">*</span></td><td class="text-gray-500">名（必須）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">emp_code</code></td><td class="text-gray-500">社員番号（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">entered_at</code></td><td class="text-gray-500">入社日（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">department</code></td><td class="text-gray-500">部署ID（任意）</td></tr>
+          <tr><td class="py-1"><code class="text-xs">position</code></td><td class="text-gray-500">役職ID（任意）</td></tr>
+        </table>
+      </div>
+      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
+        <p class="text-gray-400 text-xs mb-1">使用例</p>
+        <code>"新入社員の山田花子さん（社員番号: 2001、入社日: 2026-04-01）を登録して"</code>
       </div>
     </div>
 
@@ -453,7 +512,7 @@ flowchart LR
     IP["IP 制限<br/>Anthropic IP のみ"]
     OAUTH["OAuth 2.0<br/>Google 認証"]
     DOMAIN["ドメイン制限<br/>@aozora-cg.com"]
-    RBAC["RBAC<br/>admin / readonly"]
+    RBAC["パーミッション制御<br/>read / write / pay"]
     PIIF["PII フィルタ<br/>個人情報保護"]
     AUDITL["監査ログ<br/>全操作記録"]
   end
@@ -564,8 +623,10 @@ graph LR
     <details class="bg-white rounded-xl border border-gray-200 p-6 group" open>
       <summary class="font-semibold cursor-pointer">データの書き込み・更新はできますか？</summary>
       <p class="mt-3 text-gray-600">
-        現在は<strong>読み取り専用</strong>です。今後、承認フロー（Human-in-the-loop）を組み込んだ上で、
-        書き込み操作を追加する予定です。AI が直接データを変更することはありません。
+        はい。<strong>write 権限</strong>を持つユーザーは、従業員情報の更新（<code>update_employee</code>）と
+        新規登録（<code>create_employee</code>）が可能です。AI は実行前に必ず変更内容を確認し、
+        ユーザーの承認を得てから SmartHR API を呼び出します。
+        更新可能なフィールドは氏名・社員番号・入退社日・部署・役職に限定されています。
       </p>
     </details>
 
@@ -580,8 +641,8 @@ graph LR
     <details class="bg-white rounded-xl border border-gray-200 p-6 group">
       <summary class="font-semibold cursor-pointer">給与情報は誰でも見られますか？</summary>
       <p class="mt-3 text-gray-600">
-        いいえ。<strong>admin ロール</strong>のユーザーのみが <code>get_pay_statements</code> ツールを利用できます。
-        readonly ユーザーが呼び出すと「権限不足」エラーが返ります。
+        いいえ。<strong>pay_statements 権限</strong>を持つユーザーのみが <code>get_pay_statements</code> ツールを利用できます。
+        権限のないユーザーが呼び出すと「権限不足」エラーが返ります。
       </p>
     </details>
 
