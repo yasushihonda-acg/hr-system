@@ -442,13 +442,19 @@ flowchart TD
         <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs">推奨</span>
         Cowork / claude.ai
       </h3>
+      <p class="text-gray-600 mb-3 font-semibold">管理者（組織オーナー）の操作:</p>
       <ol class="list-decimal list-inside space-y-2 text-gray-600">
         <li><strong>設定</strong> &gt; <strong>コネクタ</strong> を開く</li>
         <li><strong>カスタムコネクタを追加</strong> をクリック</li>
-        <li>名前: <code class="bg-gray-100 px-2 py-0.5 rounded text-sm">ACG_SmartHR_MCP</code></li>
+        <li>名前: <code class="bg-gray-100 px-2 py-0.5 rounded text-sm">SmartHR</code></li>
         <li>URL: MCP サーバーの <code class="bg-gray-100 px-2 py-0.5 rounded text-sm">/mcp</code> エンドポイント URL を入力</li>
         <li><strong>追加</strong> をクリック</li>
-        <li>会話で「従業員一覧を見せて」と入力してテスト</li>
+      </ol>
+      <p class="text-gray-600 mt-4 mb-3 font-semibold">メンバーの操作:</p>
+      <ol class="list-decimal list-inside space-y-2 text-gray-600">
+        <li><strong>設定</strong> &gt; <strong>コネクタ</strong> で「SmartHR」の <strong>連携/連携させる</strong> をクリック</li>
+        <li>Google アカウント（@aozora-cg.com）で認証</li>
+        <li>会話の <strong>+</strong> ボタン &gt; <strong>コネクタ</strong> で SmartHR を ON にして使用</li>
       </ol>
       <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
         <strong>注意:</strong> Team/Enterprise プランではカスタムコネクタの追加に組織オーナー権限が必要です。
