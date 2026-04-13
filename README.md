@@ -48,6 +48,23 @@ Google Chat 指示（非構造化） → AI 解釈・ドラフト作成（構造
 - PDF 辞令自動生成
 - 他カテゴリの段階的自動化
 
+## SmartHR MCP Server
+
+Claude から SmartHR の人事データを検索・更新できる MCP サーバー。
+
+| リンク | 内容 |
+|--------|------|
+| [ご利用ガイド（非エンジニア向け）](https://mcp-smarthr-1021020088552.asia-northeast1.run.app/guide) | はじめかた・できること・FAQ |
+| [技術ドキュメント](https://mcp-smarthr-1021020088552.asia-northeast1.run.app/docs) | アーキテクチャ・認証・ツール一覧・セキュリティ |
+
+| 項目 | 内容 |
+|------|------|
+| ツール数 | 8（閲覧6 + 更新1 + 登録1） |
+| 権限制御 | パーミッションベース（read / write / pay_statements） |
+| 認証 | OAuth 2.1（Google OIDC 委譲） |
+| デプロイ | Cloud Run `mcp-smarthr` |
+| パッケージ | `packages/mcp-smarthr` |
+
 ## Documents
 
 | ドキュメント | パス |
