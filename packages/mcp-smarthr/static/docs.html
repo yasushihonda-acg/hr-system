@@ -322,6 +322,13 @@ flowchart TD
       </table>
     </div>
     <p class="text-xs text-gray-500 mt-2">※ 削除操作（DELETE）は全ロールで利用不可（未実装・安全性のためスコープ外）</p>
+    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+      <p class="text-sm text-amber-800"><strong>&#x26A0;&#xFE0F; コネクタ設定画面の表示について</strong></p>
+      <p class="text-sm text-amber-700 mt-1">
+        claude.ai のコネクタ設定画面にはサーバーが提供する全ツールが一覧表示されますが、<strong>表示 ≠ 実行可能</strong>です。
+        各ツールの実行時にサーバー側でユーザーの権限を検証し、権限不足の場合はリクエストを拒否します（fail-closed）。
+      </p>
+    </div>
   </div>
 </section>
 
