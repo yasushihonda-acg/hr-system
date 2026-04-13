@@ -187,6 +187,14 @@ tailwind.config = {
         </p>
       </div>
       <div>
+        <h3 class="font-semibold mb-2">🛡️ 権限による操作制限</h3>
+        <p class="text-sm text-gray-600">
+          アカウントごとに操作権限が設定されています。
+          <strong>読み取り専用</strong>のアカウントでは、給与明細の閲覧や従業員情報の変更・登録はできません。
+          設定画面にツール名が表示されていても、権限がなければサーバー側で実行がブロックされます。
+        </p>
+      </div>
+      <div>
         <h3 class="font-semibold mb-2">👤 個人情報の保護</h3>
         <p class="text-sm text-gray-600">
           権限に応じて、生年月日・性別・電話番号などの個人情報は自動的に非表示になります。
@@ -246,6 +254,17 @@ tailwind.config = {
       <summary class="font-semibold cursor-pointer">スマホからも使えますか？</summary>
       <p class="mt-3 text-gray-600 text-sm">
         はい。Claude のモバイルアプリまたはブラウザ版（claude.ai）から利用可能です。
+      </p>
+    </details>
+
+    <details class="bg-white rounded-xl border border-gray-200 p-5 group">
+      <summary class="font-semibold cursor-pointer">設定画面に「給与明細」や「従業員登録」が表示されていますが、見れてしまいませんか？</summary>
+      <p class="mt-3 text-gray-600 text-sm">
+        コネクタの設定画面にはサーバーが提供する全ツールが一覧表示されますが、
+        <strong>表示されていることと実行できることは別</strong>です。
+        実際にツールを使おうとしたとき、サーバー側であなたのアカウントの権限をチェックし、
+        権限がなければ「権限不足」エラーを返します。
+        読み取り専用アカウントでは、給与明細の取得や従業員情報の変更は実行できません。
       </p>
     </details>
 
