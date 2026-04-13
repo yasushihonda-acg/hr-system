@@ -202,6 +202,13 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     return c.html(html);
   });
 
+  // 非エンジニア向けご利用ガイド（認証不要・IP 制限なし）
+  app.get("/guide", (c) => {
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const html = readFileSync(resolve(__dirname, "../../static/guide.html"), "utf-8");
+    return c.html(html);
+  });
+
   // Anthropic IP 制限（/mcp のみ）
   if (ipRestrictionEnabled) {
     app.use("/mcp", async (c, next) => {
