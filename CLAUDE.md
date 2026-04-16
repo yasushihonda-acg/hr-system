@@ -4,6 +4,12 @@
 
 Google Chat の人事指示を AI が解釈し、給与変更ドラフトを自動作成。人間が承認後、全連携先へ反映する Human-in-the-loop システム。
 
+## Operational Status
+
+- **SmartHR MCP は本番運用中**（Cloud Run + claude.ai Team プラン カスタムコネクタ）
+- 権限・認可・使い方は稼働中 MCP サーバーの `/docs` `/guide`（`packages/mcp-smarthr/static/`）に記載
+- 設定・権限・運用の提案前に `docs/handoff/LATEST.md` と配信ドキュメントを確認すること
+
 ## Architecture
 
 - **GCP Project**: hr-system-487809 (asia-northeast1)
