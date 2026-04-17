@@ -11,7 +11,12 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { Hono } from "hono";
-import { isAllowedIdentity, type UserStore } from "../middleware/auth.js";
+import {
+  type AllowedBy,
+  isAllowedIdentity,
+  isExternalReadonlyViolation,
+  type UserStore,
+} from "../middleware/auth.js";
 import {
   buildAuthServerMetadata,
   buildProtectedResourceMetadata,
@@ -26,6 +31,8 @@ interface AuthCodeEntry {
   email: string;
   /** Google Workspace ドメイン */
   domain: string;
+  /** Layer 2 通過経路（/token で外部例外の readonly 不変条件を再検証するため保持） */
+  allowedBy: AllowedBy;
   /** PKCE code_challenge（S256） */
   codeChallenge: string;
   /** クライアント ID */
@@ -307,6 +314,7 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
     authCodes.set(authCode, {
       email,
       domain,
+      allowedBy,
       codeChallenge: pending.codeChallenge,
       clientId: pending.clientId,
       redirectUri: pending.redirectUri,
@@ -424,6 +432,29 @@ export function createOAuthRoutes(config: OAuthConfig, userStore: UserStore): Ho
 
     if (!user.enabled) {
       return c.json({ error: "access_denied", error_description: "User account is disabled" }, 403);
+    }
+
+    // 外部例外ユーザーの readonly 不変条件を JWT 発行前に再検証
+    // Authorizer の Layer 3.5 と同じガード。誤設定時に admin role の JWT を発行しないための防衛線。
+    if (entry.allowedBy === "external_email_exception" && isExternalReadonlyViolation(user)) {
+      console.log(
+        JSON.stringify({
+          severity: "WARNING",
+          message: "External readonly invariant violation at token issuance",
+          email: entry.email,
+          userRole: user.role,
+          userPermissions: user.permissions,
+          source: "mcp-smarthr",
+        }),
+      );
+      return c.json(
+        {
+          error: "access_denied",
+          error_description:
+            "External exception users must be readonly (misconfiguration rejected)",
+        },
+        403,
+      );
     }
 
     // JWT アクセストークン発行

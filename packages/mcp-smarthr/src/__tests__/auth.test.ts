@@ -4,6 +4,7 @@ import {
   Authorizer,
   createAuthContext,
   isAllowedIdentity,
+  isExternalReadonlyViolation,
   type UserStore,
 } from "../core/middleware/auth.js";
 
@@ -609,6 +610,39 @@ describe("Authorizer with externalAllowlist", () => {
 
     const result = await authorizer.authorize(context, "list_employees");
     expect(result.authorized).toBe(true);
+  });
+});
+
+describe("isExternalReadonlyViolation", () => {
+  // この関数は Authorizer と OAuth /token の両方から呼び出される共通ガード。
+  // JWT 発行前と認可時の両方で同じ不変条件を適用するための export。
+
+  it("role: readonly + permissions 未指定 → 違反なし（ROLE_TO_PERMISSIONS.readonly = ['read']）", () => {
+    expect(isExternalReadonlyViolation({ role: "readonly" })).toBe(false);
+  });
+
+  it("role: readonly + permissions: ['read'] → 違反なし", () => {
+    expect(isExternalReadonlyViolation({ role: "readonly", permissions: ["read"] })).toBe(false);
+  });
+
+  it("role: admin → 違反（JWT に admin role が埋め込まれるのを防ぐ）", () => {
+    expect(isExternalReadonlyViolation({ role: "admin" })).toBe(true);
+  });
+
+  it("role: readonly + permissions: ['read', 'write'] → 違反", () => {
+    expect(isExternalReadonlyViolation({ role: "readonly", permissions: ["read", "write"] })).toBe(
+      true,
+    );
+  });
+
+  it("role: readonly + permissions: ['read', 'pay_statements'] → 違反", () => {
+    expect(
+      isExternalReadonlyViolation({ role: "readonly", permissions: ["read", "pay_statements"] }),
+    ).toBe(true);
+  });
+
+  it("role: readonly + permissions: [] → 違反なし（空配列は read 相当にフォールバック）", () => {
+    expect(isExternalReadonlyViolation({ role: "readonly", permissions: [] })).toBe(false);
   });
 });
 

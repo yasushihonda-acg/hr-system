@@ -125,7 +125,10 @@ function deriveRole(permissions: Permission[]): Role {
  * role が admin、または permissions に write / pay_statements が含まれていたら違反。
  * Firestore 誤設定で外部メールに write 権限が付与された場合の最終防衛線。
  */
-function isExternalReadonlyViolation(user: { role: Role; permissions?: Permission[] }): boolean {
+export function isExternalReadonlyViolation(user: {
+  role: Role;
+  permissions?: Permission[];
+}): boolean {
   if (user.role !== "readonly") return true;
   if (user.permissions) {
     return user.permissions.some((p) => p === "write" || p === "pay_statements");
