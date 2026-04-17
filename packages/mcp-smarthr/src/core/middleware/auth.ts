@@ -2,9 +2,12 @@
  * 4 層認証・認可ミドルウェア
  *
  * Layer 1: トランスポート認証（Shell 層で処理、Core には AuthContext として渡る）
- * Layer 2: ドメイン検証（aozora-cg.com）
+ * Layer 2: アイデンティティ検証（ドメイン一致 OR 外部 readonly 例外メール完全一致）
  * Layer 3: ユーザー許可リスト（UserStore 経由）
  * Layer 4: ツール権限（パーミッションベースのアクセス制御）
+ *
+ * 外部例外ユーザーには readonly 強制（admin / write / pay_statements 不可）。
+ * Firestore 誤設定で write 権限が付与されても deny する最終防衛線として機能する。
  *
  * トランスポート非依存: stdio / HTTP 両方で利用可能。
  */
@@ -42,6 +45,28 @@ export function createAuthContext(
   return Object.freeze({ email, domain, transport });
 }
 
+/** Layer 2 アイデンティティ判定の通過経路 */
+export type AllowedBy = "domain" | "external_email_exception" | "denied";
+
+/**
+ * Layer 2 アイデンティティ判定（共通関数）。
+ *
+ * 判定順: domain 完全一致 → external_email_exception 完全一致（小文字正規化） → denied。
+ * domain 判定を優先するため、誤って外部 allowlist に domain ユーザーが混入しても
+ * domain 経由として扱われる。
+ */
+export function isAllowedIdentity(
+  email: string,
+  domain: string,
+  allowedDomain: string,
+  externalAllowlist: readonly string[],
+): AllowedBy {
+  if (domain === allowedDomain) return "domain";
+  const normalized = email.trim().toLowerCase();
+  const matched = externalAllowlist.some((entry) => entry.trim().toLowerCase() === normalized);
+  return matched ? "external_email_exception" : "denied";
+}
+
 /** ユーザー許可リスト（DI） */
 export interface UserStore {
   getUser(
@@ -66,6 +91,8 @@ export interface AuthResult {
   authorized: boolean;
   role: Role;
   email: string;
+  /** Layer 2 の通過経路（stdio は Layer 2 スキップのため未設定のことがある） */
+  allowedBy?: AllowedBy;
   /** 拒否理由 */
   reason?: string;
 }
@@ -93,28 +120,49 @@ function deriveRole(permissions: Permission[]): Role {
     : "readonly";
 }
 
+/**
+ * 外部例外ユーザーの readonly 制約チェック。
+ * role が admin、または permissions に write / pay_statements が含まれていたら違反。
+ * Firestore 誤設定で外部メールに write 権限が付与された場合の最終防衛線。
+ */
+function isExternalReadonlyViolation(user: { role: Role; permissions?: Permission[] }): boolean {
+  if (user.role !== "readonly") return true;
+  if (user.permissions) {
+    return user.permissions.some((p) => p === "write" || p === "pay_statements");
+  }
+  return false;
+}
+
 /** 認可チェッカー */
 export class Authorizer {
   constructor(
     private readonly allowedDomain: string,
     private readonly userStore: UserStore,
+    private readonly externalAllowlist: readonly string[] = [],
   ) {}
 
   /** 全レイヤーをチェック */
   async authorize(context: AuthContext, toolName: string): Promise<AuthResult> {
-    // stdio トランスポートの場合: Layer 2-3 はスキップ
+    // stdio トランスポートの場合: Layer 2 はスキップ、外部例外 readonly 制約は適用
     if (context.transport === "stdio") {
       return this.authorizeStdio(context, toolName);
     }
 
     // --- HTTP トランスポート: 全 Layer を検証 ---
 
-    // Layer 2: ドメイン検証
-    if (context.domain !== this.allowedDomain) {
+    // Layer 2: アイデンティティ検証（ドメイン一致 OR 外部例外メール）
+    const allowedBy = isAllowedIdentity(
+      context.email,
+      context.domain,
+      this.allowedDomain,
+      this.externalAllowlist,
+    );
+    if (allowedBy === "denied") {
       return {
         authorized: false,
         role: "readonly",
         email: context.email,
+        allowedBy,
         reason: "ドメイン制限",
       };
     }
@@ -126,6 +174,7 @@ export class Authorizer {
         authorized: false,
         role: "readonly",
         email: context.email,
+        allowedBy,
         reason: "許可リスト",
       };
     }
@@ -135,7 +184,19 @@ export class Authorizer {
         authorized: false,
         role: user.role,
         email: context.email,
+        allowedBy,
         reason: "無効化されたユーザー",
+      };
+    }
+
+    // Layer 3.5: 外部例外ユーザーの readonly 強制
+    if (allowedBy === "external_email_exception" && isExternalReadonlyViolation(user)) {
+      return {
+        authorized: false,
+        role: "readonly",
+        email: context.email,
+        allowedBy,
+        reason: "外部例外は readonly 固定",
       };
     }
 
@@ -146,6 +207,7 @@ export class Authorizer {
         authorized: false,
         role: user.role,
         email: context.email,
+        allowedBy,
         reason: "未登録ツール",
       };
     }
@@ -155,6 +217,7 @@ export class Authorizer {
         authorized: false,
         role: deriveRole(userPermissions),
         email: context.email,
+        allowedBy,
         reason: "権限不足",
       };
     }
@@ -163,6 +226,7 @@ export class Authorizer {
       authorized: true,
       role: deriveRole(userPermissions),
       email: context.email,
+      allowedBy,
     };
   }
 
@@ -180,6 +244,21 @@ export class Authorizer {
         role,
         email: context.email,
         reason: "無効化されたユーザー",
+      };
+    }
+
+    // 外部例外ユーザーの readonly 強制（stdio でも最終防衛線として適用）
+    const normalized = context.email.trim().toLowerCase();
+    const isExternal = this.externalAllowlist.some(
+      (entry) => entry.trim().toLowerCase() === normalized,
+    );
+    if (isExternal && user && isExternalReadonlyViolation(user)) {
+      return {
+        authorized: false,
+        role: "readonly",
+        email: context.email,
+        allowedBy: "external_email_exception",
+        reason: "外部例外は readonly 固定",
       };
     }
 

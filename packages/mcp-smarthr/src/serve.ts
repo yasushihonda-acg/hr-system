@@ -7,12 +7,13 @@
  *   SMARTHR_TENANT_ID (必須)
  *   GOOGLE_CLIENT_ID (必須)
  *   ALLOWED_DOMAIN (任意, デフォルト: aozora-cg.com)
+ *   EXTERNAL_READONLY_EMAIL_ALLOWLIST (任意) — 外部 readonly 例外メール（カンマ区切り）
  *   PORT (任意, デフォルト: 8080)
  */
 
 import type { UserStore } from "./core/middleware/auth.js";
 import { FirestoreUserStore } from "./core/stores/firestore-user-store.js";
-import { startHttp } from "./shells/http.js";
+import { parseExternalAllowlist, startHttp } from "./shells/http.js";
 
 /** UserStore を環境変数で切り替え */
 function createUserStore(): UserStore {
@@ -73,11 +74,43 @@ if (oauthEnabled) {
   );
 }
 
+const allowedDomain = process.env.ALLOWED_DOMAIN ?? "aozora-cg.com";
+
+// 外部 readonly 例外メールのパース（起動時ガード込み、パース失敗時は起動エラー）
+let externalAllowlist: readonly string[] = [];
+try {
+  externalAllowlist = parseExternalAllowlist(
+    process.env.EXTERNAL_READONLY_EMAIL_ALLOWLIST,
+    allowedDomain,
+  );
+  if (externalAllowlist.length > 0) {
+    console.log(
+      JSON.stringify({
+        severity: "INFO",
+        message: "EXTERNAL_READONLY_EMAIL_ALLOWLIST loaded",
+        count: externalAllowlist.length,
+        source: "mcp-smarthr",
+      }),
+    );
+  }
+} catch (error) {
+  console.error(
+    JSON.stringify({
+      severity: "CRITICAL",
+      message: "Failed to parse EXTERNAL_READONLY_EMAIL_ALLOWLIST",
+      error: error instanceof Error ? error.message : String(error),
+      source: "mcp-smarthr",
+    }),
+  );
+  process.exit(1);
+}
+
 startHttp({
   smarthrApiKey: apiKey,
   smarthrTenantId: tenantId,
   googleClientId,
-  allowedDomain: process.env.ALLOWED_DOMAIN ?? "aozora-cg.com",
+  allowedDomain,
+  externalAllowlist,
   userStore,
   port: Number(process.env.PORT) || 8080,
   authDisabled: process.env.AUTH_DISABLED === "true",
