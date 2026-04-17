@@ -51,7 +51,7 @@ claude mcp add \
   https://mcp-smarthr-1021020088552.asia-northeast1.run.app
 ```
 
-初回実行時に表示される認証 URL をブラウザで開いて Google 認証してください。`claude` 起動後に `/mcp` コマンドでサーバーが「連携済み（connected）」と表示されれば成功です。
+初回実行時に表示される認証 URL をブラウザで開いて Google 認証してください。`claude` 起動後に `/mcp` コマンドでサーバーのステータスが `connected` と表示されれば成功です（CLI は英語表示、Web/デスクトップアプリでは「連携済み」表示）。
 
 ### 動作確認のお願い
 
