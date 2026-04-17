@@ -13,11 +13,11 @@
 
 別テナント `lend.aozora-cg.com` のユーザー（y@lend.aozora-cg.com）が、aozora-cg.com の SmartHR データを readonly で参照できるように接続する手順。
 
-**利用可能な 3 つのクライアント**（どれか 1 つでも OK、用途に応じて選択）:
+**利用可能な接続方法**:
 
-- A. claude.ai Pro（Web 版、カスタムコネクタ）
-- B. Claude Desktop（アプリ版、リモート MCP 接続）
-- C. Claude Code CLI（ターミナル版、リモート MCP 接続）
+- **A. claude.ai Custom Connector**（Pro/Max プラン、Web・Desktop 共通）
+  - claude.ai にログインして Connector を 1 回追加すれば、同じアカウントの Web ブラウザと Claude Desktop の両方で自動的に使えるようになる
+- **B. Claude Code CLI**（ターミナル版、リモート MCP 接続）
 
 ---
 
@@ -34,56 +34,43 @@
 
 ---
 
-## A. claude.ai Pro（Web 版）
+## A. claude.ai Custom Connector（Web / Desktop 共通）
+
+Claude Desktop は **リモート HTTP MCP サーバーを設定ファイル（`claude_desktop_config.json`）で直接指定できない**。claude.ai（Web）で Connector を追加すると、同一アカウントでログインしている Desktop にも自動反映される仕組みのため、Web で 1 回設定すれば OK。
+
+### 手順
 
 1. https://claude.ai にログイン（`y@lend.aozora-cg.com` アカウント）
-2. 設定 → Connectors → Custom Connector 追加
+2. 左下のプロフィールアイコン → **Settings** → **Connectors** → **Add custom connector**
 3. 以下を入力:
    - **Name**: `aozora-hr-readonly`（任意）
-   - **URL**: `https://mcp-smarthr-1021020088552.asia-northeast1.run.app`
-4. 「Connect」をクリック
-5. Google OAuth 画面が開く → `y@lend.aozora-cg.com` を選択
-6. 権限同意 → Claude に戻る
-7. チャット画面で `@aozora-hr-readonly list_employees` のように呼び出し、従業員一覧が取れれば成功
+   - **Remote MCP server URL**: `https://mcp-smarthr-1021020088552.asia-northeast1.run.app`
+4. 「Add」をクリック
+5. Connector 一覧の `aozora-hr-readonly` に「Connect」ボタンが出るのでクリック
+6. Google OAuth 画面が開く → `y@lend.aozora-cg.com` を選択 → 権限同意
+7. claude.ai に戻り、Connector が「Connected」状態になっていることを確認
+8. チャット画面で attach（添付）アイコンからツールを選び、`list_employees` 等を呼び出して動作確認
+
+Claude Desktop を使っている場合は同アカウントでログインすれば同じ Connector が自動で利用可能。
 
 ---
 
-## B. Claude Desktop
-
-1. Claude Desktop を最新版に更新
-2. 設定 → Developer → Edit Config
-3. `claude_desktop_config.json` に以下を追記（既存の `mcpServers` があればマージ）:
-
-```json
-{
-  "mcpServers": {
-    "aozora-hr-readonly": {
-      "url": "https://mcp-smarthr-1021020088552.asia-northeast1.run.app"
-    }
-  }
-}
-```
-
-4. Claude Desktop を再起動
-5. 初回接続時に Google OAuth 画面が開く → `y@lend.aozora-cg.com` を選択
-6. チャット画面でツール欄に 5 つの readonly ツールが表示されることを確認
-
----
-
-## C. Claude Code CLI
+## B. Claude Code CLI
 
 1. Claude Code CLI を最新版に更新（`claude --version` で確認）
-2. ターミナルで以下を実行:
+2. ターミナルで以下を実行（URL は位置引数として最後に渡す）:
 
 ```bash
-claude mcp add aozora-hr-readonly \
+claude mcp add \
   --transport http \
-  --url https://mcp-smarthr-1021020088552.asia-northeast1.run.app
+  aozora-hr-readonly \
+  https://mcp-smarthr-1021020088552.asia-northeast1.run.app
 ```
 
 3. 初回接続時に Google OAuth URL がターミナルに表示される → ブラウザで開く
 4. `y@lend.aozora-cg.com` を選択 → 認証完了
 5. `claude` を起動し、`/mcp` でサーバーが Connected になっていることを確認
+6. チャット画面で `list_employees` 等を呼び出して動作確認
 
 ---
 
@@ -99,6 +86,8 @@ claude mcp add aozora-hr-readonly \
 | 4 | 従業員更新（update_employee） | **403 エラー**（readonly 強制、これが正しい動作） |
 | 5 | 給与明細取得（get_pay_statements） | **403 エラー**（readonly 強制、これが正しい動作） |
 | 6 | 従業員作成（create_employee） | **403 エラー**（readonly 強制、これが正しい動作） |
+
+いずれの接続方法でも、認証成功後は同じ 6 項目が同じ挙動になるはず。
 
 ---
 

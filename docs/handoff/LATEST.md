@@ -126,7 +126,7 @@
 | ALLOWED_DOMAIN | aozora-cg.com | |
 | AUTH_DISABLED | false | |
 | IP_RESTRICTION_ENABLED | false | |
-| SERVER_URL | https://mcp-smarthr-bdr4g3rk2q-an.a.run.app | |
+| SERVER_URL | https://mcp-smarthr-bdr4g3rk2q-an.a.run.app | OAuth issuer 用の legacy URL 形式。公開 URL は `https://mcp-smarthr-1021020088552.asia-northeast1.run.app`（同じサービスを Cloud Run が両形式で提供） |
 | USE_FIRESTORE_USER_STORE | true | |
 | **EXTERNAL_READONLY_EMAIL_ALLOWLIST** | **y@lend.aozora-cg.com** | **本セッションで追加** |
 | SMARTHR_API_KEY | (secret) | |
