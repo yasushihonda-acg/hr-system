@@ -30,6 +30,8 @@ export interface HttpShellOptions {
   smarthrTenantId: string;
   googleClientId: string;
   allowedDomain?: string;
+  /** 外部 readonly 例外メール（allowedDomain 外だが個別許可するメール、readonly 強制） */
+  externalAllowlist?: readonly string[];
   userStore: UserStore;
   port?: number;
   /** true にすると OAuth 検証をスキップし、デフォルト AuthContext を使用する（デモ用） */
@@ -43,6 +45,58 @@ export interface HttpShellOptions {
     serverUrl: string;
     jwtExpiresIn?: number;
   };
+}
+
+/**
+ * EXTERNAL_READONLY_EMAIL_ALLOWLIST 環境変数をパースする。
+ *
+ * - カンマ区切りのメールアドレス列を配列化
+ * - 前後空白除去、小文字正規化、重複排除
+ * - ワイルドカード・非メール形式は起動エラー
+ * - allowedDomain と同ドメインのメールは WARNING ログ（冗長だが拒否はしない）
+ */
+export function parseExternalAllowlist(raw: string | undefined, allowedDomain: string): string[] {
+  if (!raw || raw.trim() === "") return [];
+
+  const entries = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  const normalized: string[] = [];
+  for (const entry of entries) {
+    // ワイルドカード・domain-only などの非メール形式は拒否
+    if (
+      entry.includes("*") ||
+      !entry.includes("@") ||
+      entry.startsWith("@") ||
+      entry.endsWith("@") ||
+      entry.split("@").length !== 2
+    ) {
+      throw new Error(
+        `Invalid EXTERNAL_READONLY_EMAIL_ALLOWLIST entry: "${entry}" (wildcard or non-email format is rejected)`,
+      );
+    }
+
+    const lower = entry.toLowerCase();
+    if (!normalized.includes(lower)) {
+      normalized.push(lower);
+    }
+
+    const entryDomain = entry.split("@")[1] ?? "";
+    if (entryDomain.toLowerCase() === allowedDomain.toLowerCase()) {
+      console.log(
+        JSON.stringify({
+          severity: "WARNING",
+          message:
+            "EXTERNAL_READONLY_EMAIL_ALLOWLIST entry has the same domain as ALLOWED_DOMAIN; it is redundant",
+          entry,
+          source: "mcp-smarthr",
+        }),
+      );
+    }
+  }
+  return normalized;
 }
 
 /**
@@ -134,6 +188,7 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
     smarthrTenantId,
     googleClientId,
     allowedDomain = "aozora-cg.com",
+    externalAllowlist = [],
     userStore,
     port = 8080,
     authDisabled = false,
@@ -157,6 +212,7 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
         jwtSecret: options.oauth.jwtSecret,
         jwtExpiresIn: options.oauth.jwtExpiresIn,
         allowedDomain,
+        externalAllowlist,
       }
     : undefined;
 
@@ -315,6 +371,7 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
       resolveAuthContext: () => authContext,
       userStore,
       allowedDomain,
+      externalAllowlist,
     });
 
     const transport = new WebStandardStreamableHTTPServerTransport({
@@ -331,6 +388,7 @@ export async function startHttp(options: HttpShellOptions): Promise<void> {
         severity: "INFO",
         message: `MCP HTTP server listening on port ${port}`,
         allowedDomain,
+        externalAllowlistCount: externalAllowlist.length,
         source: "mcp-smarthr",
       }),
     );

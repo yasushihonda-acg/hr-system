@@ -23,6 +23,23 @@ const READONLY_USERS = [
   "yuka.yoshimura@aozora-cg.com",
 ];
 
+/**
+ * 外部 readonly 例外ユーザー（allowedDomain 外）。
+ * EXTERNAL_READONLY_EMAIL_ALLOWLIST 環境変数との二重承認（両方必要）で許可される。
+ */
+const EXTERNAL_READONLY_USERS: Array<{
+  email: string;
+  approvedBy: string;
+  reason: string;
+}> = [
+  {
+    email: "y@lend.aozora-cg.com",
+    approvedBy: "yasushi.honda@aozora-cg.com",
+    reason:
+      "lend テナントからの readonly 参照（ドメインユーザー同等の信頼レベル、初期は readonly）",
+  },
+];
+
 async function main() {
   const store = new FirestoreUserStore({ projectId: "hr-system-487809" });
 
@@ -38,11 +55,24 @@ async function main() {
     console.log(`  [readonly] ${email}`);
   }
 
+  const now = new Date().toISOString();
+  for (const { email, approvedBy, reason } of EXTERNAL_READONLY_USERS) {
+    await store.setUser(email, "readonly", true, {
+      permissions: ["read"],
+      external: true,
+      approvedBy,
+      approvedAt: now,
+      reason,
+    });
+    console.log(`  [external readonly] ${email} (approvedBy: ${approvedBy})`);
+  }
+
   console.log("\n=== 登録完了。確認中... ===\n");
 
   const users = await store.listUsers();
   for (const u of users) {
-    console.log(`  ${u.email}: role=${u.role}, enabled=${u.enabled}`);
+    const ext = u.external ? " [external]" : "";
+    console.log(`  ${u.email}: role=${u.role}, enabled=${u.enabled}${ext}`);
   }
 
   console.log(`\n合計: ${users.length} ユーザー`);

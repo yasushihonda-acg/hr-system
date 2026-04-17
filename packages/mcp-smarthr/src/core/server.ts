@@ -15,6 +15,8 @@ export interface CreateServerOptions {
   userStore: UserStore;
   /** 許可ドメイン */
   allowedDomain?: string;
+  /** 外部 readonly 例外メール（allowedDomain 外だが個別許可するメール、readonly 強制） */
+  externalAllowlist?: readonly string[];
   /** 監査ログの永続化ストア（オプション） */
   auditLogStore?: AuditLogStore;
 }
@@ -34,11 +36,12 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
     resolveAuthContext,
     userStore,
     allowedDomain = "aozora-cg.com",
+    externalAllowlist = [],
     auditLogStore,
   } = options;
 
   const tools = defineTools(smarthrClient);
-  const authorizer = new Authorizer(allowedDomain, userStore);
+  const authorizer = new Authorizer(allowedDomain, userStore, externalAllowlist);
   const auditLogger = new AuditLogger(auditLogStore);
 
   const server = new McpServer({
@@ -100,7 +103,13 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
         if (!authResult.authorized) {
           const reason = authResult.reason ?? "アクセスが拒否されました";
           try {
-            await auditLogger.logDenied(name, authContext.email, params, reason);
+            await auditLogger.logDenied(
+              name,
+              authContext.email,
+              params,
+              reason,
+              authResult.allowedBy,
+            );
           } catch {
             // 監査ログの失敗がツールレスポンスをブロックしないようにする
           }
@@ -117,6 +126,7 @@ export function createMcpServer(options: CreateServerOptions): McpServer {
             authContext.email,
             params,
             () => tool.handler(params as never),
+            authResult.allowedBy,
           );
 
           // handler はオブジェクトを返すため、直接 PII フィルタを適用

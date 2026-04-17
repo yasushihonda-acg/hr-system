@@ -21,6 +21,8 @@ export interface OAuthConfig {
   jwtExpiresIn?: number;
   /** 許可ドメイン */
   allowedDomain?: string;
+  /** 外部 readonly 例外メール（allowedDomain 外だが個別許可するメール） */
+  externalAllowlist?: readonly string[];
 }
 
 /** Google OIDC エンドポイント */

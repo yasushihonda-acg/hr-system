@@ -79,6 +79,33 @@ describe("OAuth Routes — /authorize", () => {
     expect(location).toContain("accounts.google.com");
     expect(location).toContain("openid");
   });
+
+  it("externalAllowlist 空 → hd パラメータ送信（domain hint ON）", async () => {
+    const app = createOAuthRoutes(TEST_CONFIG, testUserStore);
+    const codeVerifier = randomBytes(32).toString("base64url");
+    const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
+    const res = await app.request(
+      `/authorize?response_type=code&client_id=test&redirect_uri=http://localhost:3000/callback&code_challenge=${codeChallenge}&code_challenge_method=S256&state=mystate`,
+      { redirect: "manual" },
+    );
+    const location = res.headers.get("location") ?? "";
+    expect(location).toContain("hd=aozora-cg.com");
+  });
+
+  it("externalAllowlist 非空 → hd パラメータ非送信（外部ユーザー到達を保証）", async () => {
+    const app = createOAuthRoutes(
+      { ...TEST_CONFIG, externalAllowlist: ["y@lend.aozora-cg.com"] },
+      testUserStore,
+    );
+    const codeVerifier = randomBytes(32).toString("base64url");
+    const codeChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
+    const res = await app.request(
+      `/authorize?response_type=code&client_id=test&redirect_uri=http://localhost:3000/callback&code_challenge=${codeChallenge}&code_challenge_method=S256&state=mystate`,
+      { redirect: "manual" },
+    );
+    const location = res.headers.get("location") ?? "";
+    expect(location).not.toContain("hd=");
+  });
 });
 
 describe("OAuth Routes — /token", () => {

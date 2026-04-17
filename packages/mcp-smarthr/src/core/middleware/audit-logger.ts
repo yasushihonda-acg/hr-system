@@ -7,6 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import type { AllowedBy } from "./auth.js";
 import { maskPII } from "./pii-filter.js";
 
 /** 監査ログエントリ */
@@ -21,6 +22,8 @@ export interface AuditLogEntry {
   requestId: string;
   /** 拒否理由（result === "denied" 時のみ） */
   reason?: string;
+  /** Layer 2 の通過経路（domain / external_email_exception / denied） */
+  allowedBy?: AllowedBy;
   source: "mcp-smarthr";
 }
 
@@ -48,6 +51,7 @@ export class AuditLogger {
     userEmail: string,
     params: Record<string, unknown>,
     reason: string,
+    allowedBy?: AllowedBy,
   ): Promise<void> {
     const entry: AuditLogEntry = {
       timestamp: new Date().toISOString(),
@@ -59,6 +63,7 @@ export class AuditLogger {
       durationMs: 0,
       requestId: randomUUID(),
       reason,
+      allowedBy,
       source: "mcp-smarthr",
     };
     this.emitLog(entry);
@@ -70,6 +75,7 @@ export class AuditLogger {
     userEmail: string,
     params: Record<string, unknown>,
     fn: () => Promise<T>,
+    allowedBy?: AllowedBy,
   ): Promise<T> {
     const requestId = randomUUID();
     const start = Date.now();
@@ -94,6 +100,7 @@ export class AuditLogger {
         result,
         durationMs,
         requestId,
+        allowedBy,
         source: "mcp-smarthr",
       };
       this.emitLog(entry);

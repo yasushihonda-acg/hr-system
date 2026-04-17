@@ -191,8 +191,9 @@ flowchart TD
   L1A --> L2
   L1B -->|検証成功| L2
 
-  L2{"Layer 2: ドメイン検証"}
+  L2{"Layer 2: アイデンティティ検証"}
   L2 -->|"hd == aozora-cg.com"| L3
+  L2 -->|"外部 readonly 例外メール"| L3
   L2 -->|"それ以外"| DENY2["403 Forbidden"]
 
   L3{"Layer 3: ユーザー許可リスト"}
@@ -212,6 +213,16 @@ flowchart TD
   style DENY2 fill:#fee2e2,stroke:#dc2626
   style DENY3 fill:#fee2e2,stroke:#dc2626
     </div>
+
+    <h3 class="text-lg font-semibold mt-8">外部 readonly 例外（狭い恒久許可）</h3>
+    <p class="text-gray-600 mb-3">
+      aozora-cg.com ドメイン外でも、<strong>環境変数 EXTERNAL_READONLY_EMAIL_ALLOWLIST と Firestore 許可リストの両方</strong>に登録されたメールは readonly 権限で接続可能です。単一ミスで境界が開かないよう二重承認方式を採っています。
+    </p>
+    <ul class="text-sm text-gray-700 list-disc list-inside space-y-1 mb-4">
+      <li>外部例外ユーザーは <strong>readonly 強制</strong>（role=admin や write / pay_statements permission が付与されていても deny）</li>
+      <li>revoke 手順: Firestore で <code>enabled: false</code> にすれば即時停止、さらに env 変数から削除して再デプロイで完全 revoke</li>
+      <li>増殖ガード: 2 人目の外部例外が必要になった場合は多テナント UserStore に再設計する方針</li>
+    </ul>
 
     <h3 class="text-lg font-semibold mt-8">ロールとアクセス制御</h3>
     <p class="text-gray-600 mb-3">Firestore 許可リストに登録されたアカウントのみ接続可能です。未登録のアカウントはドメイン内でもアクセスできません。</p>
