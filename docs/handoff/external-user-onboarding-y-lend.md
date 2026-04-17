@@ -30,7 +30,7 @@
 | トークンエンドポイント | `https://mcp-smarthr-1021020088552.asia-northeast1.run.app/token` |
 | クライアント登録 | 自動（Dynamic Client Registration） |
 | 利用可能ツール | `list_employees`, `get_employee`, `search_employees`, `list_departments`, `list_positions`（5 種、readonly） |
-| 拒否されるツール | `update_employee`, `create_employee`, `get_pay_statements`（403 エラーが期待動作） |
+| 拒否されるツール | `update_employee`, `create_employee`（403 エラーが期待動作） |
 
 ---
 
@@ -84,10 +84,9 @@ claude mcp add \
 | 2 | 特定従業員取得（get_employee） | 成功（200） |
 | 3 | 部署一覧取得（list_departments） | 成功（200） |
 | 4 | 従業員更新（update_employee） | **403 エラー**（readonly 強制、これが正しい動作） |
-| 5 | 給与明細取得（get_pay_statements） | **403 エラー**（readonly 強制、これが正しい動作） |
-| 6 | 従業員作成（create_employee） | **403 エラー**（readonly 強制、これが正しい動作） |
+| 5 | 従業員作成（create_employee） | **403 エラー**（readonly 強制、これが正しい動作） |
 
-いずれの接続方法でも、認証成功後は同じ 6 項目が同じ挙動になるはず。
+いずれの接続方法でも、認証成功後は同じ 5 項目が同じ挙動になるはず。給与明細機能は本 MCP では未提供。
 
 ---
 

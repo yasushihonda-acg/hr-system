@@ -66,7 +66,6 @@ const TOOL_NAMES = [
   "list_employees",
   "get_employee",
   "search_employees",
-  "get_pay_statements",
   "list_departments",
   "list_positions",
   "update_employee",
@@ -131,28 +130,6 @@ export function defineTools(client: SmartHRClient): Record<ToolName, ToolDefinit
           per_page: params.per_page,
         });
         return formatListResult("従業員", result.data, result.totalCount);
-      },
-    },
-
-    get_pay_statements: {
-      description:
-        "SmartHRの給与明細を取得します。従業員ID・年・月で絞り込み可能。pay_statements権限が必要です。",
-      annotations: { readOnlyHint: true, idempotentHint: true, title: "給与明細" },
-      shape: {
-        crew_id: z.string().optional().describe("従業員ID（絞り込み）"),
-        year: z.number().int().optional().describe("年（例: 2026）"),
-        month: z.number().int().min(1).max(12).optional().describe("月（1-12）"),
-        ...paginationShape,
-      },
-      handler: async (params: {
-        crew_id?: string;
-        year?: number;
-        month?: number;
-        page?: number;
-        per_page?: number;
-      }) => {
-        const result = await client.getPayStatements(params);
-        return formatListResult("給与明細", result.data, result.totalCount);
       },
     },
 

@@ -73,7 +73,7 @@
 `docs/handoff/external-user-onboarding-y-lend.md` を y@lend.aozora-cg.com 本人に共有。その文書に以下が含まれている:
 
 - 3 クライアント（claude.ai Pro / Claude Desktop / Claude Code CLI）それぞれの接続手順
-- 動作確認シナリオ 6 項目（read 系成功 + write/pay_statements が 403 になること）
+- 動作確認シナリオ（read 系成功 + write が 403 になること）
 - トラブルシューティング
 - 連絡先（yasushi.honda@aozora-cg.com）
 
@@ -112,7 +112,7 @@
 
 | ロール | 権限 | アカウント |
 |--------|------|-----------|
-| admin | 閲覧 + 更新 + 登録 + 給与明細 | kosuke.omure, tomohiro.arikawa, makoto.tokunaga, yasushi.honda |
+| admin | 閲覧 + 更新 + 登録 | kosuke.omure, tomohiro.arikawa, makoto.tokunaga, yasushi.honda |
 | readonly | 閲覧のみ | ryota.yagi, gen.ichihara, rika.komatsu, shoma.horinouchi, tomoko.hommura, yuka.yoshimura |
 | **readonly（外部例外）** | **閲覧のみ（強制）** | **y@lend.aozora-cg.com** |
 

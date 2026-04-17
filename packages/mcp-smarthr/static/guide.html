@@ -146,19 +146,6 @@ tailwind.config = {
       <p class="text-xs text-gray-400 mt-2">※ AI は実行前に必ず確認を求めます</p>
     </div>
 
-    <div class="bg-white rounded-xl border border-purple-200 p-6">
-      <div class="flex items-center gap-2 mb-3">
-        <span class="text-2xl">💰</span>
-        <h3 class="font-semibold">給与明細</h3>
-        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs ml-auto">特別権限</span>
-      </div>
-      <ul class="text-gray-600 space-y-1 text-sm">
-        <li>給与明細の参照</li>
-        <li>年月や従業員での絞り込み</li>
-      </ul>
-      <p class="text-xs text-gray-400 mt-2">※ 管理者のみアクセス可能</p>
-    </div>
-
     <div class="bg-gray-100 rounded-xl border border-gray-200 p-6">
       <div class="flex items-center gap-2 mb-3">
         <span class="text-2xl">🚫</span>
@@ -191,7 +178,7 @@ tailwind.config = {
         <h3 class="font-semibold mb-2">🛡️ 権限による操作制限</h3>
         <p class="text-sm text-gray-600">
           アカウントごとに操作権限が設定されています。
-          <strong>読み取り専用</strong>のアカウントでは、給与明細の閲覧や従業員情報の変更・登録はできません。
+          <strong>読み取り専用</strong>のアカウントでは、従業員情報の変更・登録はできません（給与明細機能は本 MCP では未提供）。
           設定画面にツール名が表示されていても、権限がなければサーバー側で実行がブロックされます。
         </p>
       </div>
@@ -259,13 +246,13 @@ tailwind.config = {
     </details>
 
     <details class="bg-white rounded-xl border border-gray-200 p-5 group">
-      <summary class="font-semibold cursor-pointer">設定画面に「給与明細」や「従業員登録」が表示されていますが、見れてしまいませんか？</summary>
+      <summary class="font-semibold cursor-pointer">設定画面に「従業員登録」等のツールが表示されていますが、権限がなくても見れてしまいませんか？</summary>
       <p class="mt-3 text-gray-600 text-sm">
         コネクタの設定画面にはサーバーが提供する全ツールが一覧表示されますが、
         <strong>表示されていることと実行できることは別</strong>です。
         実際にツールを使おうとしたとき、サーバー側であなたのアカウントの権限をチェックし、
         権限がなければ「権限不足」エラーを返します。
-        読み取り専用アカウントでは、給与明細の取得や従業員情報の変更は実行できません。
+        読み取り専用アカウントでは、従業員情報の変更や新規登録は実行できません。
       </p>
     </details>
 

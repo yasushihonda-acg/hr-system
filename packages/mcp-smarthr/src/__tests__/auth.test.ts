@@ -37,7 +37,7 @@ describe("Authorizer", () => {
         transport: "http",
       };
 
-      const result = await authorizer.authorize(context, "get_pay_statements");
+      const result = await authorizer.authorize(context, "update_employee");
 
       expect(result.authorized).toBe(true);
       expect(result.role).toBe("admin");
@@ -75,7 +75,7 @@ describe("Authorizer", () => {
       expect(result.reason).toBe("許可リスト");
     });
 
-    it("readonly ロール + get_pay_statements → authorized: false, reason: 権限不足", async () => {
+    it("readonly ロール + update_employee → authorized: false, reason: 権限不足", async () => {
       const store = createMockUserStore({
         "reader@aozora-cg.com": { role: "readonly", enabled: true },
       });
@@ -86,7 +86,7 @@ describe("Authorizer", () => {
         transport: "http",
       };
 
-      const result = await authorizer.authorize(context, "get_pay_statements");
+      const result = await authorizer.authorize(context, "update_employee");
 
       expect(result.authorized).toBe(false);
       expect(result.role).toBe("readonly");
@@ -189,7 +189,7 @@ describe("Authorizer", () => {
         transport: "stdio",
       };
 
-      const result = await authorizer.authorize(context, "get_pay_statements");
+      const result = await authorizer.authorize(context, "update_employee");
 
       expect(result.authorized).toBe(false);
       expect(result.reason).toBe("権限不足");
@@ -240,7 +240,7 @@ describe("Authorizer", () => {
         transport: "stdio",
       };
 
-      const result = await authorizer.authorize(context, "get_pay_statements");
+      const result = await authorizer.authorize(context, "update_employee");
 
       expect(result.authorized).toBe(false);
       expect(result.reason).toBe("権限不足");
@@ -268,27 +268,6 @@ describe("Authorizer", () => {
       expect(result.authorized).toBe(true);
     });
 
-    it("permissions: ['read', 'write'] → get_pay_statements は拒否", async () => {
-      const store = createMockUserStore({
-        "editor@aozora-cg.com": {
-          role: "readonly",
-          permissions: ["read", "write"],
-          enabled: true,
-        },
-      });
-      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
-      const context: AuthContext = {
-        email: "editor@aozora-cg.com",
-        domain: "aozora-cg.com",
-        transport: "http",
-      };
-
-      const result = await authorizer.authorize(context, "get_pay_statements");
-
-      expect(result.authorized).toBe(false);
-      expect(result.reason).toBe("権限不足");
-    });
-
     it("permissions: ['read'] → update_employee は拒否", async () => {
       const store = createMockUserStore({
         "reader@aozora-cg.com": {
@@ -310,7 +289,7 @@ describe("Authorizer", () => {
       expect(result.reason).toBe("権限不足");
     });
 
-    it("role: 'admin'（permissions なし）→ 全ツールアクセス可（後方互換）", async () => {
+    it("role: 'admin'（permissions なし）→ read + write ツールアクセス可（後方互換）", async () => {
       const store = createMockUserStore({
         "admin@aozora-cg.com": { role: "admin", enabled: true },
       });
@@ -323,11 +302,9 @@ describe("Authorizer", () => {
 
       const readResult = await authorizer.authorize(context, "list_employees");
       const writeResult = await authorizer.authorize(context, "update_employee");
-      const payResult = await authorizer.authorize(context, "get_pay_statements");
 
       expect(readResult.authorized).toBe(true);
       expect(writeResult.authorized).toBe(true);
-      expect(payResult.authorized).toBe(true);
     });
 
     it("role: 'readonly'（permissions なし）→ read のみ（後方互換）", async () => {
@@ -337,6 +314,55 @@ describe("Authorizer", () => {
       const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
       const context: AuthContext = {
         email: "reader@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const readResult = await authorizer.authorize(context, "list_employees");
+      const writeResult = await authorizer.authorize(context, "update_employee");
+
+      expect(readResult.authorized).toBe(true);
+      expect(writeResult.authorized).toBe(false);
+    });
+
+    it("未知の permission 文字列は silent drop される（Firestore 旧データの regression）", async () => {
+      // 旧 admin ユーザーの Firestore permissions に ["read", "write", "pay_statements"] が
+      // 残っている場合でも、VALID_PERMISSIONS フィルタで "pay_statements" は無視され、
+      // 有効な ["read", "write"] のみが適用される。
+      const store = createMockUserStore({
+        "legacy-admin@aozora-cg.com": {
+          role: "admin",
+          permissions: ["read", "write", "pay_statements" as Permission],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "legacy-admin@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const readResult = await authorizer.authorize(context, "list_employees");
+      const writeResult = await authorizer.authorize(context, "update_employee");
+
+      expect(readResult.authorized).toBe(true);
+      expect(writeResult.authorized).toBe(true);
+    });
+
+    it("全 permission が無効文字列のみ → ROLE_TO_PERMISSIONS にフォールバック", async () => {
+      // 旧データで permissions: ["pay_statements"] のみ残るケース。
+      // フィルタ後が空配列になるため role のデフォルトパーミッションにフォールバック。
+      const store = createMockUserStore({
+        "legacy-readonly@aozora-cg.com": {
+          role: "readonly",
+          permissions: ["pay_statements" as Permission],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "legacy-readonly@aozora-cg.com",
         domain: "aozora-cg.com",
         transport: "http",
       };
@@ -440,22 +466,6 @@ describe("Authorizer with externalAllowlist", () => {
     expect(result.allowedBy).toBe("external_email_exception");
   });
 
-  it("AC2: 外部例外 readonly → get_pay_statements も deny", async () => {
-    const store = createMockUserStore({
-      [EXTERNAL_EMAIL]: { role: "readonly", enabled: true },
-    });
-    const authorizer = new Authorizer(ALLOWED_DOMAIN, store, [EXTERNAL_EMAIL]);
-    const context: AuthContext = {
-      email: EXTERNAL_EMAIL,
-      domain: "lend.aozora-cg.com",
-      transport: "http",
-    };
-
-    const result = await authorizer.authorize(context, "get_pay_statements");
-    expect(result.authorized).toBe(false);
-    expect(result.reason).toBe("権限不足");
-  });
-
   it("AC3: 外部ドメインで allowlist 未登録 → ドメイン制限", async () => {
     const store = createMockUserStore({});
     const authorizer = new Authorizer(ALLOWED_DOMAIN, store, [EXTERNAL_EMAIL]);
@@ -541,26 +551,6 @@ describe("Authorizer with externalAllowlist", () => {
     expect(result.reason).toBe("外部例外は readonly 固定");
   });
 
-  it("AC6c: 外部例外ユーザーが permissions に pay_statements 含む → deny", async () => {
-    const store = createMockUserStore({
-      [EXTERNAL_EMAIL]: {
-        role: "readonly",
-        permissions: ["read", "pay_statements"] as Permission[],
-        enabled: true,
-      },
-    });
-    const authorizer = new Authorizer(ALLOWED_DOMAIN, store, [EXTERNAL_EMAIL]);
-    const context: AuthContext = {
-      email: EXTERNAL_EMAIL,
-      domain: "lend.aozora-cg.com",
-      transport: "http",
-    };
-
-    const result = await authorizer.authorize(context, "list_employees");
-    expect(result.authorized).toBe(false);
-    expect(result.reason).toBe("外部例外は readonly 固定");
-  });
-
   it("AC7: 認可成功時 allowedBy: 'domain' が返る（regression）", async () => {
     const store = createMockUserStore({
       "user@aozora-cg.com": { role: "admin", enabled: true },
@@ -588,7 +578,7 @@ describe("Authorizer with externalAllowlist", () => {
       transport: "http",
     };
 
-    const result = await authorizer.authorize(context, "get_pay_statements");
+    const result = await authorizer.authorize(context, "update_employee");
     expect(result.authorized).toBe(true);
     expect(result.role).toBe("admin");
   });
@@ -633,12 +623,6 @@ describe("isExternalReadonlyViolation", () => {
     expect(isExternalReadonlyViolation({ role: "readonly", permissions: ["read", "write"] })).toBe(
       true,
     );
-  });
-
-  it("role: readonly + permissions: ['read', 'pay_statements'] → 違反", () => {
-    expect(
-      isExternalReadonlyViolation({ role: "readonly", permissions: ["read", "pay_statements"] }),
-    ).toBe(true);
   });
 
   it("role: readonly + permissions: [] → 違反なし（空配列は read 相当にフォールバック）", () => {
