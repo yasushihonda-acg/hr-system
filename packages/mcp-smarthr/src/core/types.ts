@@ -65,25 +65,6 @@ export interface SmartHRCustomField {
   value: string | null;
 }
 
-/** 給与明細 */
-export interface SmartHRPayStatement {
-  id: string;
-  crew_id: string;
-  year: number;
-  month: number;
-  pay_type: string;
-  items: SmartHRPayStatementItem[];
-  created_at: string;
-  updated_at: string;
-}
-
-/** 給与明細項目 */
-export interface SmartHRPayStatementItem {
-  name: string;
-  amount: number;
-  category: string;
-}
-
 /** ページネーション付きリストレスポンス */
 export interface SmartHRListResponse<T> {
   data: T[];

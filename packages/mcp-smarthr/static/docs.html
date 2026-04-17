@@ -68,7 +68,7 @@ tailwind.config = {
       AI アシスタント（Claude）から
       <a href="https://developer.smarthr.jp/api" class="text-brand-600 underline" target="_blank">SmartHR API</a>
       を利用して人事データを安全に参照・更新できるようにします。
-      8 つのツールを提供し、従業員情報の閲覧・検索・更新・登録、部署・役職の参照、給与明細の参照が可能です。
+      7 つのツールを提供し、従業員情報の閲覧・検索・更新・登録、部署・役職の参照が可能です。
     </p>
     <div class="grid md:grid-cols-3 gap-4 mt-6">
       <div class="bg-brand-50 rounded-lg p-4 text-center">
@@ -219,7 +219,7 @@ flowchart TD
       aozora-cg.com ドメイン外でも、<strong>環境変数 EXTERNAL_READONLY_EMAIL_ALLOWLIST と Firestore 許可リストの両方</strong>に登録されたメールは readonly 権限で接続可能です。単一ミスで境界が開かないよう二重承認方式を採っています。
     </p>
     <ul class="text-sm text-gray-700 list-disc list-inside space-y-1 mb-4">
-      <li>外部例外ユーザーは <strong>readonly 強制</strong>（role=admin や write / pay_statements permission が付与されていても deny）</li>
+      <li>外部例外ユーザーは <strong>readonly 強制</strong>（role=admin や write permission が付与されていても deny）</li>
       <li>revoke 手順: Firestore で <code>enabled: false</code> にすれば即時停止、さらに env 変数から削除して再デプロイで完全 revoke</li>
       <li>増殖ガード: 2 人目の外部例外が必要になった場合は多テナント UserStore に再設計する方針</li>
     </ul>
@@ -237,9 +237,9 @@ flowchart TD
         <ul class="text-sm text-purple-900 space-y-1 ml-1">
           <li>&#x2705; 従業員の閲覧・検索</li>
           <li>&#x2705; 従業員の更新・新規登録</li>
-          <li>&#x2705; 給与明細の閲覧</li>
           <li>&#x2705; 部署・役職の閲覧</li>
           <li>&#x2705; 生年月日・性別・連絡先を含む詳細情報</li>
+          <li>&#x274C; 給与明細の閲覧（本 MCP では未提供）</li>
           <li>&#x274C; 削除操作（未実装・スコープ外）</li>
         </ul>
       </div>
@@ -251,8 +251,8 @@ flowchart TD
         <ul class="text-sm text-blue-900 space-y-1 ml-1">
           <li>&#x2705; 従業員の閲覧・検索</li>
           <li>&#x274C; 従業員の更新・新規登録</li>
-          <li>&#x274C; 給与明細の閲覧</li>
           <li>&#x2705; 部署・役職の閲覧</li>
+          <li>&#x274C; 給与明細の閲覧（本 MCP では未提供）</li>
           <li>&#x274C; 生年月日・性別・連絡先（自動除外）</li>
           <li>&#x274C; 削除操作（未実装・スコープ外）</li>
         </ul>
@@ -319,13 +319,6 @@ flowchart TD
             <td class="border border-gray-200 px-4 py-2"><code class="text-xs">create_employee</code></td>
             <td class="border border-gray-200 px-4 py-2">従業員の新規登録</td>
             <td class="border border-gray-200 px-4 py-2 text-center"><span class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs">write</span></td>
-            <td class="border border-gray-200 px-4 py-2 text-center">&#x2705;</td>
-            <td class="border border-gray-200 px-4 py-2 text-center">&#x274C;</td>
-          </tr>
-          <tr class="bg-gray-50">
-            <td class="border border-gray-200 px-4 py-2"><code class="text-xs">get_pay_statements</code></td>
-            <td class="border border-gray-200 px-4 py-2">給与明細の取得</td>
-            <td class="border border-gray-200 px-4 py-2 text-center"><span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">pay_statements</span></td>
             <td class="border border-gray-200 px-4 py-2 text-center">&#x2705;</td>
             <td class="border border-gray-200 px-4 py-2 text-center">&#x274C;</td>
           </tr>
@@ -406,29 +399,6 @@ flowchart TD
       <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
         <p class="text-gray-400 text-xs mb-1">使用例</p>
         <code>"田中さんの情報を検索して"</code>
-      </div>
-    </div>
-
-    <!-- get_pay_statements -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6">
-      <div class="flex items-center gap-3 mb-3">
-        <code class="bg-gray-100 text-brand-700 px-3 py-1 rounded-lg font-mono text-sm font-bold">get_pay_statements</code>
-        <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-xs">pay_statements</span>
-      </div>
-      <p class="text-gray-600 mb-3">給与明細を取得します。従業員ID・年・月で絞り込み可能。<strong>pay_statements 権限必須。</strong></p>
-      <div class="bg-gray-50 rounded-lg p-4">
-        <p class="text-xs text-gray-500 mb-2 font-medium">パラメータ</p>
-        <table class="w-full text-sm">
-          <tr><td class="py-1"><code class="text-xs">crew_id</code></td><td class="text-gray-500">従業員ID（任意）</td></tr>
-          <tr><td class="py-1"><code class="text-xs">year</code></td><td class="text-gray-500">年（例: 2026、任意）</td></tr>
-          <tr><td class="py-1"><code class="text-xs">month</code></td><td class="text-gray-500">月（1-12、任意）</td></tr>
-          <tr><td class="py-1"><code class="text-xs">page</code></td><td class="text-gray-500">ページ番号（任意）</td></tr>
-          <tr><td class="py-1"><code class="text-xs">per_page</code></td><td class="text-gray-500">1ページあたりの件数（任意）</td></tr>
-        </table>
-      </div>
-      <div class="mt-3 bg-gray-900 text-gray-100 rounded-lg p-4 text-sm">
-        <p class="text-gray-400 text-xs mb-1">使用例</p>
-        <code>"2026年3月の給与明細を見せて"</code>
       </div>
     </div>
 
@@ -739,10 +709,10 @@ graph LR
     </details>
 
     <details class="bg-white rounded-xl border border-gray-200 p-6 group">
-      <summary class="font-semibold cursor-pointer">給与情報は誰でも見られますか？</summary>
+      <summary class="font-semibold cursor-pointer">給与明細は取得できますか？</summary>
       <p class="mt-3 text-gray-600">
-        いいえ。<strong>pay_statements 権限</strong>を持つユーザーのみが <code>get_pay_statements</code> ツールを利用できます。
-        権限のないユーザーが呼び出すと「権限不足」エラーが返ります。
+        いいえ。<strong>本 MCP では給与明細機能を提供していません</strong>（セキュリティ方針により完全排除）。
+        従業員情報・部署・役職の参照と、従業員情報の更新・新規登録のみ利用できます。
       </p>
     </details>
 

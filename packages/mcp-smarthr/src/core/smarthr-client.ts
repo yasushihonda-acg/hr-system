@@ -1,11 +1,5 @@
 import { RateLimiter } from "./lib/rate-limiter.js";
-import type {
-  SmartHRConfig,
-  SmartHRCrew,
-  SmartHRDepartment,
-  SmartHRPayStatement,
-  SmartHRPosition,
-} from "./types.js";
+import type { SmartHRConfig, SmartHRCrew, SmartHRDepartment, SmartHRPosition } from "./types.js";
 
 const DEFAULT_BASE_URL = "https://{tenantId}.smarthr.jp/api/v1";
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000; // 5分
@@ -66,25 +60,6 @@ export class SmartHRClient {
     if (params?.per_page) searchParams.set("per_page", String(params.per_page));
 
     return this.fetchList<SmartHRCrew>(`/crews?${searchParams}`);
-  }
-
-  /** 給与明細取得 */
-  async getPayStatements(params?: {
-    crew_id?: string;
-    year?: number;
-    month?: number;
-    page?: number;
-    per_page?: number;
-  }): Promise<{ data: SmartHRPayStatement[]; totalCount: number }> {
-    const query = new URLSearchParams();
-    if (params?.crew_id) query.set("crew_id", params.crew_id);
-    if (params?.year) query.set("year", String(params.year));
-    if (params?.month) query.set("month", String(params.month));
-    if (params?.page) query.set("page", String(params.page));
-    if (params?.per_page) query.set("per_page", String(params.per_page));
-
-    const url = `/pay_statements${query.toString() ? `?${query}` : ""}`;
-    return this.fetchList<SmartHRPayStatement>(url);
   }
 
   /** 部署一覧取得 */

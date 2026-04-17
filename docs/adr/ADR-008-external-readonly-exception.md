@@ -37,7 +37,7 @@ SmartHR MCP サーバーは `aozora-cg.com` ドメインに閉じた 4 レイヤ
 ### 設計の核
 
 1. **二重承認ガード**: 外部ユーザーは **環境変数許可リストに存在し、かつ Firestore `mcp-users` に登録されている** 場合のみ通過する
-2. **readonly 強制ガード（Layer 3.5）**: 外部例外ユーザーに admin/write/pay_statements 権限が Firestore に誤設定されても、Authorizer と OAuth `/token` で deny する
+2. **readonly 強制ガード（Layer 3.5）**: 外部例外ユーザーに admin/write 権限が Firestore に誤設定されても、Authorizer と OAuth `/token` で deny する
 3. **hd パラメータ条件付き送信**: 外部例外ありの場合のみ `/authorize` の `hd` を省略し、外部テナントユーザーが認可画面に到達できるようにする。セキュリティは callback 側の `isAllowedIdentity` で担保
 4. **監査ログ `allowedBy` タグ**: `domain` / `external_email_exception` / `denied` で通過経路を識別
 

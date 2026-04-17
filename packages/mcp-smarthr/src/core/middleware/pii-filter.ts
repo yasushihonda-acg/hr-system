@@ -8,11 +8,11 @@
 export type Role = "admin" | "readonly";
 
 /** 細粒度パーミッション（ツール単位のアクセス制御に使用） */
-export type Permission = "read" | "write" | "pay_statements";
+export type Permission = "read" | "write";
 
 /** ロール → パーミッション変換（permissions フィールドがない既存ユーザー用） */
 export const ROLE_TO_PERMISSIONS: Record<Role, Permission[]> = {
-  admin: ["read", "write", "pay_statements"],
+  admin: ["read", "write"],
   readonly: ["read"],
 };
 

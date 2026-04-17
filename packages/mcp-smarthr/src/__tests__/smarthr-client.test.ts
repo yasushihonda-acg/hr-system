@@ -86,19 +86,6 @@ describe("SmartHRClient", () => {
     });
   });
 
-  describe("getPayStatements", () => {
-    it("年月で絞り込みできる", async () => {
-      const fetchMock = mockFetchResponse([], { "x-total-count": "0" });
-      vi.stubGlobal("fetch", fetchMock);
-
-      await client.getPayStatements({ year: 2026, month: 3 });
-
-      const calledUrl = fetchMock.mock.calls[0]?.[0] as string;
-      expect(calledUrl).toContain("year=2026");
-      expect(calledUrl).toContain("month=3");
-    });
-  });
-
   describe("listDepartments", () => {
     it("部署一覧を取得できる", async () => {
       const departments = [{ id: "d1", name: "人事部" }];
