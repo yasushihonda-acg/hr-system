@@ -1,8 +1,8 @@
 # HR-AI Agent — Session Handoff
 
-**最終更新**: 2026-04-17（Phase 14 給与明細排除 本番デプロイ完了）
+**最終更新**: 2026-04-17（Phase 14 完了 + y@lend 向け文書日本語 UI 統一、T13 依頼送付済）
 **ブランチ**: `main`
-**main 最新**: `6616767` — feat: SmartHR MCP から給与明細機能を完全排除 (#445)
+**main 最新**: `7202e9b` — docs: y@lend 向け文書を claude.ai 日本語 UI 表記に統一 (#447)
 
 ---
 
@@ -20,16 +20,19 @@
 
 ## 今セッションの成果
 
-### マージ済み PR（本セッション）
+### マージ済み PR（本セッション、累計 7 本）
 
 | PR | 内容 | マージ SHA |
 |----|------|------|
+| #437 | CLAUDE.md に Operational Status セクション追加 | `31a7c3f` |
 | #438 | SmartHR MCP に外部 readonly 例外メール許可機能を追加 | `2c417f3` |
 | #443 | Phase 13 本番デプロイ完了反映 + 外部ユーザー接続手順書 | `034aa19` |
 | #444 | y@lend 本人宛の接続依頼文（T13 送付用）を追加 | `96c60dc` |
-| **#445** | **給与明細機能の完全排除** | **`6616767`** |
+| #445 | 給与明細機能の完全排除（Phase 14） | `6616767` |
+| #446 | Phase 14 完了反映（ハンドオフ更新） | `7445dd1` |
+| **#447** | **y@lend 向け文書を claude.ai 日本語 UI 表記に統一** | **`7202e9b`** |
 
-### 作成した Issue（follow-up）
+### 作成した Issue（本セッション、累計 5 件）
 
 | # | 内容 | ラベル |
 |----|------|--------|
@@ -37,6 +40,7 @@
 | #440 | fallback UserStore の fail-closed 化 | bug, P1 |
 | #441 | 外部例外 OAuth 統合テスト追加 | enhancement, P2 |
 | #442 | Mermaid 図と email 正規化の polish | enhancement, P2 |
+| **#448** | **T13 実機検証トラッキング + 監視コマンド**（外部ユーザー接続ログ待ち） | **P2** |
 
 ### デプロイ状況
 
@@ -77,7 +81,7 @@
 | ID | タスク | 状態 |
 |----|-------|------|
 | T1-T12, T14 | 実装・テスト・ドキュメント・デプロイ・環境変数・Firestore 登録・ハンドオフ | ✅ 完了 |
-| T13 | 実機検証（y@lend 本人に依頼） | ⏳ **外部依頼待ち** |
+| T13 | 実機検証（y@lend 本人に依頼） | 🟡 **依頼送付済（2026-04-17）、接続試行ログ待ち**（Issue #448 で追跡） |
 
 ### Phase 14（P14-A〜G）
 
@@ -200,7 +204,7 @@ cd /Users/yyyhhh/Projects/ACG/hr-system
 git fetch origin
 git checkout main
 git pull
-git log --oneline -3  # 6616767 が HEAD であること確認
+git log --oneline -3  # 7202e9b が HEAD であること確認
 
 # 2. 本番稼働状況確認
 curl -sS https://mcp-smarthr-1021020088552.asia-northeast1.run.app/health
@@ -214,7 +218,10 @@ gcloud run services describe mcp-smarthr --region=asia-northeast1 \
 curl -sS https://mcp-smarthr-1021020088552.asia-northeast1.run.app/docs | grep -oE "7 つのツール|8 つのツール"
 # 期待値: 7 つのツール
 
-# 5. T13 状況確認（y@lend.aozora-cg.com からの連絡）
+# 5. T13 接続ログ確認（y@lend.aozora-cg.com の接続試行有無）
+gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="mcp-smarthr" AND (jsonPayload.userEmail=~"lend" OR jsonPayload.allowedBy="external_email_exception")' \
+  --limit=30 --format="value(timestamp,jsonPayload.message,jsonPayload.userEmail,jsonPayload.allowedBy)"
+# 詳細は Issue #448 参照
 
 # 6. 次セッションでの選択肢（上記「次セッションでの選択肢」参照）
 ```
