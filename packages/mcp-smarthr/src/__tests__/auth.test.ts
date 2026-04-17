@@ -324,6 +324,55 @@ describe("Authorizer", () => {
       expect(readResult.authorized).toBe(true);
       expect(writeResult.authorized).toBe(false);
     });
+
+    it("未知の permission 文字列は silent drop される（Firestore 旧データの regression）", async () => {
+      // 旧 admin ユーザーの Firestore permissions に ["read", "write", "pay_statements"] が
+      // 残っている場合でも、VALID_PERMISSIONS フィルタで "pay_statements" は無視され、
+      // 有効な ["read", "write"] のみが適用される。
+      const store = createMockUserStore({
+        "legacy-admin@aozora-cg.com": {
+          role: "admin",
+          permissions: ["read", "write", "pay_statements" as Permission],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "legacy-admin@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const readResult = await authorizer.authorize(context, "list_employees");
+      const writeResult = await authorizer.authorize(context, "update_employee");
+
+      expect(readResult.authorized).toBe(true);
+      expect(writeResult.authorized).toBe(true);
+    });
+
+    it("全 permission が無効文字列のみ → ROLE_TO_PERMISSIONS にフォールバック", async () => {
+      // 旧データで permissions: ["pay_statements"] のみ残るケース。
+      // フィルタ後が空配列になるため role のデフォルトパーミッションにフォールバック。
+      const store = createMockUserStore({
+        "legacy-readonly@aozora-cg.com": {
+          role: "readonly",
+          permissions: ["pay_statements" as Permission],
+          enabled: true,
+        },
+      });
+      const authorizer = new Authorizer(ALLOWED_DOMAIN, store);
+      const context: AuthContext = {
+        email: "legacy-readonly@aozora-cg.com",
+        domain: "aozora-cg.com",
+        transport: "http",
+      };
+
+      const readResult = await authorizer.authorize(context, "list_employees");
+      const writeResult = await authorizer.authorize(context, "update_employee");
+
+      expect(readResult.authorized).toBe(true);
+      expect(writeResult.authorized).toBe(false);
+    });
   });
 });
 
